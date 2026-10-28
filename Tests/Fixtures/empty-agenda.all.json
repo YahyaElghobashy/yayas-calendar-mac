@@ -1,0 +1,62 @@
+{
+  "accounts" : [
+    {
+      "color" : 9288308,
+      "hasLogo" : true,
+      "id" : "00000000-0000-4000-8000-0000000000A1",
+      "name" : "Orbital Pickle Co.",
+      "tag" : "ORB"
+    },
+    {
+      "color" : 8361704,
+      "hasLogo" : true,
+      "id" : "00000000-0000-4000-8000-0000000000A2",
+      "name" : "The Quiet Comets",
+      "tag" : "CMT"
+    },
+    {
+      "color" : 14711424,
+      "hasLogo" : true,
+      "id" : "00000000-0000-4000-8000-0000000000A3",
+      "name" : "Moonfield Family",
+      "tag" : "FAM"
+    },
+    {
+      "color" : 13805254,
+      "hasLogo" : false,
+      "id" : "00000000-0000-4000-8000-0000000000A0",
+      "name" : "Personal",
+      "tag" : "Personal"
+    }
+  ],
+  "busyDays" : [
+
+  ],
+  "content" : "agenda",
+  "generatedAt" : "2026-10-19T08:47:00Z",
+  "health" : {
+    "state" : "ok",
+    "syncedAt" : "2026-10-19T08:45:00Z"
+  },
+  "kind" : "agenda.all",
+  "mail" : [
+
+  ],
+  "meetings" : [
+
+  ],
+  "pages" : {
+
+  },
+  "rangeDays" : 7,
+  "style" : {
+    "look" : "auto",
+    "showLogos" : true,
+    "textSize" : "standard",
+    "typeface" : "system",
+    "use24Hour" : false
+  },
+  "v" : 1,
+  "windowEnd" : "2026-12-31",
+  "windowStart" : "2026-09-28"
+}

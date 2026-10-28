@@ -1,0 +1,123 @@
+name: Bug report
+description: Something in Yaya's Calendar doesn't work the way it should
+labels:
+  - bug
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Fill in what you can. A partial report is still useful. **One problem per issue.**
+
+        **Keep your own data out of it.** Never attach files from
+        `~/Library/Application Support/YayasCalendar/`: `widget/*.json`, `store.sqlite`, `mailcache/`
+        and `attachments/` hold your meetings, your mail and other people's addresses, and an issue is
+        public. Paste the redacted `--diagnose` line instead (below), and crop screenshots to what the
+        bug needs.
+
+        A security problem goes to a [private report](https://github.com/YahyaElghobashy/yayas-calendar-mac/security/advisories/new), not here.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Before you file
+      description: The [troubleshooting guide](https://github.com/YahyaElghobashy/yayas-calendar-mac/blob/main/docs/TROUBLESHOOTING.md) covers the common ones.
+      options:
+        - label: "I checked the troubleshooting guide (grey or blank widgets, Open Anyway, sign-in and Keychain questions are there)."
+          required: true
+        - label: "It still happens on the latest release."
+          required: true
+        - label: "Nothing I'm attaching comes from the app's data folder."
+          required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened
+      description: What you expected, and what happened instead.
+      placeholder: "I tapped ↻ on the Day widget and it kept showing a meeting I had cancelled."
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Put a Day widget (Large) on the desktop
+        2. Cancel a meeting in Google Calendar
+        3. Tap ↻
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where
+      options:
+        - Widgets
+        - Calendar (app window)
+        - Inbox and reading mail
+        - Writing and sending mail
+        - Attachments
+        - Google sign-in and accounts
+        - Menu bar, popover and ⌃⌥J
+        - Notifications
+        - Install, update or removal
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnose
+    attributes:
+      label: Diagnostics line
+      description: |
+        In Terminal: `"/Applications/Yaya's Calendar.app/Contents/MacOS/YayasCalendar" --diagnose`
+        It prints one line of counts, sync health and error codes. Each account shows as A1, A2, … plus a
+        random ID made on your Mac, and the time zone as a UTC offset. It holds no titles, subjects, names,
+        addresses, account tags or tokens, so it's safe to paste here. Read it before you paste it.
+      render: text
+
+  - type: input
+    id: version
+    attributes:
+      label: Yaya's Calendar version
+      description: Settings → Version.
+      placeholder: "Yaya's Calendar 1.0.0 (build 20261101.1)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: macos
+    attributes:
+      label: macOS version
+      options:
+        - macOS 27
+        - macOS 26
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install
+    attributes:
+      label: How you installed it
+      options:
+        - Downloaded from Releases
+        - Built from source
+        - Another installer or script
+    validations:
+      required: true
+
+  - type: input
+    id: accounts
+    attributes:
+      label: Accounts
+      description: How many Google accounts, and what kind. No addresses, please.
+      placeholder: "3: two Workspace, one personal Gmail"
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Optional. Crop or blur anything personal first.

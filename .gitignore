@@ -1,0 +1,16 @@
+build/
+dist/
+.work/
+Config/*.local.*
+!Config/*.example.*
+*.p12
+*.keychain-db
+*.mobileprovision
+client_secret*.json
+Tests/.out/
+.DS_Store
+brand/*
+!brand/BRAND.md
+!brand/icon/
+.build/
+renders/

@@ -1,0 +1,65 @@
+# Tools/public-rules.txt: generic leak rules for Tools/check-public.sh. Safe to publish: no personal
+# data. The private deny list adds the personal rules on the owner's machine; strangers and CI run
+# these alone.
+#
+# Format, one rule per line, fields separated by one TAB (the private deny list uses the same format):
+#   RULE_ID<TAB>CLASS<TAB>FLAGS<TAB>PERL_REGEX
+#   CLASS is GEN-<NAME>; RULE_ID is CLASS-NN.
+#   FLAGS is a comma list, or "-" for none: i (case-insensitive), w (wrap in word boundaries),
+#   path (the regex runs on the file path relative to the scanned root, not on the content).
+#   The token {+} is deleted when this file is loaded. Secret shapes are split with it, so they are
+#   assembled at run time and this file never holds a literal that a secret scanner would report.
+# Exceptions, one per line:
+#   SKIP<TAB>RULE_ID<TAB>PATH_REGEX<TAB>MATCH_REGEX
+#   A hit of RULE_ID in a file whose path matches PATH_REGEX is ignored when the matched text matches
+#   MATCH_REGEX in full. Keep these narrow: one file, the exact values.
+#   Write a slash as [/] in MATCH_REGEX, so the value in this file is not itself a hit.
+
+# Absolute home-folder paths, with '/' or '\' between the parts (Windows, JSON's \/), and the
+# lower-case form where no host name comes before it; ~name/ is the same folder. Placeholders
+# (/Users/you/, /Users/Shared/, CI runner homes) and numeric ids (an API's /users/123) pass.
+GEN-PATH-01	GEN-PATH	-	(?:[\\/]+Use{+}rs|(?<![A-Za-z0-9._:-])[\\/]+(?i:use{+}rs))[\\/]+(?!(?i:Shared|you|username|user|me|name|example|runner)(?![A-Za-z0-9._-]))(?![0-9]+(?![A-Za-z0-9._-]))[A-Za-z0-9._-]+
+GEN-PATH-02	GEN-PATH	-	(?:^|(?<=[\s"'`=(\[,]))~(?!(?:you|user|username|me|name|example|runner)/)[a-z_][a-z0-9._-]+/
+
+# Email addresses outside the reserved names: .example .test .invalid .localhost .local (RFC 6762; the app's own
+# Message-ID and Content-ID host), example.com/.org/.net, a sentence's full stop after them allowed.
+# Image scale suffixes (name@2x.png) are not addresses.
+GEN-MAIL-01	GEN-MAIL	i	(?<![A-Za-z0-9._%+-])[A-Za-z0-9._%+-]+@(?![0-9]x\.)(?!(?:[A-Za-z0-9-]+\.)*(?:example|test|invalid|localhost|local)(?![A-Za-z0-9-]|\.[A-Za-z0-9]))(?!(?:[A-Za-z0-9-]+\.)*example\.(?:com|org|net)(?![A-Za-z0-9-]|\.[A-Za-z0-9]))[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}(?![A-Za-z0-9-])
+# A quoted-printable soft break cuts one cast Content-ID ("...@...exam=") in this send-path golden.
+SKIP	GEN-MAIL-01	\ATests/Data/Goldens/mime/06-reply-quote\.eml\z	[A-Za-z0-9._-]+@[A-Za-z0-9-]+\.exam
+
+# Time-zone identifiers, with '/' or '\' between the parts. Allowed everywhere: Europe/London,
+# America/New_York, UTC (and Etc/UTC, Etc/GMT).
+# Edge-case test files may name other zones only through the SKIP lines below.
+GEN-TZ-01	GEN-TZ	-	(?<![A-Za-z0-9_/\\])(?!(?:Europe[\\/]+London|America[\\/]+New_York|Etc[\\/]+UTC|Etc[\\/]+GMT)(?![A-Za-z0-9_/\\+-]))(?:Africa|America|Antarctica|Arctic|Asia|Atlantic|Australia|Brazil|Canada|Chile|Europe|Indian|Mexico|Pacific|US|Etc)[\\/]+[A-Z][A-Za-z0-9_+-]*(?:[\\/]+[A-Z][A-Za-z0-9_+-]*)?
+SKIP	GEN-TZ-01	\ATests/RenderCacheTests\.swift\z	America[/]Los_Angeles|Asia[/]Tokyo|Pacific[/]Kiritimati
+
+# Meeting IDs and personal rooms on real hosts. Synthetic IDs pass: 1234567890, 0000000000, abc-defg-hij,
+# and the room names example, sample, demo.
+GEN-MEET-01	GEN-MEET	i	\bzoom(?:gov)?\.(?:us|com)/(?:j|s|w)/(?!(?:1234567890|0000000000)(?![0-9]))[0-9]{8,13}
+GEN-MEET-02	GEN-MEET	i	\bzoom(?:gov)?\.(?:us|com)/my/(?!(?:example|sample|demo)(?![A-Za-z0-9._-]))[A-Za-z0-9._-]+
+GEN-MEET-03	GEN-MEET	i	\bmeet\.google\.com/(?!abc-defg-hij(?![a-z]))[a-z]{3}-[a-z]{4}-[a-z]{3}(?![a-z])
+GEN-MEET-04	GEN-MEET	i	\bteams\.(?:microsoft|live)\.com/meet/(?!(?:1234567890|0000000000)(?![0-9]))[0-9]{6,}
+GEN-MEET-05	GEN-MEET	i	\bteams\.microsoft\.com/l/meetup-join/19(?:%3a|:)meeting_[A-Za-z0-9]{10,}
+GEN-MEET-06	GEN-MEET	i	\b(?:(?:global|app)\.gotomeeting\.com/join|meet\.goto\.com|app\.goto\.com/meeting)/(?!(?:123456789|1234567890|000000000|0000000000)(?![0-9]))[0-9]{9,}
+GEN-MEET-07	GEN-MEET	i	\bchime\.aws/(?!(?:1234567890|0000000000)(?![0-9]))[0-9]{10}
+GEN-MEET-08	GEN-MEET	i	\b[a-z0-9-]+\.webex\.com/(?:meet|join)/(?!(?:example|sample|demo)(?![A-Za-z0-9._-]))[A-Za-z0-9._-]+
+GEN-MEET-09	GEN-MEET	i	\bwebex\.com/[A-Za-z0-9/._-]*j\.php\?MTID=[A-Za-z0-9]{10,}
+
+# Images under brand/ must be on this allowlist (paths relative to brand/, inside the (?!(?:...)\z) group).
+# Approved: the app icon master and its 1024 px tile (Resources/Brand/, re-encoded with no metadata).
+# Cast logos are added here when they land.
+GEN-BRAND-01	GEN-BRAND	i,path	(?:\A|/)brand/(?!(?:AppIcon-Source\.png|AppIcon-1024\.png)\z).*\.(?:png|jpe?g|gif|svg|webp|heic|tiff?|icns|ico|pdf|psd|ai|sketch|fig|car)\z
+
+# Secret shapes: Google client secret, Google client id, Google access and refresh tokens, Google API key,
+# PEM private keys, GitHub tokens, Slack tokens. Tools/check-secrets.sh uses this class too.
+GEN-SECRET-01	GEN-SECRET	-	GOC{+}SPX-[A-Za-z0-9_-]{10,}
+GEN-SECRET-02	GEN-SECRET	-	[0-9]{6,}-[a-z0-9]{20,}\.apps\.google{+}usercontent\.com
+GEN-SECRET-03	GEN-SECRET	-	ya{+}29\.[A-Za-z0-9_-]{20,}
+GEN-SECRET-04	GEN-SECRET	-	1/{+}/0[A-Za-z0-9_-]{20,}
+GEN-SECRET-05	GEN-SECRET	-	A{+}Iza[0-9A-Za-z_-]{35}
+GEN-SECRET-06	GEN-SECRET	-	-----BEGIN (?:[A-Z0-9]+ )*PRIV{+}ATE KEY-----
+GEN-SECRET-07	GEN-SECRET	-	gh{+}[pousr]_[A-Za-z0-9]{36,}
+GEN-SECRET-08	GEN-SECRET	-	github{+}_pat_[A-Za-z0-9_]{22,}
+GEN-SECRET-09	GEN-SECRET	-	xo{+}x[abposre]-[A-Za-z0-9-]{10,}
+GEN-SECRET-10	GEN-SECRET	-	xa{+}pp-[0-9]+-[A-Za-z0-9-]{10,}

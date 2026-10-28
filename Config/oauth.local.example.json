@@ -1,0 +1,4 @@
+{
+  "google": { "clientId": "PASTE.apps.googleusercontent.com", "clientSecret": "PASTE" },
+  "microsoft": { "clientId": "00000000-0000-0000-0000-000000000000" }
+}

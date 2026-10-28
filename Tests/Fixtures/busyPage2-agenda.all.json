@@ -1,0 +1,482 @@
+{
+  "accounts" : [
+    {
+      "color" : 9288308,
+      "hasLogo" : true,
+      "id" : "00000000-0000-4000-8000-0000000000A1",
+      "name" : "Orbital Pickle Co.",
+      "tag" : "ORB"
+    },
+    {
+      "color" : 8361704,
+      "hasLogo" : true,
+      "id" : "00000000-0000-4000-8000-0000000000A2",
+      "name" : "The Quiet Comets",
+      "tag" : "CMT"
+    },
+    {
+      "color" : 14711424,
+      "hasLogo" : true,
+      "id" : "00000000-0000-4000-8000-0000000000A3",
+      "name" : "Moonfield Family",
+      "tag" : "FAM"
+    },
+    {
+      "color" : 13805254,
+      "hasLogo" : false,
+      "id" : "00000000-0000-4000-8000-0000000000A0",
+      "name" : "Personal",
+      "tag" : "Personal"
+    }
+  ],
+  "busyDays" : [
+    "2026-10-19",
+    "2026-10-20",
+    "2026-10-21",
+    "2026-10-22",
+    "2026-10-23",
+    "2026-10-26"
+  ],
+  "content" : "agenda",
+  "generatedAt" : "2026-10-19T08:47:00Z",
+  "health" : {
+    "state" : "ok",
+    "syncedAt" : "2026-10-19T08:45:00Z"
+  },
+  "kind" : "agenda.all",
+  "mail" : [
+
+  ],
+  "meetings" : [
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A1"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-19T08:45:00Z",
+      "hasJoin" : true,
+      "k" : "_zNABakdkeAypcGR",
+      "r" : "ev1",
+      "reply" : "accepted",
+      "start" : "2026-10-19T08:30:00Z",
+      "title" : "Team stand-up"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A2"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-19T09:45:00Z",
+      "hasJoin" : true,
+      "k" : "FEjlr7ykMEVmAnUB",
+      "r" : "ev2",
+      "reply" : "accepted",
+      "start" : "2026-10-19T09:00:00Z",
+      "title" : "The Comets weekly sync"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A3"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-19T11:30:00Z",
+      "hasJoin" : true,
+      "k" : "fw0W9TVvUSaNXZI6",
+      "r" : "ev3",
+      "reply" : "accepted",
+      "start" : "2026-10-19T10:30:00Z",
+      "title" : "Holiday plan review"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A0"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-19T13:00:00Z",
+      "hasJoin" : false,
+      "k" : "LnihQ62RTTieT8oq",
+      "place" : "Café Nowhere",
+      "r" : "ev4",
+      "reply" : "accepted",
+      "start" : "2026-10-19T12:00:00Z",
+      "title" : "Lunch with Rafa"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A1",
+        "00000000-0000-4000-8000-0000000000A2"
+      ],
+      "allDay" : false,
+      "clashes" : true,
+      "end" : "2026-10-19T14:00:00Z",
+      "hasJoin" : true,
+      "k" : "IDRKxmRS8u_KGI7Y",
+      "r" : "grp-jingle",
+      "reply" : "accepted",
+      "start" : "2026-10-19T13:00:00Z",
+      "title" : "Pickle × Comets jingle weekly"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A2"
+      ],
+      "allDay" : false,
+      "clashes" : true,
+      "end" : "2026-10-19T14:00:00Z",
+      "hasJoin" : true,
+      "k" : "4oXfJuL9C4vyO1P5",
+      "r" : "ev6",
+      "reply" : "needsReply",
+      "start" : "2026-10-19T13:30:00Z",
+      "title" : "Album artwork walkthrough"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A3"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-19T15:30:00Z",
+      "hasJoin" : true,
+      "k" : "HQEIubGMKey0A3Dg",
+      "r" : "ev7",
+      "reply" : "accepted",
+      "start" : "2026-10-19T15:00:00Z",
+      "title" : "School trip check-in"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A0"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-19T18:30:00Z",
+      "hasJoin" : false,
+      "k" : "yzzoFIJ-WqBwsXJU",
+      "place" : "Basement B",
+      "r" : "ev8",
+      "reply" : "accepted",
+      "start" : "2026-10-19T17:30:00Z",
+      "title" : "Gym"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A1"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-20T08:45:00Z",
+      "hasJoin" : true,
+      "k" : "DWbu7v0tABS4VIlB",
+      "r" : "ev9",
+      "reply" : "accepted",
+      "start" : "2026-10-20T08:30:00Z",
+      "title" : "Team stand-up"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A2"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-20T10:30:00Z",
+      "hasJoin" : true,
+      "k" : "DRBbtpBQpNrCvmWU",
+      "r" : "ev10",
+      "reply" : "accepted",
+      "start" : "2026-10-20T10:00:00Z",
+      "title" : "Mix notes with Milo"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A3"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-20T12:00:00Z",
+      "hasJoin" : true,
+      "k" : "XiViwKMCj5XMuYHE",
+      "r" : "ev11",
+      "reply" : "accepted",
+      "start" : "2026-10-20T11:00:00Z",
+      "title" : "Kickoff · Garden project"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A1"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-20T14:45:00Z",
+      "hasJoin" : true,
+      "k" : "15JH-R2OpF9tWX9J",
+      "r" : "ev12",
+      "reply" : "maybe",
+      "start" : "2026-10-20T14:00:00Z",
+      "title" : "Design crit"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A0"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-20T16:45:00Z",
+      "hasJoin" : false,
+      "k" : "PE5XDWZH7KgTUByg",
+      "place" : "Suite 404",
+      "r" : "ev13",
+      "reply" : "accepted",
+      "start" : "2026-10-20T16:00:00Z",
+      "title" : "Dentist"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A3"
+      ],
+      "allDay" : true,
+      "clashes" : false,
+      "end" : "2026-10-21T23:00:00Z",
+      "hasJoin" : false,
+      "k" : "B3KL_aCN-uJPet-1",
+      "place" : "The lake house",
+      "r" : "ev-allday-offsite",
+      "reply" : "accepted",
+      "start" : "2026-10-20T23:00:00Z",
+      "title" : "Family day out"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A1"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-21T08:45:00Z",
+      "hasJoin" : true,
+      "k" : "aN8DimLSM6VSOMEJ",
+      "r" : "ev14",
+      "reply" : "accepted",
+      "start" : "2026-10-21T08:30:00Z",
+      "title" : "Team stand-up"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A2"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-21T11:00:00Z",
+      "hasJoin" : true,
+      "k" : "8mmdYCuRm_8wrXSU",
+      "r" : "ev15",
+      "reply" : "accepted",
+      "start" : "2026-10-21T09:30:00Z",
+      "title" : "Tour planning"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A3"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-21T12:45:00Z",
+      "hasJoin" : true,
+      "k" : "xoyx5JH5SgddvmCg",
+      "r" : "ev16",
+      "reply" : "accepted",
+      "start" : "2026-10-21T12:00:00Z",
+      "title" : "Video call with Grandma"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A1"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-21T15:00:00Z",
+      "hasJoin" : true,
+      "k" : "FM5e52e9GE-9wLkW",
+      "r" : "ev17",
+      "reply" : "accepted",
+      "start" : "2026-10-21T14:30:00Z",
+      "title" : "1:1 with Juniper"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A1"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-22T08:45:00Z",
+      "hasJoin" : true,
+      "k" : "-qE2bILNPre_-8TY",
+      "r" : "ev18",
+      "reply" : "accepted",
+      "start" : "2026-10-22T08:30:00Z",
+      "title" : "Team stand-up"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A2"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-22T11:00:00Z",
+      "hasJoin" : true,
+      "k" : "3JJWJlc3Lw6_mt64",
+      "r" : "ev19",
+      "reply" : "accepted",
+      "start" : "2026-10-22T10:00:00Z",
+      "title" : "Monthly budget review"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A3"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-22T14:00:00Z",
+      "hasJoin" : true,
+      "k" : "dg-45NatxocD5YTh",
+      "r" : "ev20",
+      "reply" : "accepted",
+      "start" : "2026-10-22T13:00:00Z",
+      "title" : "Homework club"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A0"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-22T19:30:00Z",
+      "hasJoin" : false,
+      "k" : "CI17F75w_3eTs3vR",
+      "place" : "Riverside studio",
+      "r" : "ev21",
+      "reply" : "accepted",
+      "start" : "2026-10-22T18:00:00Z",
+      "title" : "Yoga"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A1"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-23T08:45:00Z",
+      "hasJoin" : true,
+      "k" : "0WSuedo-m-Te01Ze",
+      "r" : "ev22",
+      "reply" : "accepted",
+      "start" : "2026-10-23T08:30:00Z",
+      "title" : "Team stand-up"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A2"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-23T11:45:00Z",
+      "hasJoin" : true,
+      "k" : "0_HdIzgWkoQMqx-U",
+      "r" : "ev23",
+      "reply" : "accepted",
+      "start" : "2026-10-23T11:00:00Z",
+      "title" : "Gear check"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A0"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-23T21:00:00Z",
+      "hasJoin" : false,
+      "k" : "9ZjwpGfZ-L4nlQlb",
+      "r" : "ev24",
+      "reply" : "accepted",
+      "start" : "2026-10-23T19:00:00Z",
+      "title" : "Family dinner"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A1"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-26T09:45:00Z",
+      "hasJoin" : true,
+      "k" : "cVfrilWkwLkryimi",
+      "r" : "ev25",
+      "reply" : "accepted",
+      "start" : "2026-10-26T09:30:00Z",
+      "title" : "Team stand-up"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A3"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-26T11:00:00Z",
+      "hasJoin" : true,
+      "k" : "NRoQe7JGyYNx1Pnl",
+      "r" : "ev26",
+      "reply" : "accepted",
+      "start" : "2026-10-26T10:00:00Z",
+      "title" : "Meal planning"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A2"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-26T13:30:00Z",
+      "hasJoin" : true,
+      "k" : "AsjUQblYH3GrwmW-",
+      "r" : "ev27",
+      "reply" : "accepted",
+      "start" : "2026-10-26T13:00:00Z",
+      "title" : "Call with Lantern Hall"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A1"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-26T17:00:00Z",
+      "hasJoin" : true,
+      "k" : "dQeP0HP_W2wghFQ5",
+      "r" : "ev28",
+      "reply" : "accepted",
+      "start" : "2026-10-26T16:00:00Z",
+      "title" : "All hands"
+    }
+  ],
+  "pageResetAt" : "2026-10-19T08:52:00Z",
+  "pages" : {
+    "L" : 2,
+    "M" : 1,
+    "XL" : 2,
+    "XLP" : 2
+  },
+  "rangeDays" : 7,
+  "style" : {
+    "look" : "auto",
+    "showLogos" : true,
+    "textSize" : "standard",
+    "typeface" : "system",
+    "use24Hour" : false
+  },
+  "v" : 1,
+  "windowEnd" : "2026-12-31",
+  "windowStart" : "2026-09-28"
+}

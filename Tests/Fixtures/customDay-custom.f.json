@@ -1,0 +1,105 @@
+{
+  "accounts" : [
+    {
+      "color" : 9288308,
+      "hasLogo" : true,
+      "id" : "00000000-0000-4000-8000-0000000000A1",
+      "name" : "Orbital Pickle Co.",
+      "tag" : "ORB"
+    },
+    {
+      "color" : 14711424,
+      "hasLogo" : true,
+      "id" : "00000000-0000-4000-8000-0000000000A3",
+      "name" : "Moonfield Family",
+      "tag" : "FAM"
+    }
+  ],
+  "busyDays" : [
+
+  ],
+  "content" : "day",
+  "generatedAt" : "2026-10-19T08:47:00Z",
+  "health" : {
+    "state" : "ok",
+    "syncedAt" : "2026-10-19T08:45:00Z"
+  },
+  "kind" : "custom.f",
+  "mail" : [
+
+  ],
+  "meetings" : [
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A1"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-19T08:45:00Z",
+      "hasJoin" : true,
+      "k" : "_zNABakdkeAypcGR",
+      "r" : "ev1",
+      "reply" : "accepted",
+      "start" : "2026-10-19T08:30:00Z",
+      "title" : "Team stand-up"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A3"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-19T11:30:00Z",
+      "hasJoin" : true,
+      "k" : "fw0W9TVvUSaNXZI6",
+      "r" : "ev3",
+      "reply" : "accepted",
+      "start" : "2026-10-19T10:30:00Z",
+      "title" : "Holiday plan review"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A1",
+        "00000000-0000-4000-8000-0000000000A2"
+      ],
+      "allDay" : false,
+      "clashes" : true,
+      "end" : "2026-10-19T14:00:00Z",
+      "hasJoin" : true,
+      "k" : "IDRKxmRS8u_KGI7Y",
+      "r" : "grp-jingle",
+      "reply" : "accepted",
+      "start" : "2026-10-19T13:00:00Z",
+      "title" : "Pickle × Comets jingle weekly"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A3"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-19T15:30:00Z",
+      "hasJoin" : true,
+      "k" : "HQEIubGMKey0A3Dg",
+      "r" : "ev7",
+      "reply" : "accepted",
+      "start" : "2026-10-19T15:00:00Z",
+      "title" : "School trip check-in"
+    }
+  ],
+  "pages" : {
+
+  },
+  "rangeDays" : 7,
+  "style" : {
+    "look" : "auto",
+    "showLogos" : true,
+    "textSize" : "standard",
+    "typeface" : "system",
+    "use24Hour" : false
+  },
+  "title" : "Work",
+  "v" : 1,
+  "windowEnd" : "2026-12-31",
+  "windowStart" : "2026-09-28"
+}

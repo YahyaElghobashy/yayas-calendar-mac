@@ -1,0 +1,133 @@
+{
+  "accounts" : [
+    {
+      "color" : 9288308,
+      "hasLogo" : true,
+      "id" : "00000000-0000-4000-8000-0000000000A1",
+      "name" : "Orbital Pickle Co.",
+      "tag" : "ORB"
+    },
+    {
+      "color" : 8361704,
+      "hasLogo" : true,
+      "id" : "00000000-0000-4000-8000-0000000000A2",
+      "name" : "The Quiet Comets",
+      "tag" : "CMT"
+    },
+    {
+      "color" : 14711424,
+      "hasLogo" : true,
+      "id" : "00000000-0000-4000-8000-0000000000A3",
+      "name" : "Moonfield Family",
+      "tag" : "FAM"
+    },
+    {
+      "color" : 13805254,
+      "hasLogo" : false,
+      "id" : "00000000-0000-4000-8000-0000000000A0",
+      "name" : "Personal",
+      "tag" : "Personal"
+    }
+  ],
+  "busyDays" : [
+
+  ],
+  "content" : "day",
+  "generatedAt" : "2026-10-19T08:47:00Z",
+  "health" : {
+    "state" : "ok",
+    "syncedAt" : "2026-10-19T08:45:00Z"
+  },
+  "kind" : "day",
+  "mail" : [
+
+  ],
+  "meetings" : [
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A3"
+      ],
+      "allDay" : true,
+      "clashes" : false,
+      "end" : "2026-10-21T23:00:00Z",
+      "hasJoin" : false,
+      "k" : "B3KL_aCN-uJPet-1",
+      "place" : "The lake house",
+      "r" : "ev-allday-offsite",
+      "reply" : "accepted",
+      "start" : "2026-10-20T23:00:00Z",
+      "title" : "Family day out"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A1"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-21T08:45:00Z",
+      "hasJoin" : true,
+      "k" : "aN8DimLSM6VSOMEJ",
+      "r" : "ev14",
+      "reply" : "accepted",
+      "start" : "2026-10-21T08:30:00Z",
+      "title" : "Team stand-up"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A2"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-21T11:00:00Z",
+      "hasJoin" : true,
+      "k" : "8mmdYCuRm_8wrXSU",
+      "r" : "ev15",
+      "reply" : "accepted",
+      "start" : "2026-10-21T09:30:00Z",
+      "title" : "Tour planning"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A3"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-21T12:45:00Z",
+      "hasJoin" : true,
+      "k" : "xoyx5JH5SgddvmCg",
+      "r" : "ev16",
+      "reply" : "accepted",
+      "start" : "2026-10-21T12:00:00Z",
+      "title" : "Video call with Grandma"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A1"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-21T15:00:00Z",
+      "hasJoin" : true,
+      "k" : "FM5e52e9GE-9wLkW",
+      "r" : "ev17",
+      "reply" : "accepted",
+      "start" : "2026-10-21T14:30:00Z",
+      "title" : "1:1 with Juniper"
+    }
+  ],
+  "pages" : {
+
+  },
+  "rangeDays" : 7,
+  "selectedDay" : "2026-10-21",
+  "style" : {
+    "look" : "auto",
+    "showLogos" : true,
+    "textSize" : "standard",
+    "typeface" : "system",
+    "use24Hour" : false
+  },
+  "v" : 1,
+  "windowEnd" : "2026-12-31",
+  "windowStart" : "2026-09-28"
+}

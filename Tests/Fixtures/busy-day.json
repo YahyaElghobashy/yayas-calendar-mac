@@ -1,0 +1,176 @@
+{
+  "accounts" : [
+    {
+      "color" : 9288308,
+      "hasLogo" : true,
+      "id" : "00000000-0000-4000-8000-0000000000A1",
+      "name" : "Orbital Pickle Co.",
+      "tag" : "ORB"
+    },
+    {
+      "color" : 8361704,
+      "hasLogo" : true,
+      "id" : "00000000-0000-4000-8000-0000000000A2",
+      "name" : "The Quiet Comets",
+      "tag" : "CMT"
+    },
+    {
+      "color" : 14711424,
+      "hasLogo" : true,
+      "id" : "00000000-0000-4000-8000-0000000000A3",
+      "name" : "Moonfield Family",
+      "tag" : "FAM"
+    },
+    {
+      "color" : 13805254,
+      "hasLogo" : false,
+      "id" : "00000000-0000-4000-8000-0000000000A0",
+      "name" : "Personal",
+      "tag" : "Personal"
+    }
+  ],
+  "busyDays" : [
+
+  ],
+  "content" : "day",
+  "generatedAt" : "2026-10-19T08:47:00Z",
+  "health" : {
+    "state" : "ok",
+    "syncedAt" : "2026-10-19T08:45:00Z"
+  },
+  "kind" : "day",
+  "mail" : [
+
+  ],
+  "meetings" : [
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A1"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-19T08:45:00Z",
+      "hasJoin" : true,
+      "k" : "_zNABakdkeAypcGR",
+      "r" : "ev1",
+      "reply" : "accepted",
+      "start" : "2026-10-19T08:30:00Z",
+      "title" : "Team stand-up"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A2"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-19T09:45:00Z",
+      "hasJoin" : true,
+      "k" : "FEjlr7ykMEVmAnUB",
+      "r" : "ev2",
+      "reply" : "accepted",
+      "start" : "2026-10-19T09:00:00Z",
+      "title" : "The Comets weekly sync"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A3"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-19T11:30:00Z",
+      "hasJoin" : true,
+      "k" : "fw0W9TVvUSaNXZI6",
+      "r" : "ev3",
+      "reply" : "accepted",
+      "start" : "2026-10-19T10:30:00Z",
+      "title" : "Holiday plan review"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A0"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-19T13:00:00Z",
+      "hasJoin" : false,
+      "k" : "LnihQ62RTTieT8oq",
+      "place" : "Café Nowhere",
+      "r" : "ev4",
+      "reply" : "accepted",
+      "start" : "2026-10-19T12:00:00Z",
+      "title" : "Lunch with Rafa"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A1",
+        "00000000-0000-4000-8000-0000000000A2"
+      ],
+      "allDay" : false,
+      "clashes" : true,
+      "end" : "2026-10-19T14:00:00Z",
+      "hasJoin" : true,
+      "k" : "IDRKxmRS8u_KGI7Y",
+      "r" : "grp-jingle",
+      "reply" : "accepted",
+      "start" : "2026-10-19T13:00:00Z",
+      "title" : "Pickle × Comets jingle weekly"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A2"
+      ],
+      "allDay" : false,
+      "clashes" : true,
+      "end" : "2026-10-19T14:00:00Z",
+      "hasJoin" : true,
+      "k" : "4oXfJuL9C4vyO1P5",
+      "r" : "ev6",
+      "reply" : "needsReply",
+      "start" : "2026-10-19T13:30:00Z",
+      "title" : "Album artwork walkthrough"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A3"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-19T15:30:00Z",
+      "hasJoin" : true,
+      "k" : "HQEIubGMKey0A3Dg",
+      "r" : "ev7",
+      "reply" : "accepted",
+      "start" : "2026-10-19T15:00:00Z",
+      "title" : "School trip check-in"
+    },
+    {
+      "accountIds" : [
+        "00000000-0000-4000-8000-0000000000A0"
+      ],
+      "allDay" : false,
+      "clashes" : false,
+      "end" : "2026-10-19T18:30:00Z",
+      "hasJoin" : false,
+      "k" : "yzzoFIJ-WqBwsXJU",
+      "place" : "Basement B",
+      "r" : "ev8",
+      "reply" : "accepted",
+      "start" : "2026-10-19T17:30:00Z",
+      "title" : "Gym"
+    }
+  ],
+  "pages" : {
+
+  },
+  "rangeDays" : 7,
+  "style" : {
+    "look" : "auto",
+    "showLogos" : true,
+    "textSize" : "standard",
+    "typeface" : "system",
+    "use24Hour" : false
+  },
+  "v" : 1,
+  "windowEnd" : "2026-12-31",
+  "windowStart" : "2026-09-28"
+}

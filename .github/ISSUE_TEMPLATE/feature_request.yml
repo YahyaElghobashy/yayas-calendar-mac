@@ -1,0 +1,62 @@
+name: Feature request
+description: Suggest something new for Yaya's Calendar, or a change to something that exists
+labels:
+  - enhancement
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Someone may have asked already.** Search the open issues first; a comment and a thumbs-up on an
+        existing request carry further than a second issue for the same thing.
+
+        Some limits are deliberate and listed under "Known truths" in the README: Google accounts only
+        in 1.0, no server of any kind, widgets that use links rather than App Intents, and nothing on the network
+        but Google and the account logos. A request that changes one of those is welcome; say why it's worth it.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do, and what gets in the way?
+      placeholder: "When I have two meetings at the same time, I can't tell from the Up Next widget."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: What you'd like
+      description: Describe the change you have in mind.
+      placeholder: "Up Next could say \"+1 at the same time\" under the title."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where
+      options:
+        - Widgets
+        - Calendar (app window)
+        - Inbox and reading mail
+        - Writing and sending mail
+        - Attachments
+        - Google sign-in and accounts
+        - Menu bar, popover and ⌃⌥J
+        - Notifications
+        - Something new
+    validations:
+      required: true
+
+  - type: input
+    id: elsewhere
+    attributes:
+      label: Does another app do this?
+      description: A name, or a description of the behaviour you mean, helps.
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: Sketches or references
+      description: Optional. No personal data, please.

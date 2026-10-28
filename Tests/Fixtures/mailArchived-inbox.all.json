@@ -1,0 +1,208 @@
+{
+  "accounts" : [
+    {
+      "color" : 9288308,
+      "hasLogo" : true,
+      "id" : "00000000-0000-4000-8000-0000000000A1",
+      "name" : "Orbital Pickle Co.",
+      "tag" : "ORB"
+    },
+    {
+      "color" : 8361704,
+      "hasLogo" : true,
+      "id" : "00000000-0000-4000-8000-0000000000A2",
+      "name" : "The Quiet Comets",
+      "tag" : "CMT"
+    },
+    {
+      "color" : 14711424,
+      "hasLogo" : true,
+      "id" : "00000000-0000-4000-8000-0000000000A3",
+      "name" : "Moonfield Family",
+      "tag" : "FAM"
+    },
+    {
+      "color" : 13805254,
+      "hasLogo" : false,
+      "id" : "00000000-0000-4000-8000-0000000000A0",
+      "name" : "Personal",
+      "tag" : "Personal"
+    }
+  ],
+  "busyDays" : [
+    "2026-10-19",
+    "2026-10-20",
+    "2026-10-21",
+    "2026-10-22",
+    "2026-10-23",
+    "2026-10-26"
+  ],
+  "content" : "inbox",
+  "generatedAt" : "2026-10-19T08:47:00Z",
+  "health" : {
+    "state" : "ok",
+    "syncedAt" : "2026-10-19T08:45:00Z"
+  },
+  "kind" : "inbox.all",
+  "mail" : [
+    {
+      "accountId" : "00000000-0000-4000-8000-0000000000A2",
+      "at" : "2026-10-19T08:41:00Z",
+      "k" : "RqNU7Ur8VNcEKRBg",
+      "r" : "th-milo",
+      "sender" : "Milo Brightwater",
+      "starred" : true,
+      "subject" : "Re: mix notes before Tuesday",
+      "unread" : true
+    },
+    {
+      "accountId" : "00000000-0000-4000-8000-0000000000A1",
+      "archivedAt" : "2026-10-19T08:47:52Z",
+      "at" : "2026-10-19T08:12:00Z",
+      "k" : "aa99ivUpolu7G3rI",
+      "r" : "th-jingle",
+      "sender" : "Orbital Pickle Co.",
+      "starred" : false,
+      "subject" : "Agenda for today's weekly",
+      "unread" : false
+    },
+    {
+      "accountId" : "00000000-0000-4000-8000-0000000000A3",
+      "at" : "2026-10-19T07:55:00Z",
+      "k" : "FPlEgQUGR8EtXHMQ",
+      "r" : "th-photos",
+      "sender" : "Photo Backup",
+      "starred" : false,
+      "subject" : "Your import finished: 2,318 photos",
+      "unread" : false
+    },
+    {
+      "accountId" : "00000000-0000-4000-8000-0000000000A0",
+      "at" : "2026-10-19T07:30:00Z",
+      "k" : "Bj2N2FOFK6RKgZc3",
+      "r" : "th-rafa",
+      "sender" : "Rafa",
+      "starred" : false,
+      "subject" : "Still on for lunch? 🍕",
+      "unread" : true
+    },
+    {
+      "accountId" : "00000000-0000-4000-8000-0000000000A1",
+      "at" : "2026-10-19T07:02:00Z",
+      "k" : "FqrCZ5kFqMKz30sW",
+      "r" : "th-juniper",
+      "sender" : "Juniper Vale",
+      "starred" : false,
+      "subject" : "Can we move our 1:1 to Wednesday?",
+      "unread" : true
+    },
+    {
+      "accountId" : "00000000-0000-4000-8000-0000000000A2",
+      "at" : "2026-10-19T06:15:00Z",
+      "k" : "kypdUD7JH7ptMaMt",
+      "r" : "th-gig-report",
+      "sender" : "The Quiet Comets",
+      "starred" : false,
+      "subject" : "October gig report is ready",
+      "unread" : false
+    },
+    {
+      "accountId" : "00000000-0000-4000-8000-0000000000A3",
+      "at" : "2026-10-18T21:10:00Z",
+      "k" : "JwlQNFoksoSQT6dX",
+      "r" : "th-sasha",
+      "sender" : "Sasha",
+      "starred" : false,
+      "subject" : "Holiday plan, v3",
+      "unread" : true
+    },
+    {
+      "accountId" : "00000000-0000-4000-8000-0000000000A0",
+      "at" : "2026-10-18T18:00:00Z",
+      "k" : "pIvCoksGrp1-59j8",
+      "r" : "th-phone",
+      "sender" : "Paper Cup Mobile",
+      "starred" : false,
+      "subject" : "Your bill is ready",
+      "unread" : false
+    },
+    {
+      "accountId" : "00000000-0000-4000-8000-0000000000A1",
+      "at" : "2026-10-18T16:45:00Z",
+      "k" : "9bS1YfY6aKwGrhQe",
+      "r" : "th-wiki",
+      "sender" : "Pickle Wiki",
+      "starred" : false,
+      "subject" : "Weekly digest: 14 updates",
+      "unread" : false
+    },
+    {
+      "accountId" : "00000000-0000-4000-8000-0000000000A2",
+      "at" : "2026-10-18T15:20:00Z",
+      "k" : "7mXuTwtrwoec_YAo",
+      "r" : "th-lantern",
+      "sender" : "Lantern Hall",
+      "starred" : true,
+      "subject" : "Thanks for the call!",
+      "unread" : true
+    },
+    {
+      "accountId" : "00000000-0000-4000-8000-0000000000A3",
+      "at" : "2026-10-18T11:05:00Z",
+      "k" : "sRxDDyDHmAgjO4Un",
+      "r" : "th-parcel",
+      "sender" : "Snail Parcel",
+      "starred" : false,
+      "subject" : "Your parcel is on its way",
+      "unread" : false
+    },
+    {
+      "accountId" : "00000000-0000-4000-8000-0000000000A0",
+      "at" : "2026-10-18T10:30:00Z",
+      "k" : "0Rv8v_BZ6PlSDKQb",
+      "r" : "th-mom",
+      "sender" : "Mom",
+      "starred" : false,
+      "subject" : "Photos from Saturday 📸",
+      "unread" : true
+    },
+    {
+      "accountId" : "00000000-0000-4000-8000-0000000000A1",
+      "at" : "2026-10-18T09:00:00Z",
+      "k" : "IqOGNWu5c3sezJ5Q",
+      "r" : "th-gcal",
+      "sender" : "Google Calendar",
+      "starred" : false,
+      "subject" : "Invitation: All hands, Mon 26 Oct",
+      "unread" : false
+    },
+    {
+      "accountId" : "00000000-0000-4000-8000-0000000000A2",
+      "at" : "2026-10-17T08:00:00Z",
+      "k" : "Jtm4zB1nJfyJZUhQ",
+      "r" : "th-gigboard",
+      "sender" : "Gig Board",
+      "starred" : false,
+      "subject" : "Your band appeared in 41 searches",
+      "unread" : false
+    }
+  ],
+  "meetings" : [
+
+  ],
+  "pages" : {
+
+  },
+  "rangeDays" : 7,
+  "style" : {
+    "look" : "auto",
+    "showLogos" : true,
+    "textSize" : "standard",
+    "typeface" : "system",
+    "use24Hour" : false
+  },
+  "unreadCount" : 6,
+  "v" : 1,
+  "windowEnd" : "2026-12-31",
+  "windowStart" : "2026-09-28"
+}

@@ -1,0 +1,44 @@
+# Tools/public-allow.txt: reviewed exceptions for Tools/check-public.sh, committed. Intentional author
+# credit only: the author's name and handle where the project credits them. It holds no personal literal
+# beyond the two structural patterns below, which are public by design: the bundle-id namespace and the
+# author's GitHub profile links. The maintainer keeps any other reviewed exception in a private allow file
+# of the same format.
+#
+# Entries, fields separated by " : ":
+#   <path> : <CLASS> : <sha256 of the whole line>
+#       One reviewed line in the tree (the LICENSE copyright line, the credit lines of the "Made by" footer,
+#       CODEOWNERS, the copyright line build.sh writes into Info.plist). Path is relative to the repository
+#       root. A changed line needs a new, reviewed entry. For an IMG hit the digest is of the whole file.
+#       Digest of line N without printing it:
+#         sed -n 'Np' FILE | tr -d '\n' | shasum -a 256
+#   bundle:<path inside the app> : <CLASS> : <sha256 of the whole string>
+#       One reviewed string in a built bundle, at the location --bundle prints (bundle:<path>:<section>).
+#   * : <CLASS> : re:<perl regex>
+#       A structural pattern, matched case-insensitively and blanked before that class's rules run, so
+#       the rest of the line is still checked. Escape every dot and anchor both ends: an unanchored
+#       or unescaped pattern blanks the same name inside other URLs and words.
+#   path-re:<perl regex> : <CLASS> : re:<perl regex>
+#       The same, only in the files whose path (relative to the scanned root) matches the first regex.
+
+* : P01 : re:(?<![A-Za-z0-9-])com\.yahyaelghobashy\.(?=[A-Za-z])
+* : P01 : re:(?<![A-Za-z0-9.@-])github\.com/YahyaElghobashy(?![A-Za-z0-9-])
+
+# The two structural lines above, which hold the patterns as text.
+Tools/public-allow.txt : P01 : b09704871643b5e07fc0a7b05cc6a9e486f3c7abebe5af2e2a50a99aa9e8d409
+Tools/public-allow.txt : P01 : bfb8c5097cf7c373356861978d3913b4a28fc2962c81fd446791ee7e0bd79ab9
+
+# Author credit in the tree: the LICENSE copyright line, the "Made by" footer (its copyright comment and
+# name constant), CODEOWNERS, and the Info.plist copyright line build.sh writes (app and widget alike).
+LICENSE : P01 : 069761bdb50ca7cf8fd489676313c040f2f1e0183ec08978297a459bfe50d05e
+Sources/UI/MadeByFooter.swift : P01 : 01681c3743c359c6db5baa815530d205e0cb7c7868aca9adcd857dc9fc514e33
+Sources/UI/MadeByFooter.swift : P01 : 3a62720709151fc3e44240d94f0599c4cc39de9709b22520d42287d90338cbf2
+.github/CODEOWNERS : P01 : eb8b28a1c0b03a41b0832209f2ce991ec4db3202afd0e67d02ef79c91f2ecacb
+build.sh : P01 : dd0b125068f38514b23248e782c513458a0a8f01043035bdae3f418c5142122d
+
+# The same credit in the built app: the Info.plist copyright line (app and widget), the bundled LICENSE
+# and the footer's two credit strings in the app binary.
+bundle:Contents/Info.plist : P01 : dd0b125068f38514b23248e782c513458a0a8f01043035bdae3f418c5142122d
+bundle:Contents/PlugIns/YayasCalendarWidget.appex/Contents/Info.plist : P01 : dd0b125068f38514b23248e782c513458a0a8f01043035bdae3f418c5142122d
+bundle:Contents/Resources/LICENSE : P01 : 069761bdb50ca7cf8fd489676313c040f2f1e0183ec08978297a459bfe50d05e
+bundle:Contents/MacOS/YayasCalendar : P01 : 5546b55d08908fdd28a547eadd5cbd88edf11ba5fa7be01337f4b4896d7fd9cf
+bundle:Contents/MacOS/YayasCalendar : P01 : b4f878e5d35535615b740387df512db773916bb9b96d7470b843e1274cf0e362

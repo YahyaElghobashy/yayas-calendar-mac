@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+# Build only: no signing identity, no notarization, no secrets. `./build.sh --dev` builds the separate dev
+# app and signs it ad hoc, exactly as on any contributor's Mac.
+jobs:
+  build:
+    name: Build, tests, leak and network checks
+    # The runner must have the macOS 27 SDK (Xcode 27 or the Command Line Tools 27, Swift 6.4): the widget
+    # extension uses WidgetFamily.systemExtraLargePortrait, which the macOS 26 SDK doesn't declare for
+    # macOS. Move this to the first image that ships Xcode 27 as its default (macos-27 when GitHub publishes
+    # it). The next step picks a 27 toolchain if the image has one anywhere, and fails clearly if not.
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Toolchain with the macOS 27 SDK
+        run: |
+          set -u
+          for dev in "${DEVELOPER_DIR:-}" /Applications/Xcode_27*.app/Contents/Developer \
+                     /Applications/Xcode.app/Contents/Developer /Library/Developer/CommandLineTools; do
+            [ -n "$dev" ] && [ -d "$dev" ] || continue
+            ver="$(DEVELOPER_DIR="$dev" xcrun --sdk macosx --show-sdk-version 2>/dev/null || true)"
+            major="${ver%%.*}"
+            case "$major" in ''|*[!0-9]*) continue ;; esac
+            if [ "$major" -ge 27 ]; then
+              echo "DEVELOPER_DIR=$dev" >> "$GITHUB_ENV"
+              echo "Using $dev (macOS SDK $ver, $(DEVELOPER_DIR="$dev" xcrun swiftc --version 2>&1 | head -1))"
+              exit 0
+            fi
+          done
+          echo "::error title=macOS 27 SDK missing::This runner's newest macOS SDK is $(xcrun --sdk macosx --show-sdk-version 2>/dev/null || echo 'unknown'). Yaya's Calendar needs SDK 27 or later (the widget extension uses systemExtraLargePortrait). Use a runner image with Xcode 27 or the Command Line Tools 27."
+          exit 1
+
+      - name: Secret shapes (sources)
+        run: Tools/check-secrets.sh
+
+      - name: Leak check, generic rules
+        # Without the maintainer's private list, check-public runs only the published rules in
+        # Tools/public-rules.txt (home-folder paths, real email addresses, meeting links, time zones,
+        # secret shapes) and says so.
+        run: Tools/check-public.sh --tree .
+
+      - name: Sealed network check (sources)
+        run: Tools/check-sealed.sh
+
+      - name: Build the dev app (ad hoc)
+        run: ./build.sh --dev
+
+      - name: Sealed network check (built app)
+        run: Tools/check-sealed.sh "build/Yaya's Calendar Dev.app"
+
+      - name: Tests
+        # Plain swiftc test binaries (no XCTest). The Keychain suites only look up a test item that is never
+        # written (no secret, no dialog); if a runner image has no usable login keychain, they are the ones
+        # to look at first.
+        run: Tests/run-tests.sh

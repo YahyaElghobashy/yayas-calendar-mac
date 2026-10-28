@@ -1,0 +1,12 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: Troubleshooting
+    about: The usual fixes for Gatekeeper, grey or blank widgets, sign-in errors and the Keychain.
+    url: https://github.com/YahyaElghobashy/yayas-calendar-mac/blob/main/docs/TROUBLESHOOTING.md
+  - name: Google sign-in setup
+    about: Your own Google client, step by step, and what each setup error means.
+    url: https://github.com/YahyaElghobashy/yayas-calendar-mac/blob/main/docs/GOOGLE-SETUP.md
+  - name: Security vulnerability
+    about: Please report security problems privately, never in a public issue.
+    url: https://github.com/YahyaElghobashy/yayas-calendar-mac/security/advisories/new

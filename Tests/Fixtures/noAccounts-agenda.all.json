@@ -1,0 +1,34 @@
+{
+  "accounts" : [
+
+  ],
+  "busyDays" : [
+
+  ],
+  "content" : "agenda",
+  "generatedAt" : "2026-10-19T08:47:00Z",
+  "health" : {
+    "state" : "noAccounts"
+  },
+  "kind" : "agenda.all",
+  "mail" : [
+
+  ],
+  "meetings" : [
+
+  ],
+  "pages" : {
+
+  },
+  "rangeDays" : 7,
+  "style" : {
+    "look" : "auto",
+    "showLogos" : true,
+    "textSize" : "standard",
+    "typeface" : "system",
+    "use24Hour" : false
+  },
+  "v" : 1,
+  "windowEnd" : "2026-12-31",
+  "windowStart" : "2026-09-28"
+}
