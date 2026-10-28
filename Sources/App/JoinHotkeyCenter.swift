@@ -85,9 +85,24 @@ final class JoinHotkeyCenter {
     func pressed(now: Date = Date()) {
         let events = (try? Services.calendar.events(from: now, to: now.addingTimeInterval(MeetingFocus.joinEarly + 60), accounts: nil)) ?? []
         switch HotkeyDecision.decide(events, now: now) {
-        case .join(_, let url):
+        case .join(let r, let url):
             // The decision only returns allowlisted links; checked once more right before opening.
             guard JoinPolicy.isAllowed(url) else { return }
+            // Settings → "⌃⌥J records with Fathom" (D-045): the meeting's Fathom account records it; while Fathom
+            // is on another account, the Event Peek waits for the switch.
+            if FathomPrefs.hotkeyRecords(), let event = events.first(where: { $0.r == r }) {
+                switch FathomSession.shared.join(event, directory: AccountDirectory.current(), via: "hotkey") {
+                case .started:
+                    return
+                case .waiting:
+                    PeekController.shared.showEvent(r: r)
+                    return
+                case .blocked:
+                    return
+                case .notLinked:
+                    break
+                }
+            }
             let opened = NSWorkspace.shared.open(url)
             Trace.app("hotkey", ["action": "join", "result": opened ? "opened" : "failed"])
         case .openPopover:

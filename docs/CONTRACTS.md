@@ -45,7 +45,7 @@ Type: `WidgetSnapshot` in `Sources/Shared/Snapshot.swift` (version 1). The data 
 UI layer reads it. Content: agenda | upNext | month | inbox | combo | day | setup | mailComingSoon (`day`: D-022).
 Carries style (look auto/paper/ink, typeface, text size, logos, 24 h), accounts (id, tag, name, colour,
 hasLogo → `widget/logos/<id>.png`), health (ok/noAccounts/stale/reauth + syncedAt), meetings (r, k,
-accountIds, title, start, end, allDay, place, hasJoin, reply, clashes), mail (r, k, accountId, sender,
+accountIds, title, start, end, allDay, place, hasJoin, reply, clashes, rec: optional, D-045), mail (r, k, accountId, sender,
 subject, at, unread, starred), unreadCount, pages per family + pageResetAt, selectedDay, monthShown,
 busyDays, windowStart/End, rangeDays. Day reuses `selectedDay` (nil = today; ‹ › send `day?w&d`). **No time-relative text**; atomic write only when `contentHash`
 (FNV-1a over sorted JSON, `generatedAt` excluded) changes; caps 120 meetings / 96 mail / 192 KB.
@@ -76,6 +76,7 @@ with a DECISIONS entry.
 | `range` | `w`, `v` (1/2/7) | yes |
 | `sync` | `w` (kind, optional; D-021) | yes |
 | `join` | `r`, `k` | yes |
+| `record` | `r`, `k` (Join with Fathom, D-045) | yes |
 | `rsvp` | `r`, `k`, `v` | yes |
 | `mail/read`, `mail/archive`, `mail/undo`, `mail/star` | `r`, `k` | yes |
 | `open/event`, `open/message` | `r`, `k` | no |
@@ -101,6 +102,22 @@ cache / HTTP storage folders and the handoff marker, exit; the last line reports
 Settings → "Remove everything and quit" runs the same removal (`Uninstaller.swift`). The widget's sandbox
 container stays (docs/TROUBLESHOOTING.md).
 Dev: `--selftest`, `--render <dir>`.
+
+## Join with Fathom (D-045)
+- **Preferences** (UserDefaults): `fathom.link.<account UUID>`: absent = the account's own address, `"off"`, or
+  `"addr:<address>"` (lowercased); `fathom.hotkeyRecords` (Bool, default off): ⌃⌥J records with Fathom.
+- **Read, never written or sent:** `~/Library/Application Support/Fathom/bridge-config.json` (`account.userId`,
+  `account.email`; a regular file, at most 64 KB) and the file names in
+  `~/Library/Application Support/Google/Chrome/NativeMessagingHosts/` that start with
+  `video.fathom.chrome_extension_bridge` (`….<userId>.json` must exist). Both are Fathom's and undocumented: anything
+  else reads as "can't tell", and the app asks before recording.
+- **Opened:** `fathom://start-capture?url=<the meeting's allowlisted join link, percent-encoded>`, then the meeting
+  itself 0.6 s later; `fathom://open-app` (Open Fathom). Fathom's Mac app is found by its bundle identifier
+  `video.fathom.electron`.
+- **Snapshot:** `Meeting.rec` (`true` or left out): one of the meeting's accounts records with Fathom and the meeting has a
+  join link; Up Next Medium then shows Fathom beside Join (`record?r&k`). Version stays 1.
+- **Notifications:** category `yc.meeting.fathom` (actions `yc.join`, `yc.join.fathom`, `yc.snooze`) for heads-ups of such
+  meetings.
 
 ## Accounts interface (shell ↔ accounts)
 `AccountsModel.shared: ObservableObject` with `start()`; `AccountsScreen(model:)` view.

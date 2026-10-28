@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 
 /// Where a Peek panel goes (AppKit coordinates: origin bottom-left). Its top-left corner sits just right
@@ -72,11 +73,19 @@ final class EventPeekModel: ObservableObject {
     /// The reply being sent (its button shows a spinner-free "Sending…" state).
     @Published private(set) var sending: CalendarEvent.Response?
     @Published var toast: String?
+    /// Join with Fathom (D-045): the account chosen in "Records to" (nil = the first linked one).
+    @Published var fathomChoice: FathomTarget?
 
     let directory: AccountDirectory
     private let actions: CalendarActions
     private let open: (URL) -> Bool
+    let fathom: FathomSession
     var onClose: () -> Void = {}
+    /// The switch panel appeared or went away: the panel measures its height again.
+    var onResize: () -> Void = {}
+    private var fathomWatch: AnyCancellable?
+    /// Set when the panel's own button ended the wait (it closes or resizes the Peek itself).
+    private var fathomHandled = false
     /// Day Peek → Event Peek: "‹ Back to Tuesday".
     var onBack: (() -> Void)?
     var backTitle: String?
@@ -84,12 +93,21 @@ final class EventPeekModel: ObservableObject {
     static let guestLimit = 8
 
     init(event: CalendarEvent, directory: AccountDirectory, actions: CalendarActions = Services.calendarActions,
-         open: @escaping (URL) -> Bool = { NSWorkspace.shared.open($0) }) {
+         open: @escaping (URL) -> Bool = { NSWorkspace.shared.open($0) }, fathom: FathomSession? = nil) {
         self.event = event
         self.response = event.myResponse
         self.directory = directory
         self.actions = actions
         self.open = open
+        self.fathom = fathom ?? .shared
+        self.fathom.refresh()
+        // Fathom switched while the panel waited: the session recorded on its own, so the Peek goes.
+        fathomWatch = self.fathom.$pending.dropFirst().sink { [weak self] next in
+            MainActor.assumeIsolated {
+                guard let self, self.fathom.pending?.r == self.event.r, next == nil else { return }
+                if self.fathomHandled { self.fathomHandled = false } else { self.onClose() }
+            }
+        }
     }
 
     var isOrganizer: Bool {
@@ -151,6 +169,35 @@ final class EventPeekModel: ObservableObject {
         Trace.app("peek-join", ["result": ok ? "opened" : "failed"])
         if ok { onClose() }
         return ok
+    }
+
+    /// The Fathom accounts this meeting can record to, primary copy first (empty = no Fathom button).
+    var fathomTargets: [FathomTarget] { canJoin ? fathom.targets(event, directory: directory) : [] }
+    var fathomTarget: FathomTarget? {
+        let all = fathomTargets
+        return fathomChoice.flatMap { c in all.first { $0 == c } } ?? all.first
+    }
+
+    /// Join with Fathom: records and closes, or shows the switch panel (the panel grows to fit it).
+    @discardableResult
+    func joinWithFathom() -> FathomSession.Outcome {
+        let outcome = fathom.join(event, target: fathomTarget, directory: directory, via: "peek")
+        switch outcome {
+        case .started: onClose()
+        case .waiting: onResize()
+        case .blocked: show(toast: "That meeting link doesn\u{2019}t look right, so I didn\u{2019}t open it.")
+        case .notLinked: break
+        }
+        return outcome
+    }
+
+    /// The switch panel's own buttons acted.
+    func fathomDone(_ done: FathomDone) {
+        fathomHandled = true
+        switch done {
+        case .recorded, .joined: onClose()
+        case .cancelled, .resized: onResize()
+        }
     }
 
     @discardableResult

@@ -264,8 +264,9 @@ enum AccountsKit {
         }
     }
 
+    /// A menu at the pointer (the ⋯ button; the Fathom pickers on the account card and in the Event Peek).
     @MainActor
-    private enum MenuPresenter {
+    enum MenuPresenter {
         final class Target: NSObject {
             let action: () -> Void
             init(_ action: @escaping () -> Void) { self.action = action }

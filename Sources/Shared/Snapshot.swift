@@ -105,6 +105,9 @@ struct WidgetSnapshot: Codable, Equatable {
         var hasJoin: Bool
         var reply: Reply
         var clashes: Bool
+        /// Join with Fathom is offered (D-045): one of its accounts records with Fathom on this Mac. Optional and
+        /// left out when nil, so version-1 files without it still decode and unchanged meetings hash the same.
+        var rec: Bool? = nil
     }
 
     struct Mail: Codable, Equatable {

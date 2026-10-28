@@ -6,6 +6,9 @@ struct SettingsView: View {
     var mail: SettingsMailModel? = nil
     /// Menu bar: what shows beside the icon, and ⌃⌥J.
     var menuBar: MenuBarSettingsModel? = nil
+    /// Join with Fathom (D-045): which account Fathom is on, and ⌃⌥J. The card shows while Fathom is on this Mac.
+    var fathom: FathomLinksModel? = nil
+    var directory: () -> AccountDirectory = { AccountDirectory.current() }
     /// "Welcome guide · Open": the onboarding sheet again (resumes where you left off).
     var openGuide: (() -> Void)? = nil
     /// "Remove everything and quit…" (D-037): the confirm sheet.
@@ -55,6 +58,10 @@ struct SettingsView: View {
                 privacyCard.frame(maxWidth: 640)
                 if let menuBar {
                     SettingsMenuBarCard(model: menuBar, openGuide: openGuide)
+                        .frame(maxWidth: 640)
+                }
+                if let fathom {
+                    SettingsFathomCard(model: fathom, directory: directory)
                         .frame(maxWidth: 640)
                 }
                 if let mail {

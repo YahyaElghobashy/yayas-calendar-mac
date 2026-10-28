@@ -448,6 +448,11 @@ enum HeadlessRender {
         popover(popoverModel(events: []), "popover-empty", "clear-week")
         popover(popoverModel(directory: AccountDirectory(accounts: [])), "popover-noaccounts", "no-accounts")
         popover(popoverModel(mail: false), "popover-labs-off", "mail-in-labs")
+        // Join with Fathom (D-045): popover, Peek, Up Next Medium, Settings and the account card, a fake Fathom.
+        let fathomCount = FathomRenders.run(dir: dir, now: now, directory: directory, logo: { logos.image(forId: $0) }) { view, name, info in
+            save(view, name, info)
+        }
+        print("  fathom: \(fathomCount) PNGs")
 
         // The status item: glyph + title in a strip of menu bar, light and dark, for every title shape.
         let glyph = StatusItemController.glyph()

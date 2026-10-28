@@ -45,6 +45,12 @@ struct WidgetLinkContext {
         return YayaLink.join(r: key.r, k: key.k)
     }
 
+    /// Up Next Medium's Fathom button → `record?r&k`: join and record with the meeting's Fathom account (D-045).
+    func record(_ meeting: WidgetMeeting) -> URL {
+        guard let key = Self.keyed(meeting.r, meeting.k) else { return probe("record", meeting.id) }
+        return YayaLink.record(r: key.r, k: key.k)
+    }
+
     /// "Reply?" chip → Event Peek, where Yes / Maybe / No live.
     func reply(_ meeting: WidgetMeeting) -> URL { event(meeting) }
 
@@ -124,6 +130,7 @@ struct WidgetLinkContext {
 /// Link builders (kept beside the widget code; Shared/Routes.swift holds the table and the app-level ones).
 extension YayaLink {
     static func join(r: String, k: String) -> URL { url("join", [("r", r), ("k", k)]) }
+    static func record(r: String, k: String) -> URL { url("record", [("r", r), ("k", k)]) }
     static func openEvent(r: String, k: String) -> URL { url("open/event", [("r", r), ("k", k)]) }
     /// `v`: yes | maybe | no.
     static func rsvp(r: String, k: String, v: String) -> URL { url("rsvp", [("r", r), ("k", k), ("v", v)]) }

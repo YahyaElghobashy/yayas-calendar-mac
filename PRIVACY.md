@@ -203,6 +203,22 @@ each change, the app posts a system notification with no content, telling Deck t
 The file never leaves your Mac through the app. Turning the setting off deletes it at once
 (`Sources/Notify/DeckExport.swift`, [docs/CONTRACTS.md](docs/CONTRACTS.md#deck-export)).
 
+## Join with Fathom
+
+If [Fathom](https://fathom.video)'s Mac app is installed, meetings can offer **Join with Fathom** (each account card
+in Accounts says which Fathom account its meetings record to, and can turn it off). To make sure a meeting records in
+the right Fathom account, the app first checks which account Fathom is signed into. It reads two things Fathom keeps
+on your Mac, and changes neither:
+
+- `~/Library/Application Support/Fathom/bridge-config.json`, for the signed-in account's address and Fathom user ID;
+- the names of Fathom's files in `~/Library/Application Support/Google/Chrome/NativeMessagingHosts/` (only names that
+  start with `video.fathom.chrome_extension_bridge`), to see that the file above is current.
+
+The address is compared with your links and shown to you; it never leaves your Mac and never goes into a log. When
+the accounts match, the app opens Fathom's own `fathom://start-capture` link with the meeting's join link, so the
+Fathom app records the meeting under Fathom's terms, and then opens the meeting. Nothing goes to Fathom from Yaya's
+Calendar itself: there is no Fathom host on the app's list.
+
 ## Diagnostics you can paste
 
     "/Applications/Yaya's Calendar.app/Contents/MacOS/YayasCalendar" --diagnose

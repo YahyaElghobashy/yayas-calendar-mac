@@ -13,6 +13,7 @@ enum RouteTests {
             ("range", ["w", "v"], true),
             ("sync", ["w"], true),
             ("join", ["r", "k"], true),
+            ("record", ["r", "k"], true),
             ("rsvp", ["r", "k", "v"], true),
             ("mail/read", ["r", "k"], true),
             ("mail/archive", ["r", "k"], true),

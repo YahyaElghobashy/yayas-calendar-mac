@@ -2,6 +2,13 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
+/// Rows another layer adds under an account card's switches (Join with Fathom's link, D-045). The app installs
+/// it at launch; the accounts tests leave it empty.
+@MainActor
+enum AccountCardExtras {
+    static var footer: (AccountRecord) -> AnyView? = { _ in nil }
+}
+
 /// One connected account: logo, name, address, tag, colour, status, switches, and the ⋯ menu.
 struct AccountCard: View {
     @ObservedObject var model: AccountsModel
@@ -83,6 +90,7 @@ struct AccountCard: View {
                     Spacer(minLength: 0)
                 }
                 .toggleStyle(AccountsKit.Switch())
+                if let extra = AccountCardExtras.footer(account) { extra }
             }
         }
         .opacity(model.removing.contains(account.id) ? 0.45 : 1)

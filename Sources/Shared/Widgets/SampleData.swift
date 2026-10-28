@@ -32,6 +32,8 @@ struct WidgetMeeting {
     /// Other accounts that have the same meeting (merged invites), after `account`.
     var also: [WidgetAccount] = []
     var allDay = false
+    /// Join with Fathom offered (snapshot `rec`, D-045): Up Next Medium shows its Fathom button.
+    var rec = false
 
     /// Every account that has it, primary first.
     var accountIds: [String] { [account.id] + also.map(\.id) }

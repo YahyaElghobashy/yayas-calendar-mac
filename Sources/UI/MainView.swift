@@ -38,6 +38,7 @@ struct MainView: View {
                 .environment(\.accountsStaticRender, headless)
         case .settings:
             SettingsView(mail: shell.mailEnabled() ? shell.settingsMail : nil, menuBar: shell.menuBar,
+                         fathom: shell.fixedNow == nil ? FathomLinksModel.shared : nil,
                          openGuide: shell.fixedNow == nil ? { MainWindowController.shared.presentOnboarding() } : nil,
                          removeEverything: shell.fixedNow == nil ? { MainWindowController.shared.presentRemoveEverything() } : nil)
         }

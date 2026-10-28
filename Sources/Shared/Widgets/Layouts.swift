@@ -217,6 +217,8 @@ struct UpNextSmall: View {
     let style: WidgetStyle
     /// Up Next Medium keeps ↻ in its "After that" header (the widget's top-right corner) instead.
     var showRefresh = true
+    /// Up Next Medium: Join with Fathom beside Join when the meeting offers it (D-045); Small keeps one Join.
+    var showRecord = false
     @Environment(\.widgetLinks) private var links
 
     /// A started meeting stays on the card this long, then the next one takes over.
@@ -245,7 +247,12 @@ struct UpNextSmall: View {
                 }
                 Spacer(minLength: 0)
                 if next.hasLink {
-                    WidgetLink(destination: links.join(next)) { JoinButton(style: style, big: true) }
+                    HStack(spacing: 6) {
+                        WidgetLink(destination: links.join(next)) { JoinButton(style: style, big: true) }
+                        if showRecord && next.rec {
+                            WidgetLink(destination: links.record(next)) { RecordButton(style: style) }
+                        }
+                    }
                 } else if let place = next.place {
                     Label(place, systemImage: "mappin.and.ellipse").font(style.font(11)).foregroundStyle(p.text2)
                 }
@@ -300,7 +307,7 @@ struct UpNextWidget: View {
         let p = style.palette
         let lines = Self.laterLines(meetings: meetings, now: now, style: style)
         return HStack(alignment: .top, spacing: 0) {
-            UpNextSmall(meetings: meetings, now: now, style: style, showRefresh: false)
+            UpNextSmall(meetings: meetings, now: now, style: style, showRefresh: false, showRecord: true)
                 .frame(width: 156, alignment: .leading)
             Rectangle().fill(p.rule).frame(width: 1).padding(.vertical, 13)
             VStack(alignment: .leading, spacing: 4) {

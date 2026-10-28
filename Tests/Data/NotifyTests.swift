@@ -112,6 +112,15 @@ enum NotifyTests {
         let solo = HeadsUp.desired([N.event("gP", "  ", start: start, people: [N.person("a@orb.example", me: true), N.person("b@orb.example")])], ctx).first
         expect(solo?.category == NoteIds.meetingNoLinkCategory && solo?.title == "Meeting" && solo?.body.contains("Meet") == false,
                "no link: Snooze-only category, no provider; empty title → \u{201C}Meeting\u{201D}")
+        // Join with Fathom (D-045): the category with the extra action only when one of the accounts records with Fathom.
+        var fathomCtx = ctx
+        fathomCtx.fathom = { ids in ids.contains(cmt) }
+        expect(HeadsUp.desired([e], fathomCtx).first?.category == NoteIds.meetingFathomCategory, "a linked account → Join with Fathom too")
+        fathomCtx.fathom = { _ in false }
+        expect(HeadsUp.desired([e], fathomCtx).first?.category == NoteIds.meetingCategory, "no linked account → Join + Snooze")
+        fathomCtx.fathom = { _ in true }
+        let noLink = N.event("gQ", "x", start: start, people: [N.person("a@orb.example", me: true), N.person("b@orb.example")])
+        expect(HeadsUp.desired([noLink], fathomCtx).first?.category == NoteIds.meetingNoLinkCategory, "no join link → never Fathom")
         expect(HeadsUp.lead(fire: start, start: start) == "Starting now"
                && HeadsUp.lead(fire: start.addingTimeInterval(180), start: start) == "Started 3 min ago"
                && HeadsUp.lead(fire: start.addingTimeInterval(-300), start: start) == "In 5 minutes", "lead text")

@@ -153,7 +153,8 @@ actor NotifyCoordinator {
     func context(accounts: [AccountRecord], now: Date) -> HeadsUp.Context {
         HeadsUp.Context(now: now, calendar: calendar(), locale: locale, meetingsOn: prefs.meetingsOn,
                         pausedUntil: prefs.isPaused(at: now) ? prefs.pausedUntil : nil,
-                        tags: Dictionary(accounts.map { ($0.id, $0.tag) }, uniquingKeysWith: { first, _ in first }))
+                        tags: Dictionary(accounts.map { ($0.id, $0.tag) }, uniquingKeysWith: { first, _ in first }),
+                        fathom: { SnapshotPublisher.fathomOffered($0, true) })
     }
 
     private func planMeetings(_ events: [CalendarEvent], accounts: [AccountRecord], now: Date) async {
@@ -265,6 +266,13 @@ actor NotifyCoordinator {
             trace("notify-snooze", "failed")
             return false
         }
+    }
+
+    /// "Join with Fathom": the meeting from the store by its row id (D-045); the session re-checks its link.
+    func event(userInfo: [String: String]) -> CalendarEvent? {
+        guard let r = userInfo["r"], NoteIds.isSafeRowId(r), let event = (try? data.event(r: r)) ?? nil,
+              JoinGuard.isAllowed(event.joinURL) else { return nil }
+        return event
     }
 
     /// "Join": the meeting's link from the store (never from the notification), re-checked against the

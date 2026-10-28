@@ -171,6 +171,22 @@ struct JoinButton: View {
     }
 }
 
+/// Up Next Medium's Join with Fathom (`record?r&k`, D-045): a round record button beside the big Join, as tall as
+/// it, so Join keeps its word.
+struct RecordButton: View {
+    let style: WidgetStyle
+
+    var body: some View {
+        let p = style.palette
+        let side = 30 * style.scale
+        Circle().fill(Color(hex: 0xE36166)).frame(width: 10 * style.scale, height: 10 * style.scale)
+            .frame(width: side, height: side)
+            .background(Circle().fill(p.accentSoft))
+            .overlay(Circle().strokeBorder(p.rule, lineWidth: 1))
+            .accessibilityLabel(Text("Join with Fathom"))
+    }
+}
+
 /// The row and its Join button are sibling Links, never nested (nested Links hit-test unpredictably).
 /// Snapshot rows open the Event Peek (`open/event?r&k`); Join goes straight in (`join?r&k`); the
 /// "Reply?" chip opens the Peek too, where Yes / Maybe / No live.

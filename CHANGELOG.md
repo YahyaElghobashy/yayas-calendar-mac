@@ -3,6 +3,15 @@
 All notable changes to Yaya’s Calendar. Versions follow the app’s `CFBundleShortVersionString`
 (`version.json`); build numbers are `YYYYMMDD.N`, the UTC date and a counter.
 
+## Unreleased
+
+- **Join with Fathom.** With Fathom’s Mac app installed, the popover, the Event Peek, Up Next (Medium) and the
+  heads-up offer Join with Fathom next to Join. Each account card in Accounts says which Fathom account that
+  account’s meetings record to (its own address by default, another address, or off). Before recording, the app
+  checks which account Fathom is signed into. When it’s another one, nothing records: the app asks you to switch
+  Fathom and records by itself once you do. Settings → Fathom can make ⌃⌥J record too. The checks read two small
+  files Fathom keeps on your Mac and send nothing anywhere (PRIVACY.md, D-045).
+
 ## 1.0.0 · 2026-10-28
 
 The first release: Gmail and Google Calendar from every Google account you connect, in one menu-bar app

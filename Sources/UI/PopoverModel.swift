@@ -26,6 +26,8 @@ final class PopoverModel: ObservableObject {
         let when: String
         /// Headless stand-in for the live `Text(date, style: .relative)` countdown: "Starts in 12 min".
         let countdown: String
+        /// The Fathom accounts this meeting can record to (D-045), primary copy first; empty = no Fathom button.
+        var fathom: [FathomTarget] = []
     }
 
     /// The agenda reaches a week ahead (today + 6): enough to scroll, light on the store.
@@ -54,6 +56,8 @@ final class PopoverModel: ObservableObject {
     let mailEnabled: () -> Bool
     private let lastSync: () -> Date?
     private let clock24: () -> Bool
+    /// Join with Fathom (D-045): which accounts record with it and what the Fathom app is signed into.
+    let fathom: FathomSession
 
     init(store: @escaping () -> CalendarStore = { Services.calendar },
          actions: @escaping () -> CalendarActions = { Services.calendarActions },
@@ -62,7 +66,8 @@ final class PopoverModel: ObservableObject {
          clock: @escaping () -> Date = { Date() },
          mailEnabled: @escaping () -> Bool = { true },
          syncedAt: @escaping () -> Date? = { WidgetSnapshot.read(kind: WidgetKinds.agenda.kind)?.health.syncedAt },
-         use24Hour: @escaping () -> Bool = { Services.widgetSettings.settings(kind: WidgetKinds.agenda.kind).style.use24Hour }) {
+         use24Hour: @escaping () -> Bool = { Services.widgetSettings.settings(kind: WidgetKinds.agenda.kind).style.use24Hour },
+         fathom: FathomSession? = nil) {
         self.store = store
         self.actions = actions
         self.mail = mail
@@ -71,6 +76,7 @@ final class PopoverModel: ObservableObject {
         self.mailEnabled = mailEnabled
         self.lastSync = syncedAt
         self.clock24 = use24Hour
+        self.fathom = fathom ?? .shared
         now = clock()
     }
 
@@ -93,6 +99,7 @@ final class PopoverModel: ObservableObject {
         now = clock()
         syncedAt = lastSync()
         accounts = directory().accounts
+        fathom.refresh()
         if tab == .inbox, !showsInbox { tab = .agenda }
         filter = filter.filter { id in accounts.contains { $0.id == id } }
         loadAgenda()
@@ -159,7 +166,8 @@ final class PopoverModel: ObservableObject {
         return Card(event: e, live: live, soon: MeetingFocus.isSoon(e, now: now), canJoin: canJoin,
                     joinTitle: JoinPolicy.providerName(e.joinURL).map { "Join \($0)" } ?? "Join meeting",
                     when: Self.when(e, now: now, use24Hour: use24Hour),
-                    countdown: Self.countdown(e, now: now))
+                    countdown: Self.countdown(e, now: now),
+                    fathom: canJoin ? fathom.targets(e, directory: accountDirectory) : [])
     }
 
     // MARK: Filter

@@ -5,6 +5,8 @@ import SwiftUI
 struct PopoverActions {
     var openApp: (AppSection?) -> Void = { _ in }
     var join: (CalendarEvent) -> Void = { _ in }
+    /// Join with Fathom (D-045): records at once, or the card waits for Fathom to switch accounts.
+    var joinWithFathom: (CalendarEvent) -> Void = { _ in }
     var showEvent: (String) -> Void = { _ in }
     var showThread: (String) -> Void = { _ in }
 }
@@ -31,7 +33,7 @@ struct PopoverView: View {
         VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 12) {
                 if model.phase != .noAccounts && model.phase != .failed && model.phase != .loading {
-                    NextMeetingCard(model: model, actions: actions)
+                    NextMeetingCard(model: model, fathom: model.fathom, actions: actions)
                 }
                 controls
             }
@@ -215,6 +217,7 @@ struct PopoverView: View {
 /// The next meeting: logo, title, when, a self-updating countdown, and the one filled Join.
 private struct NextMeetingCard: View {
     @ObservedObject var model: PopoverModel
+    @ObservedObject var fathom: FathomSession
     let actions: PopoverActions
     @Environment(\.headlessRender) private var headless
 
@@ -245,7 +248,12 @@ private struct NextMeetingCard: View {
             .onTapGesture { actions.showEvent(e.r) }
             .ycAccessibleButton(A11yText.card(card).label, value: A11yText.card(card).value,
                                 hint: "Opens the meeting details") { actions.showEvent(e.r) }
-            if card.canJoin { joinButton(card) }
+            // While a Join with Fathom for this meeting waits, its panel offers the plain join too.
+            if card.canJoin && !fathom.isPending(e.r) { joinButton(card) }
+            if let target = card.fathom.first {
+                FathomControls(session: fathom, event: e, target: target, directory: model.accountDirectory,
+                               height: 34, join: { actions.joinWithFathom(e) })
+            }
         }
         .padding(13)
         .frame(maxWidth: .infinity, alignment: .leading)

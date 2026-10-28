@@ -51,6 +51,10 @@ Calendar server in the middle, because there is no Yaya’s Calendar server.
   peek).
 - **Up Next and Join.** A countdown to your next meeting and one big Join button. **⌃⌥J** joins it from
   anywhere, the menu bar counts down to it, and a heads-up arrives a minute before, with Join on it.
+- **Join with Fathom.** Got Fathom’s Mac app and more than one Fathom account? Each account in the app
+  links to its own Fathom account, and Join with Fathom (popover, Event Peek, Up Next, the heads-up, and ⌃⌥J if
+  you like) records the meeting there. If Fathom is signed into a different account, it waits for you to switch
+  instead of recording in the wrong place.
 - **↻ on every widget.** A meeting got cancelled? Tap ↻ and that widget re-reads its calendars now
   instead of at the next 15-minute sync. It shows ✓ when it’s done.
 - **One inbox for every account.** A unified inbox in the app and on the desktop. Mark read or
@@ -156,7 +160,7 @@ remove the account in the app.
 
 | Keys | What happens |
 |---|---|
-| **⌃⌥J** | Join your next meeting, from anywhere (Settings → Menu bar can switch it off) |
+| **⌃⌥J** | Join your next meeting, from anywhere (Settings → Menu bar can switch it off; Settings → Fathom can make it record too) |
 | **⌘N** | New message |
 | **J / K** or **↓ / ↑** | Next / previous conversation in the inbox |
 | **Return** | Open it |
@@ -308,7 +312,8 @@ without Xcode.
 Help: [SUPPORT.md](SUPPORT.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Security](SECURITY.md) ·
 [Changelog](CHANGELOG.md).
 
-Not affiliated with Google. Gmail and Google Calendar are trademarks of Google LLC. The Yaya’s Calendar
+Not affiliated with Google or Fathom. Gmail and Google Calendar are trademarks of Google LLC; Fathom is a
+trademark of its owner. The Yaya’s Calendar
 name and icon are reserved ([TRADEMARKS.md](TRADEMARKS.md)); the code is yours to use.
 
 MIT licensed. Take it, break it, make it yours.

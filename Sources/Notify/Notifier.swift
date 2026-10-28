@@ -215,10 +215,12 @@ final class SystemNoteCenter: NoteCenter, @unchecked Sendable {
 
     static var categories: Set<UNNotificationCategory> {
         let join = UNNotificationAction(identifier: NoteIds.joinAction, title: "Join", options: [])
+        let fathom = UNNotificationAction(identifier: NoteIds.fathomAction, title: "Join with Fathom", options: [])
         let snooze = UNNotificationAction(identifier: NoteIds.snoozeAction, title: "Snooze 1 min", options: [])
         let fix = UNNotificationAction(identifier: NoteIds.fixAction, title: "Sign in again", options: [.foreground])
         return [
             UNNotificationCategory(identifier: NoteIds.meetingCategory, actions: [join, snooze], intentIdentifiers: [], options: []),
+            UNNotificationCategory(identifier: NoteIds.meetingFathomCategory, actions: [join, fathom, snooze], intentIdentifiers: [], options: []),
             UNNotificationCategory(identifier: NoteIds.meetingNoLinkCategory, actions: [snooze], intentIdentifiers: [], options: []),
             UNNotificationCategory(identifier: NoteIds.reauthCategory, actions: [fix], intentIdentifiers: [], options: []),
             UNNotificationCategory(identifier: NoteIds.mailCategory, actions: [], intentIdentifiers: [], options: []),
@@ -324,7 +326,7 @@ final class NotifyDelegate: NSObject, UNUserNotificationCenterDelegate, @uncheck
                                open: @escaping @MainActor (AppSection) -> Void) async {
         let kind = info["kind"] ?? "-"
         // An action can launch the app: give the store a moment to open before reading it.
-        if action == NoteIds.joinAction || action == NoteIds.snoozeAction {
+        if action == NoteIds.joinAction || action == NoteIds.fathomAction || action == NoteIds.snoozeAction {
             _ = await coordinator.waitUntilReady(5)
         }
         switch action {
@@ -335,6 +337,22 @@ final class NotifyDelegate: NSObject, UNUserNotificationCenterDelegate, @uncheck
             }
             let opened = await MainActor.run { NSWorkspace.shared.open(url) }
             Trace.app("notify-action", ["action": "join", "result": opened ? "opened" : "failed"])
+        case NoteIds.fathomAction:
+            // Records with the meeting's Fathom account, or the Event Peek waits for Fathom to switch (D-045).
+            guard let event = await coordinator.event(userInfo: info) else {
+                Trace.app("notify-action", ["action": "fathom", "result": "blocked"])
+                return
+            }
+            await MainActor.run {
+                switch FathomSession.shared.join(event, directory: AccountDirectory.current(), via: "heads-up") {
+                case .waiting:
+                    PeekController.shared.showEvent(r: event.r)
+                case .notLinked:
+                    if let url = event.joinURL, JoinGuard.isAllowed(url) { NSWorkspace.shared.open(url) }
+                case .started, .blocked:
+                    break
+                }
+            }
         case NoteIds.snoozeAction:
             let ok = await coordinator.snooze(userInfo: info)
             Trace.app("notify-action", ["action": "snooze", "result": ok ? "ok" : "ignored"])

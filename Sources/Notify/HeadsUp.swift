@@ -21,6 +21,8 @@ enum HeadsUp {
         var pausedUntil: Date?
         /// Account id → tag ("ORB"), for "ORB+FAM".
         var tags: [UUID: String]
+        /// Whether a meeting on these accounts gets Join with Fathom (D-045; the app's link settings).
+        var fathom: @Sendable ([UUID]) -> Bool = { _ in false }
     }
 
     /// What one refresh does to the pending requests.
@@ -135,7 +137,8 @@ enum HeadsUp {
             id: snooze ? snoozeId(key: key) : NoteIds.meetingPrefix + key,
             title: title.isEmpty ? "Meeting" : String(title.prefix(120)),
             body: parts.joined(separator: " \u{00B7} "),
-            category: hasJoin ? NoteIds.meetingCategory : NoteIds.meetingNoLinkCategory,
+            category: !hasJoin ? NoteIds.meetingNoLinkCategory
+                : c.fathom(e.accountIds) ? NoteIds.meetingFathomCategory : NoteIds.meetingCategory,
             thread: "meet-\(e.r)",
             fireAt: fire,
             trigger: snooze ? .interval(max(1, fire.timeIntervalSince(c.now).rounded()))

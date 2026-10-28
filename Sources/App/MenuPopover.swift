@@ -118,6 +118,7 @@ final class MenuPopoverController {
                 MainWindowController.shared.show(section)
             },
             join: { [weak self] event in self?.join(event) },
+            joinWithFathom: { [weak self] event in self?.joinWithFathom(event) },
             showEvent: { [weak self] r in
                 guard let self else { return }
                 PeekController.shared.showEvent(r: r, at: self.peekAnchor())
@@ -137,6 +138,13 @@ final class MenuPopoverController {
         let opened = NSWorkspace.shared.open(url)
         Trace.app("popover-join", ["result": opened ? "opened" : "failed"])
         if opened { close(reason: "join") }
+    }
+
+    /// The card's Join with Fathom (D-045): records at once when Fathom is on the meeting's account (the popover
+    /// closes as for Join); otherwise the card shows the switch panel and the session waits.
+    private func joinWithFathom(_ event: CalendarEvent) {
+        let outcome = FathomSession.shared.join(event, directory: AccountDirectory.current(), via: "popover")
+        if outcome == .started { close(reason: "join") }
     }
 
     /// Peeks open beside the popover (left of it when there's room), level with the row clicked.

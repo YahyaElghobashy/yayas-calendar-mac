@@ -22,7 +22,7 @@ SOURCES=( "$YC_ROOT"/Sources/Shared/**/*.swift(N) "$YC_ROOT/Sources/App/SuiteJSO
           "$YC_ROOT"/Sources/UI/RichMail/*.swift(N)   # rich mail's pure UI models (attachment names, saved files)
           "$YC_ROOT"/Sources/UI/{AccountDirectory,PeekModels,WidgetStudioModel,CalendarSectionModel}.swift
           "$YC_ROOT"/Sources/UI/{MailModels,ComposerModel,InboxSectionModel,SettingsMailModel}.swift
-          "$YC_ROOT"/Sources/UI/{MenuBarModels,PopoverModel,OnboardingFlow,AccessibilityText}.swift
+          "$YC_ROOT"/Sources/UI/{MenuBarModels,PopoverModel,OnboardingFlow,AccessibilityText,FathomModels}.swift
           "$YC_ROOT"/Sources/UI/RichMail/*.swift(N) "$YC_ROOT"/Sources/Mail/{MailHTMLWriter,MailAttribution,MailSize}.swift
           "$YC_ROOT"/Tests/*.swift(N) )
 SOURCES=( ${(u)SOURCES} )   # one copy of each file, however many globs name it

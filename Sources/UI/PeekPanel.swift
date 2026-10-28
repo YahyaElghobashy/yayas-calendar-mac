@@ -65,6 +65,10 @@ final class PeekController {
         }
         let model = EventPeekModel(event: event, directory: AccountDirectory.current())
         model.onClose = { [weak self] in self?.close() }
+        // Join with Fathom's switch panel came or went: present again, same top-left, to fit it.
+        model.onResize = { [weak self] in
+            DispatchQueue.main.async { self?.showEvent(r: r, keepTopLeft: true, back: back) }
+        }
         if let back {
             model.backTitle = back.title
             model.onBack = back.action

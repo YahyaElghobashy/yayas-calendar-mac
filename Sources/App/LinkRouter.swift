@@ -203,6 +203,8 @@ final class LinkRouter {
             return .quiet
         case .join(let r):
             return join(r: r, at: ms) ? .handedOff : .quiet
+        case .record(let r):
+            return record(r: r, at: ms)
         case .rsvp(let r, let response):
             Trace.app("recv rsvp", ["v": response.rawValue, "at": ms])
             Task {
@@ -284,6 +286,24 @@ final class LinkRouter {
         let opened = NSWorkspace.shared.open(url)
         Trace.app("recv join", ["result": opened ? "opened" : "failed", "at": ms])
         return opened
+    }
+
+    /// Up Next's Fathom button (D-045): records with the meeting's Fathom account and leaves the front to the
+    /// meeting, or shows the Event Peek with the switch panel while Fathom is on another account. A meeting whose
+    /// accounts no longer record with Fathom joins as usual.
+    private func record(r: String, at ms: String) -> FrontRestorePolicy.Outcome {
+        guard let event = (try? Services.calendar.event(r: r)) ?? nil else {
+            Trace.app("recv record", ["result": "missing", "at": ms])
+            return .quiet
+        }
+        let outcome = FathomSession.shared.join(event, directory: AccountDirectory.current(), via: "widget")
+        Trace.app("recv record", ["result": "\(outcome)", "at": ms])
+        switch outcome {
+        case .started: return .handedOff
+        case .waiting: return peek.showEvent(r: r) ? .peek : .nothing
+        case .notLinked: return join(r: r, at: ms) ? .handedOff : .quiet
+        case .blocked: return .quiet
+        }
     }
 
     /// If the link woke us (cold launch, or we only just became active), hide 250 ms later and give

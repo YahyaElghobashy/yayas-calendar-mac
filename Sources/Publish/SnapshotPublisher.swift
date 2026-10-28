@@ -162,6 +162,9 @@ final class SnapshotPublisher: @unchecked Sendable {
     let calendar: @Sendable () -> Calendar
     let labsMail: @Sendable () -> Bool
     var trace: @Sendable (String, String) -> Void = { _, _ in }
+    /// Join with Fathom (D-045): whether a meeting on these accounts, with a join link, gets the widget's Fathom
+    /// button. The app installs it before the engine starts; tests and renders keep the default (never).
+    nonisolated(unsafe) static var fathomOffered: @Sendable ([UUID], Bool) -> Bool = { _, _ in false }
 
     private let lock = NSRecursiveLock()
     private var written: [String: UInt64] = [:]
@@ -489,7 +492,7 @@ final class SnapshotPublisher: @unchecked Sendable {
         return WidgetSnapshot.Meeting(r: e.r, k: links.k(for: e.r), accountIds: e.accountIds.map(\.uuidString),
                                       title: Self.clip(e.title), start: e.start, end: e.end, allDay: e.allDay,
                                       place: Self.place(e.location), hasJoin: e.joinURL != nil, reply: reply,
-                                      clashes: e.clashes)
+                                      clashes: e.clashes, rec: Self.fathomOffered(e.accountIds, e.joinURL != nil) ? true : nil)
     }
 
     /// A location that is only a link (a Zoom URL pasted as the place) is left out: Join covers it,

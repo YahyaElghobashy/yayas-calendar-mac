@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -19,6 +20,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // The tracker starts now so it already knows the user's app when a cold-launching link lands.
         _ = FrontAppTracker.shared
         AccountDirectory.current = { AccountDirectory.live() }
+        // Join with Fathom (D-045): the session's live side, the widgets' Fathom button and each account card's link.
+        FathomLive.install()
+        AccountCardExtras.footer = { account in
+            AnyView(FathomAccountRow(model: FathomLinksModel.shared, accountId: account.id, email: account.email))
+        }
         router = LinkRouter(openMain: { section in MainWindowController.shared.show(section) })
         // Notification delegate + categories (set before launch finishes), heads-up/re-auth/mail notices
         // and the Deck export, fed by the data engine's observers.

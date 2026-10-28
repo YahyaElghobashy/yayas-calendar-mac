@@ -73,6 +73,16 @@ enum DataServices {
         engine?.observers.add(observer)
     }
 
+    /// A Join with Fathom link changed (D-045): every kind is rebuilt (the Fathom button rides in each meeting's
+    /// `rec`) and the changed ones reload; off the main thread, like a sync's publish.
+    static func republishWidgets() {
+        guard let engine else { return }
+        Task.detached {
+            engine.publisher.publishAll(reason: .interaction)
+            Services.widgetInteractions.flushChanged()
+        }
+    }
+
     // MARK: - Mail helpers for the surfaces (beyond the frozen seam)
 
     /// `yayacal://mail/read|archive|star|undo?r&k`, after the router verified `k`. `mail/undo` reverses

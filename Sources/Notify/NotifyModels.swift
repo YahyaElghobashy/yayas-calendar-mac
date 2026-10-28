@@ -133,12 +133,15 @@ enum NoteIds {
     static let mailPrefix = "mail-"
 
     static let meetingCategory = "yc.meeting"
+    /// Same, plus Join with Fathom (D-045): one of the meeting's accounts records with Fathom.
+    static let meetingFathomCategory = "yc.meeting.fathom"
     /// Same, without Join (no allowlisted link).
     static let meetingNoLinkCategory = "yc.meeting.nolink"
     static let reauthCategory = "yc.reauth"
     static let mailCategory = "yc.mail"
 
     static let joinAction = "yc.join"
+    static let fathomAction = "yc.join.fathom"
     static let snoozeAction = "yc.snooze"
     static let fixAction = "yc.fix"
 

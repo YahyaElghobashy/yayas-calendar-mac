@@ -65,6 +65,13 @@ struct PeekAccountChip: View {
 
 struct EventPeekView: View {
     @ObservedObject var model: EventPeekModel
+    /// The Join with Fathom wait redraws the Peek (its panel replaces Join).
+    @ObservedObject private var fathom: FathomSession
+
+    init(model: EventPeekModel) {
+        _model = ObservedObject(wrappedValue: model)
+        _fathom = ObservedObject(wrappedValue: model.fathom)
+    }
 
     var body: some View {
         let e = model.event
@@ -84,7 +91,8 @@ struct EventPeekView: View {
             if let place = e.location, !place.isEmpty {
                 detailRow("mappin.and.ellipse", place)
             }
-            if model.canJoin { joinButton }
+            if model.canJoin && !fathom.isPending(e.r) { joinButton }
+            if let target = model.fathomTarget { fathomSection(target) }
             if model.canReply {
                 replyRow
             } else if model.isOrganizer {
@@ -144,6 +152,20 @@ struct EventPeekView: View {
         }
         .buttonStyle(.plain)
         .accessibilityHint(Text("Opens the video call"))
+    }
+
+    /// Join with Fathom and, for a meeting on more than one linked account, "Records to" (D-045).
+    private func fathomSection(_ target: FathomTarget) -> some View {
+        let targets = model.fathomTargets
+        let picker = targets.count > 1 && !fathom.isPending(model.event.r)
+        return VStack(alignment: .leading, spacing: 8) {
+            FathomControls(session: model.fathom, event: model.event, target: target, directory: model.directory,
+                           height: 38, showStatus: !(picker && fathom.check(target) == .ready),
+                           join: { model.joinWithFathom() }, after: { model.fathomDone($0) })
+            if picker {
+                FathomRecordsTo(targets: targets, chosen: target) { model.fathomChoice = $0 }
+            }
+        }
     }
 
     private var replyRow: some View {

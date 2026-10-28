@@ -19,7 +19,7 @@
 #  4. Every URL literal (scheme://host) names a host from HTTP.allowedHosts, a reviewed browser link (the
 #     user's browser opens it; the app never fetches it), a loopback address in LoopbackServer.swift, a
 #     reserved .example host, or a host on the reviewed per-file list. Interpolated hosts only in
-#     LogoFetcher.swift.
+#     LogoFetcher.swift. Other apps' URL schemes only on the reviewed per-file list (Fathom's two links, D-045).
 #  5. Bare host names in string literals only where links are recognised (join links), where mail domains
 #     are named, in HTTP.swift, in developer-tool files (fixtures, renders), and Google's two API service
 #     names in the setup guide (Sources/Accounts/GoogleSetup.swift).
@@ -48,6 +48,11 @@ PER_FILE_URL_HOSTS = {
     # Rich mail's Open: NSWorkspace.urlForApplication(toOpen:) with a reserved https URL names the default browser
     # for HTML attachments. Nothing is fetched.
     "Sources/UI/AttachmentActions.swift": {"example.com"},
+}
+# Other apps' URL schemes, opened with NSWorkspace and handled by that app on this Mac; nothing is fetched. Join with
+# Fathom (D-045): fathom://start-capture?url=<meeting> and fathom://open-app.
+PER_FILE_SCHEMES = {
+    "Sources/UI/FathomModels.swift": {"fathom": {"start-capture", "open-app"}},
 }
 # Bare names that are identifiers, not places the app goes: the Google setup guide matches Google's API
 # service names in a 403 SERVICE_DISABLED answer and puts them in the user's "Enable" link. Its
@@ -157,6 +162,10 @@ for f in sorted(pathlib.Path("Sources").rglob("*.swift")):
                 scheme = scheme.lower(); host = host.lower()
                 if scheme in OWN_SCHEMES or host == "":
                     continue
+                if scheme in PER_FILE_SCHEMES.get(path, {}):
+                    if host not in PER_FILE_SCHEMES[path][scheme]:
+                        problems.append(f"URL {scheme}://{host} not reviewed for this file: {where}")
+                    continue
                 if host == "\\(":
                     if path != "Sources/Accounts/LogoFetcher.swift":
                         problems.append(f"URL with an interpolated host outside LogoFetcher.swift: {where}")
@@ -230,7 +239,7 @@ if (( $# >= 1 )); then
     ok_hosts='(accounts\.google\.com|oauth2\.googleapis\.com|gmail\.googleapis\.com|www\.googleapis\.com|openidconnect\.googleapis\.com|github\.com|console\.cloud\.google\.com|console\.developers\.google\.com|support\.google\.com|myaccount\.google\.com|developers\.google\.com|calendar\.google\.com|mail\.google\.com|127\.0\.0\.1|localhost|www\.apple\.com|www\.w3\.org|[a-z0-9.-]+\.example|example\.com|login\.microsoftonline\.com|graph\.microsoft\.com|meet\.google\.com|zoom\.us|teams\.microsoft\.com)'
     for bin in "${expected[@]}"; do
       bad="$(strings -a "$bin" | grep -oE '[A-Za-z][A-Za-z0-9+.-]*://[A-Za-z0-9.-]+' | sort -u \
-             | grep -vxE "https?://$ok_hosts|file://|yayacal://|yayacal-dev://" || true)"
+             | grep -vxE "https?://$ok_hosts|file://|yayacal://|yayacal-dev://|fathom://(start-capture|open-app)" || true)"
       [[ -z "$bad" ]] || say_fail "unexpected URL in ${bin:t}: ${(f)bad}"
       print -r -- "  ${bin:t} URLs: $(strings -a "$bin" | grep -oE 'https?://[A-Za-z0-9.-]+' | sort -u | tr '\n' ' ')"
     done

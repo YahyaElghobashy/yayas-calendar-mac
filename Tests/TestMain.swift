@@ -40,6 +40,8 @@ enum TestMain {
         await RichMailReviewSurfaceTests.run()
         // UI layer.
         MenuBarTests.run()
+        // Join with Fathom (D-045).
+        FathomTests.run()
         // First-run UX.
         StrangerUXTests.run()
         // Mail defaults (D-029).
