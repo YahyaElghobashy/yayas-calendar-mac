@@ -201,6 +201,10 @@ enum MailPublishTests {
         let synced = await eventually(3) { (try? Services.mail.threads(accounts: nil, limit: 5))?.count == 1 }
         expect(synced && m.h.snapshot("inbox.all")?.content == .inbox && m.h.snapshot("inbox.all")?.mail.count == 1,
                "first mail pass syncs and publishes")
+        // The pass stores the threads before it reads the inbox's unread count and reports ok: wait for the whole
+        // pass, or the mark-read below races it (the count comes back as 1 and the loop as "pending").
+        let passDone = await eventually(3) { await engine.mailLoop(orb.id)?.lastOutcome == .ok }
+        check(passDone, "first mail pass finishes ok")
         check(await DataServices.handleMailRoute(.read, r: m.r(orb.id, "s")) && (try? Services.mail.thread(r: m.r(orb.id, "s")))?.unread == false,
                "DataServices.handleMailRoute reaches the running engine")
         let line = await DataServices.diagnose()

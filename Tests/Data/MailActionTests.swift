@@ -229,12 +229,16 @@ enum MailActionTests {
             check(false, "bare send"); return
         }
         await actions.drain()
-        let texts = m.gmail.sentRaw(token: token).map { MIMEParser.extract(MIMEParser.parse($0)).text.replacingOccurrences(of: "\r\n", with: "\n") }
+        // The queue may deliver the three in any order: each is found by its subject, never by its position.
+        let sent = m.gmail.sentRaw(token: token).map { MIMEParser.parse($0) }
+        let texts = Dictionary(sent.map { ($0.header("Subject") ?? "", MIMEParser.extract($0).text.replacingOccurrences(of: "\r\n", with: "\n")) },
+                               uniquingKeysWith: { first, _ in first })
         let count = { (t: String) in t.components(separatedBy: "Orbital Pickle Co.").count - 1 }
-        expect(texts.count == 3, "three sends")
-        expect(texts.count == 3 && count(texts[0]) == 1 && texts[0].hasSuffix("> Lids?\n"), "reply: signature once, quote stays last")
-        expect(texts.count == 3 && count(texts[1]) == 1 && !texts[1].contains("-- \n"), "new mail: signature once, no second '-- '")
-        expect(texts.count == 3 && count(texts[2]) == 1 && texts[2].contains("-- \nAvery"), "bare body: signature appended once")
+        expect(sent.count == 3 && Set(texts.keys) == ["s", "n", "b"], "three sends, one per subject")
+        let replied = texts["s"] ?? "", newMail = texts["n"] ?? "", bare = texts["b"] ?? ""
+        expect(count(replied) == 1 && replied.hasSuffix("> Lids?\n"), "reply: signature once, quote stays last")
+        expect(count(newMail) == 1 && !newMail.contains("-- \n"), "new mail: signature once, no second '-- '")
+        expect(count(bare) == 1 && bare.contains("-- \nAvery"), "bare body: signature appended once")
     }
 
     static func sendAndReply() async {
