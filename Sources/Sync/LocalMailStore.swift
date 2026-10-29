@@ -228,7 +228,7 @@ final class LocalMailStore: MailStore, MailPreferencesStore, @unchecked Sendable
     static func thread(_ t: MailThreadRecord) -> MailThread {
         MailThread(r: t.r, accountId: t.accountId, sender: t.senderName.isEmpty ? t.senderEmail : t.senderName,
                    senderEmail: t.senderEmail, subject: t.subject, snippet: t.snippet, at: t.lastAt, unread: t.unread,
-                   starred: t.starred, messageCount: t.messageCount)
+                   starred: t.starred, messageCount: t.messageCount, labels: t.labels)
     }
 
     /// Whole-inbox accounts: Gmail's INBOX threadsUnread (adjusted optimistically between syncs);
