@@ -1,4 +1,5 @@
 import SwiftUI
+import WidgetKit
 
 /// "Month": a mini calendar; tapping a day (a Link) shows that day's meetings. Today is a filled accent
 /// circle, the picked day an accent ring, and days with meetings get a dot. The week starts on the
@@ -120,7 +121,7 @@ struct MonthGrid: View {
         let side = min(cell.width, cell.height) - 1
         return ZStack {
             if isToday {
-                Circle().fill(p.accent).frame(width: side, height: side)
+                Circle().fill(p.accentFill).frame(width: side, height: side).widgetAccentable()
             } else if isPicked {
                 Circle().strokeBorder(p.accent, lineWidth: 1.5).frame(width: side, height: side)
             }

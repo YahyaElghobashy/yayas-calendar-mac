@@ -155,7 +155,7 @@ enum MailUndo {
 
 private struct PlainLinksKey: EnvironmentKey { static let defaultValue = false }
 private struct WidgetLinkContextKey: EnvironmentKey { static let defaultValue = WidgetLinkContext() }
-private struct WidgetMonoKey: EnvironmentKey { static let defaultValue = false }
+private struct WidgetToneKey: EnvironmentKey { static let defaultValue = WidgetStyle.Tone.color }
 private struct WidgetTitleKey: EnvironmentKey { static let defaultValue: String? = nil }
 private struct WidgetJustSyncedKey: EnvironmentKey { static let defaultValue = false }
 
@@ -171,11 +171,11 @@ extension EnvironmentValues {
         set { self[WidgetLinkContextKey.self] = newValue }
     }
 
-    /// True when the system draws the widget accented or vibrant (the extension maps
-    /// `widgetRenderingMode` onto it; renders set it directly). KindView switches to the mono palette.
-    var widgetMono: Bool {
-        get { self[WidgetMonoKey.self] }
-        set { self[WidgetMonoKey.self] = newValue }
+    /// How the system draws the widget (the extension maps `widgetRenderingMode` onto it; renders set it
+    /// directly). KindView switches to the matching glass palette in the accented and vibrant modes.
+    var widgetTone: WidgetStyle.Tone {
+        get { self[WidgetToneKey.self] }
+        set { self[WidgetToneKey.self] = newValue }
     }
 
     /// Custom slot name ("Work"), shown in headers.

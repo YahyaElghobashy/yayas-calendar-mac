@@ -760,7 +760,7 @@ struct CustomSetupWidget: View {
                         .foregroundStyle(p.onAccent)
                         .padding(.horizontal, 12)
                         .frame(height: 26 * style.scale)
-                        .background(Capsule().fill(p.accent))
+                        .background(Capsule().fill(p.accentFill))
                     }
                     .padding(small ? 14 : 24)
                     .frame(width: family.size.width, height: family.size.height,

@@ -8,7 +8,7 @@ struct KindView: View {
     let data: WidgetData
     let style: WidgetStyle
     var page = 1
-    @Environment(\.widgetMono) private var mono
+    @Environment(\.widgetTone) private var tone
 
     /// What a (kind, family, data) draws after the whole-card states and the family fallbacks.
     enum Resolved: Equatable {
@@ -34,7 +34,7 @@ struct KindView: View {
 
     var body: some View {
         var s = style
-        s.mono = s.mono || mono
+        if s.tone == .color { s.tone = tone }
         let footer = data.state == .content ? data.health.footer(at: data.now) : .none
         let links = WidgetLinkContext(kind: spec.kind, family: family, windowStart: data.windowStart, windowEnd: data.windowEnd)
         let compact = Self.compactFooter(family)

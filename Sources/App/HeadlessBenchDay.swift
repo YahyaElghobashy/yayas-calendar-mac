@@ -70,7 +70,7 @@ enum DayBench {
                 .scaleEffect(scale > 0 ? scale : 1, anchor: .topLeading)
                 .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
             }
-            .environment(\.widgetMono, false)
+            .environment(\.widgetTone, .color)
             .containerBackground(for: .widget) {
                 LinearGradient(colors: [palette.backgroundTop, palette.backgroundBottom], startPoint: .top, endPoint: .bottom)
             }

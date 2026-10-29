@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import WidgetKit
 
 /// The calendar's logo. Personal accounts have none and keep the slot empty so titles stay aligned.
 struct AccountBadge: View {
@@ -29,13 +30,12 @@ struct AccountBadge: View {
     private func badge(_ side: CGFloat) -> some View {
         Group {
             if style.showLogos, let logo = account.logo {
-                Image(nsImage: logo)
-                    .resizable()
-                    .interpolation(.high)
+                mark(Image(nsImage: logo).resizable().interpolation(.high))
                     .aspectRatio(contentMode: .fill)
                     .frame(width: side, height: side)
-                    // Dark look: a paper plate behind the logo so dark marks stay visible.
-                    .background(style.look == .ink ? Color(hex: 0xF8F5F0) : .clear)
+                    // Dark look: a paper plate behind the logo so dark marks stay visible (none on glass:
+                    // it would be a solid tile).
+                    .background(style.look == .ink && !style.mono ? Color(hex: 0xF8F5F0) : .clear)
                     .clipShape(RoundedRectangle(cornerRadius: side * 0.28, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: side * 0.28, style: .continuous)
                         .strokeBorder(style.palette.rule, lineWidth: 0.5))
@@ -45,6 +45,17 @@ struct AccountBadge: View {
         }
         .opacity(style.showLogos ? 1 : 0)
         .frame(width: style.showLogos ? side : 0)
+    }
+
+    /// Accented: the logo's brightness becomes its opacity, so the mark stays a mark (the system's default
+    /// paints an opaque logo as one white tile). Only on glass, so full colour draws exactly as before.
+    @ViewBuilder
+    private func mark(_ image: Image) -> some View {
+        if style.mono {
+            image.widgetAccentedRenderingMode(.desaturated)
+        } else {
+            image
+        }
     }
 }
 
@@ -167,7 +178,8 @@ struct JoinButton: View {
         .padding(.horizontal, big ? 14 : 8)
         .frame(height: (big ? 30 : 18) * style.scale)
         .frame(maxWidth: big ? .infinity : nil)
-        .background(Capsule().fill(p.accent))
+        .background(Capsule().fill(p.accentFill))
+        .widgetAccentable()
     }
 }
 
@@ -254,6 +266,7 @@ struct WidgetMeetingRow: View {
                         if highlighted {
                             Text(live ? "Now" : WidgetClock.until(meeting.start, from: now).replacingOccurrences(of: " min", with: "m"))
                                 .font(style.font(12, .bold)).foregroundStyle(p.accent).monospacedDigit()
+                                .widgetAccentable()
                         } else if meeting.allDay {
                             Text("All day").font(style.font(11, .medium)).foregroundStyle(p.text2).lineLimit(1)
                         } else {
@@ -374,6 +387,7 @@ struct DateHeader: View {
                 HStack(spacing: 6) {
                     Text(DayName.format("EEEE", now).uppercased())
                         .font(style.font(10.5, .bold)).tracking(0.6).foregroundStyle(p.accent)
+                        .widgetAccentable()
                     if let title { WidgetTitleTag(title: title, style: style) }
                 }
                 Text(DayName.format("d MMMM", now))
@@ -406,13 +420,16 @@ struct WidgetCard<Content: View>: View {
         self.family = family; self.style = style; self.content = content()
     }
 
+    /// The card's own sheet, for the app's gallery and Studio (the desktop widget draws it as its container
+    /// background). None on glass: the system removes the container there, and a sheet inside the content
+    /// would turn into one white panel over the text (D-047).
     var body: some View {
         let p = style.palette
         content
             .frame(width: family.size.width, height: family.size.height, alignment: .topLeading)
-            .background(LinearGradient(colors: [p.backgroundTop, p.backgroundBottom], startPoint: .top, endPoint: .bottom))
+            .background(style.mono ? nil : LinearGradient(colors: [p.backgroundTop, p.backgroundBottom], startPoint: .top, endPoint: .bottom))
             .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            .environment(\.colorScheme, style.look == .paper ? .light : .dark)
+            .environment(\.colorScheme, style.look == .paper && !style.mono ? .light : .dark)
     }
 }
 
@@ -600,7 +617,7 @@ struct WidgetMessageCard: View {
                             .foregroundStyle(p.onAccent)
                             .padding(.horizontal, 12)
                             .frame(height: 26 * style.scale)
-                            .background(Capsule().fill(p.accent))
+                            .background(Capsule().fill(p.accentFill))
                         }
                     }
                     .padding(small ? 14 : 24)

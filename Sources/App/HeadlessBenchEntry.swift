@@ -36,7 +36,7 @@ struct BenchEntry: View {
                 }
             }
         }
-        .environment(\.widgetMono, false)
+        .environment(\.widgetTone, .color)
         .environment(\.plainLinks, Self.variant == "plain")
         .containerBackground(for: .widget) {
             LinearGradient(colors: [palette.backgroundTop, palette.backgroundBottom], startPoint: .top, endPoint: .bottom)

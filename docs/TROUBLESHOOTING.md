@@ -25,8 +25,9 @@ macOS a minute to register the widget extension.
 **The widgets look grey.** That’s macOS’s **Automatic** widget style: it drains the colour from desktop
 widgets whenever an app window is in front. **System Settings → Desktop & Dock → Widgets → Widget
 style → Full colour** keeps them in colour. (Even in Full colour, macOS lowers the contrast a little
-while a window is active.) Nothing in the widgets depends on colour alone: every row also has its
-account’s logo or tag.
+while a window is active.) In the grey style they draw white text on macOS’s glass; 1.0.0 drew them as
+blank panels there, which 1.0.1 fixes. Nothing in the widgets depends on colour alone: every row also
+has its account’s logo or tag.
 
 **Blank widgets, or the old version, after an update.** macOS’s widget host (`chronod`) can keep the
 previous version of the extension running. Quit Yaya’s Calendar, then in Terminal:

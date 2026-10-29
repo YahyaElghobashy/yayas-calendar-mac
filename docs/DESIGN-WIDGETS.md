@@ -89,3 +89,14 @@ slice opens at its first timed meeting (9 AM when it has none) and says "Nothing
 The "Last synced" / re-auth strip takes 7 pt from L / XL / XLP's grid (as Agenda's pages do). Timelines:
 `TimelinePlan.dayEntryDates` (only where the drawing changes; D-019). The headless renders match the
 design's reference drawings within run-to-run antialiasing noise (max 2/255).
+
+## Desktop not in focus (added 2026-10-28, D-047)
+With another app in front, macOS draws desktop widgets in a monochrome mode on its own glass and removes
+their background: **accented** (macOS 26 and later) paints every pixel white and keeps only its opacity;
+**vibrant** desaturates and keeps only its brightness. The widgets switch to a glass palette in both, for
+every look: no sheet of their own, white text with the hierarchy in opacity (accented) or grey level
+(vibrant), banners, blocks and chips as faint white fills, Join and the other filled accents as a soft
+glass capsule with a white label, logos desaturated (their brightness becomes opacity) without the Dark
+look's paper plate. The weekday, "Now", Join, today and the now line are accentable, for a system that
+tints the accent group. The renders composite both modes as macOS does (`accented-*`, `vibrant-*`,
+`glass-*`), and the gate fails a render that comes out blank or solid.

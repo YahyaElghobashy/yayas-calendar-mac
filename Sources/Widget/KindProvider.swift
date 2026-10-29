@@ -107,6 +107,7 @@ struct KindEntryView: View {
     @Environment(\.widgetFamily) private var widgetFamily
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.widgetRenderingMode) private var renderingMode
+    @Environment(\.showsWidgetContainerBackground) private var showsBackground
 
     private struct Resolved {
         var data: WidgetData
@@ -133,19 +134,30 @@ struct KindEntryView: View {
 
     var body: some View {
         let family = Family(widgetFamily)
-        let _ = BodyTrace.note(entry, family: family, mono: renderingMode != .fullColor, dark: colorScheme == .dark)
+        let tone = WidgetStyle.Tone(renderingMode)
+        let _ = BodyTrace.note(entry, family: family, tone: tone, background: showsBackground, dark: colorScheme == .dark)
         let resolved = resolve(family)
-        let palette = resolved.style.palette
+        // Glass palettes have a clear background: where the system keeps the container it draws its own
+        // material there, never a paper or ink sheet under white text.
+        let palette = Self.palette(resolved.style, tone)
         GeometryReader { geo in
             let scale = min(geo.size.width / family.size.width, geo.size.height / family.size.height)
             KindView(spec: entry.spec, family: family, data: resolved.data, style: resolved.style, page: resolved.page)
                 .scaleEffect(scale > 0 ? scale : 1, anchor: .topLeading)
                 .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
         }
-        .environment(\.widgetMono, renderingMode != .fullColor)
+        .environment(\.widgetTone, tone)
         .containerBackground(for: .widget) {
             LinearGradient(colors: [palette.backgroundTop, palette.backgroundBottom], startPoint: .top, endPoint: .bottom)
         }
+    }
+}
+
+extension KindEntryView {
+    static func palette(_ style: WidgetStyle, _ tone: WidgetStyle.Tone) -> Palette {
+        var toned = style
+        toned.tone = tone
+        return toned.palette
     }
 }
 
@@ -159,9 +171,9 @@ enum BodyTrace {
         enabled = FileManager.default.fileExists(atPath: Paths.widget.appendingPathComponent("trace-bodies").path)
     }
 
-    static func note(_ entry: KindEntry, family: Family, mono: Bool, dark: Bool) {
+    static func note(_ entry: KindEntry, family: Family, tone: WidgetStyle.Tone, background: Bool, dark: Bool) {
         guard enabled else { return }
         Trace.widget("body", ["kind": entry.spec.kind, "family": family.short, "entry": "\(Trace.millis(entry.date))",
-                              "mode": mono ? "mono" : "full", "dark": dark ? "1" : "0"])
+                              "mode": tone.rawValue, "bg": background ? "1" : "0", "dark": dark ? "1" : "0"])
     }
 }

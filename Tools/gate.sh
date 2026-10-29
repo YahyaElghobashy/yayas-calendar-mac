@@ -16,9 +16,10 @@
 # repo + bundle, signature + designated requirement, and `--permissions-json` timing (first run
 # recorded, judged on 3 warm runs: each must finish in < 1 s). Every step runs under a timeout.
 # p2 = the same, with renders from the JSON snapshot fixtures (every kind × family × light/dark, every
-# state fixture, accented variants, Peeks, Studio, Calendar section) and a render-manifest check:
-# Large shows ≥10 meeting rows on the busy fixture's page 1. Ends by unregistering every build copy
-# from LaunchServices (`--permissions-json` checks the build copy in).
+# state fixture, accented and vibrant variants composited as macOS draws a desktop not in focus, Peeks,
+# Studio, Calendar section) and a render-manifest check: Large shows ≥10 meeting rows on the busy
+# fixture's page 1, and no accented or vibrant render is a blank or solid panel (D-047). Ends by
+# unregistering every build copy from LaunchServices (`--permissions-json` checks the build copy in).
 # p3 = p2 plus mail: live inbox + combo widgets (incl. an "Archived · Undo" row and inbox zero), the
 # Inbox section in every state, the reader with the remote-images bar, the composer (incl. the approval
 # card and the footer hint, D-023), the Mail Peek, Settings → Mail and Studio with mail on; the manifest must show
@@ -105,16 +106,31 @@ if at_least 2; then
     fail "manifest: Large ≥10 rows (busy, page 1)" "meetingRows=${large_rows:-missing}"
   fi
   busy_n=${#${(M)MANIFEST_OBJECTS:#*\"widget-*}}; acc_n=${#${(M)MANIFEST_OBJECTS:#*\"accented-*}}
+  vib_n=${#${(M)MANIFEST_OBJECTS:#*\"vibrant-*}}; glass_n=${#${(M)MANIFEST_OBJECTS:#*\"glass-*}}
   state_n=${#${(M)MANIFEST_OBJECTS:#*\"state-*}}
   fixtures_seen=( ${(u)${(f)"$(for o in ${(M)MANIFEST_OBJECTS:#*\"state-*}; do mfield "$o" fixture; done)"}} )
   need=( busyPage2 sparse dst empty noAccounts stale reauth mailComingSoon setup customTitle noSnapshot )
   at_least 3 && need+=( mailArchived inboxZero )
   at_least 4 && need+=( justSynced longMonth busyDay dayPicked customDay )
   missing=( ${need:|fixtures_seen} )
-  if (( busy_n == 108 && acc_n == 108 && ${#missing} == 0 )); then
-    pass "manifest: coverage" "108 busy (12 kinds × families × light/dark) + 108 accented + $state_n state renders over ${#fixtures_seen} fixtures"
+  if (( busy_n == 108 && acc_n == 108 && vib_n == 108 && glass_n >= 60 && ${#missing} == 0 )); then
+    pass "manifest: coverage" "108 busy (12 kinds × families × light/dark) + 108 accented + 108 vibrant + $glass_n glass-state + $state_n state renders over ${#fixtures_seen} fixtures"
   else
-    fail "manifest: coverage" "busy=$busy_n accented=$acc_n states=$state_n missing=${(j:,:)missing}"
+    fail "manifest: coverage" "busy=$busy_n accented=$acc_n vibrant=$vib_n glass=$glass_n states=$state_n missing=${(j:,:)missing}"
+  fi
+  # D-047: on a desktop not in focus macOS keeps only opacity (accented) or brightness (vibrant). `ink` is
+  # the share of the card it draws strongly: 1.0.0 came out as one white sheet (accented ≈ 1) or empty
+  # glass (vibrant on Light ≈ 0). Every monochrome render must sit in between.
+  glass_bad=(); glass_lo=1; glass_hi=0
+  for o in ${(M)MANIFEST_OBJECTS:#*\"(accented|vibrant|glass)-*}; do
+    ink="$(mfield "$o" ink)"
+    if [[ -z "$ink" ]] || (( ink < 0.004 || ink > 0.40 )); then glass_bad+=( "$(mfield "$o" file)=${ink:-none}" ); continue; fi
+    (( ink < glass_lo )) && glass_lo=$ink; (( ink > glass_hi )) && glass_hi=$ink
+  done
+  if (( acc_n + vib_n > 0 && ${#glass_bad} == 0 )); then
+    pass "renders: readable on glass" "$(( acc_n + vib_n + glass_n )) accented / vibrant renders draw content: ink $(printf %.3f $glass_lo)–$(printf %.3f $glass_hi) of the card (blank < 0.004, solid > 0.40)"
+  else
+    fail "renders: readable on glass" "${#glass_bad} blank or solid: ${(j:, :)glass_bad[1,6]}"
   fi
   surfaces=( peek-event-merged peek-event-reply peek-day studio-custom-a studio-custom-setup window-calendar window-calendar-empty window-calendar-noaccounts window-widgets )
   absent=(); for f in "${surfaces[@]}"; do [[ -f "$RENDERS/$f.png" ]] || absent+=( "$f" ); done
@@ -169,7 +185,7 @@ if at_least 3; then
     k="$(mfield "$o" kind)"; st="$(mfield "$o" state)"
     [[ "$(mfield "$o" fixture)" == busy && ( "$k" == inbox.all || "$k" == combo.all ) && "$st" == content ]] && (( live += 1 ))
   done
-  (( live >= 18 )) && pass "manifest: live mail widgets" "$live busy inbox + combo renders draw live rows (light/dark, full colour + accented)" \
+  (( live >= 18 )) && pass "manifest: live mail widgets" "$live busy inbox + combo renders draw live rows (light/dark, full colour + accented + vibrant)" \
     || fail "manifest: live mail widgets" "only $live inbox/combo renders in the content state"
   mail_surfaces=( window-inbox window-inbox-images-loaded window-inbox-plain window-inbox-cmt window-inbox-starred window-inbox-toast
                   window-inbox-zero window-inbox-loading window-inbox-noaccounts window-inbox-failed window-inbox-labs-off
@@ -429,7 +445,9 @@ elif [[ "$PHASE" == "p2" ]]; then
   print -r -- ""
   for group in "widget:Busy week, every kind × family × light/dark (Inbox and Agenda & Inbox included)" \
                "state:State fixtures (busyPage2, sparse, dst, empty, noAccounts, stale, reauth, mailComingSoon, setup, customTitle, noSnapshot)" \
-               "accented:Accented / vibrant rendering (\`.environment(\\\\.widgetRenderingMode, .accented)\` → mono palette)" \
+               "accented:Accented (a desktop not in focus, macOS 26 and later): white by opacity over glass (D-047)" \
+               "vibrant:Vibrant: brightness over glass (D-047)" \
+               "glass:Whole-card and strip states, accented and vibrant" \
                "peek:Event Peek and Day Peek" \
                "studio:Widget Studio" \
                "window:Main window per section (Calendar: ready, empty, no accounts, loading, CMT filter)" \
@@ -520,7 +538,9 @@ elif [[ "$PHASE" == "p3" ]]; then
   print -r -- ""
   for group in "widget:Busy week, every kind × family × light/dark (Inbox and Agenda & Inbox draw the live sample inbox)" \
                "state:State fixtures (busyPage2, sparse, dst, empty, noAccounts, stale, reauth, mailComingSoon, setup, customTitle, noSnapshot, mailArchived, inboxZero)" \
-               "accented:Accented / vibrant rendering (mono palette), live mail rows included" \
+               "accented:Accented (white by opacity over glass, D-047), live mail rows included" \
+               "vibrant:Vibrant (brightness over glass, D-047), live mail rows included" \
+               "glass:Whole-card and strip states, accented and vibrant" \
                "window:Main window (Inbox: reader with the images bar, images loaded, plain text, CMT, Starred, Archived · Undo toast, inbox zero, loading, no accounts, failed, mail off; Calendar; Settings with Mail)" \
                "reader:The paper card alone (remote-images bar; plain text with attachments)" \
                "composer:Composer window (new, reply with quote + signature, the \"I'll check with you\" hint, the approval card for one and for seven people under a Light and a Dark Mac, at 560 × 480 with the list scrolling and with a two-line name, the send refusal, Sending… Undo, switch off)" \
@@ -618,7 +638,8 @@ else
                "settings:Settings → Mail, Settings → Menu bar (⌃⌥J on; taken by another app)" \
                "widget:Busy week, every kind × family × light/dark" \
                "state:State fixtures (busyPage2, sparse, dst, empty, noAccounts, stale, reauth, mailComingSoon, setup, customTitle, noSnapshot, mailArchived, inboxZero, justSynced, longMonth; Day: busyDay, dayPicked, customDay)" \
-               "accented:Accented / vibrant rendering (mono palette)" \
+               "accented:Accented (white by opacity over glass, D-047)" "vibrant:Vibrant (brightness over glass, D-047)" \
+               "glass:Whole-card and strip states, accented and vibrant" \
                "window:Main window sections and states" "reader:The paper card alone" "composer:Composer window" \
                "peek:Event Peek, Day Peek and Mail Peek" "studio:Widget Studio" "gallery:Full Widgets page"; do
     prefix="${group%%:*}"; title="${group#*:}"

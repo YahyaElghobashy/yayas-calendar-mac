@@ -206,10 +206,14 @@ enum SnapshotTests {
         T.equal(WidgetStyle.from(s, dark: false).textSize, .standard, "unknown size → Standard")
         T.equal(WidgetStyle.Typeface.allCases.map(\.key), ["system", "rounded", "serif"], "typeface keys = Studio/snapshot spelling")
         T.equal(WidgetStyle.TextSize.allCases.map(\.key), ["small", "standard", "large"], "size keys")
-        var mono = WidgetStyle(); mono.mono = true
+        var mono = WidgetStyle(); mono.tone = .accented
         T.check(mono.palette.accent == mono.palette.text, "mono palette: accent = text colour")
-        var ink = WidgetStyle(); ink.look = .ink; ink.mono = true
-        T.check(ink.palette.accent == Palette.inkMono.accent, "mono dark palette")
+        T.check(mono.palette.backgroundTop == .clear && mono.palette.backgroundBottom == .clear,
+                "accented: no background of its own (it would paint over the text, D-047)")
+        var ink = WidgetStyle(); ink.look = .ink; ink.tone = .accented
+        T.check(ink.palette.text == mono.palette.text, "accented: the same glass palette in Light and Dark")
+        var vibrant = WidgetStyle(); vibrant.tone = .vibrant
+        T.check(vibrant.palette.text == .white && vibrant.palette.backgroundTop == .clear, "vibrant: white text, no background")
         var window = WidgetStyle(); window.scaleOverride = 1.16; window.textSize = .small
         T.equal(window.scale, 1.16, "window scale overrides text size")
     }

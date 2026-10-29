@@ -1,4 +1,5 @@
 import SwiftUI
+import WidgetKit
 
 // "Day": one day as an hour grid, meetings as blocks side by side when they overlap (Google Calendar's
 // day view, in the widget language: Paper / Ink, account logos, teal accent, calm words).
@@ -459,7 +460,8 @@ private struct DayJoinChip: View {
             }
             .foregroundStyle(style.palette.onAccent)
             .padding(.horizontal, 7).frame(height: 16)
-            .background(Capsule().fill(style.palette.accent))
+            .background(Capsule().fill(style.palette.accentFill))
+            .widgetAccentable()
             .fixedSize()
         }
     }
@@ -660,6 +662,13 @@ private struct DayGrid: View {
         let area = width - left
         let hourYs = marks.map(y)
         let halfYs = perHour >= 40 ? marks.map { $0.addingTimeInterval(1800) }.filter { $0 < window.end }.map(y) : []
+        // Glass (D-047): blocks are see-through, so the lines stop at them, as an opaque block hides them in
+        // full colour; where the empty note shows it has no sheet either, so only the gutter ticks stay.
+        // Each hole takes the 2 pt column gap on its right too, so no stub of a line shows between blocks.
+        let holes = style.mono ? blocks.compactMap { frame($0, left: left, area: area) }
+            .map { CGRect(x: $0.minX, y: $0.minY, width: $0.width + 2, height: $0.height) } : []
+        let slice = family == .small || family == .medium
+        let bare = style.mono && (slice ? blocks.isEmpty && model.plan.overflow.isEmpty : model.plan.timedCount == 0)
         ZStack(alignment: .topLeading) {
             // A tap on the grid outside a block opens the Day Peek (blocks and "+N" are links above it).
             WidgetLink(destination: links.openDay(model.day)) {
@@ -667,8 +676,8 @@ private struct DayGrid: View {
             }
             .offset(x: left)
             // Hour lines (and faint half hours when there is room) as two shapes, labels in the gutter.
-            DayLines(ys: halfYs, x: left, width: area).fill(p.rule.opacity(0.45))
-            DayLines(ys: hourYs, x: left - 4, width: area + 4).fill(p.rule)
+            DayLines(ys: bare ? [] : halfYs, x: left, width: area, holes: holes).fill(p.rule.opacity(0.45))
+            DayLines(ys: hourYs, x: left - 4, width: bare ? 4 : area + 4, holes: holes).fill(p.rule)
             ForEach(Array(marks.enumerated()), id: \.offset) { i, mark in
                 let yy = hourYs[i]
                 let hour = WidgetCalendar.current.component(.hour, from: mark)
@@ -689,7 +698,10 @@ private struct DayGrid: View {
             }
             // The now line runs under the blocks (over them it reads as a strike-through on titles); the
             // dot in the gutter and the focus ring carry it across a meeting.
-            if let nowY {
+            if let nowY, style.mono {
+                DayLines(ys: [nowY], x: left - 3, width: bare ? 3 : area + 3, holes: holes, thickness: 1.5).fill(p.accent)
+                    .widgetAccentable()
+            } else if let nowY {
                 Rectangle().fill(p.accent).frame(width: area + 3, height: 1.5).offset(x: left - 3, y: nowY - 0.75)
             }
             ForEach(Array(blocks.enumerated()), id: \.offset) { _, b in
@@ -709,8 +721,8 @@ private struct DayGrid: View {
         .frame(width: width, height: height, alignment: .topLeading)
     }
 
-    @ViewBuilder
-    private func block(_ b: DayLayout.Block, left: CGFloat, area: CGFloat) -> some View {
+    /// Where a block sits in the grid, nil when too little of it is inside the window to draw.
+    private func frame(_ b: DayLayout.Block, left: CGFloat, area: CGFloat) -> CGRect? {
         let clusterWidth = area - (b.overflowLane ? metrics.lane : 0)
         let column = clusterWidth / CGFloat(max(1, b.columns))
         let x = left + column * CGFloat(b.column)
@@ -719,12 +731,18 @@ private struct DayGrid: View {
         let bottom = max(y(b.end), top + metrics.minBlock)
         let clipTop = max(top, 0), clipBottom = min(bottom, height)
         let h = clipBottom - clipTop - 1.5
-        if h >= 6 {
+        return h >= 6 ? CGRect(x: x, y: clipTop, width: w, height: h) : nil
+    }
+
+    @ViewBuilder
+    private func block(_ b: DayLayout.Block, left: CGFloat, area: CGFloat) -> some View {
+        if let f = frame(b, left: left, area: area) {
+            let top = y(b.start)
             DayBlockView(meeting: b.meeting, now: model.now, isToday: model.isToday,
                          focus: model.focusId == b.meeting.id, style: style,
-                         width: w, height: h, family: family,
-                         cutTop: top < 0, cutBottom: bottom > height)
-                .offset(x: x, y: clipTop)
+                         width: f.width, height: f.height, family: family,
+                         cutTop: top < 0, cutBottom: max(y(b.end), top + metrics.minBlock) > height)
+                .offset(x: f.minX, y: f.minY)
         }
     }
 
@@ -742,15 +760,27 @@ private struct DayGrid: View {
     }
 }
 
-/// 1 pt rules at `ys` (one shape for every line: one layer instead of one view per line).
+/// 1 pt rules at `ys` (one shape for every line: one layer instead of one view per line), broken where
+/// they would cross one of `holes`.
 private struct DayLines: Shape {
     let ys: [CGFloat]
     let x: CGFloat
     let width: CGFloat
+    var holes: [CGRect] = []
+    var thickness: CGFloat = 1
 
     func path(in rect: CGRect) -> Path {
         var path = Path()
-        for y in ys { path.addRect(CGRect(x: x, y: y - 0.5, width: width, height: 1)) }
+        for y in ys {
+            var from = x
+            let cuts = holes.filter { $0.minY <= y + thickness / 2 && $0.maxY >= y - thickness / 2 }
+                .sorted { $0.minX < $1.minX }
+            for cut in cuts where cut.maxX > from {
+                if cut.minX > from { path.addRect(CGRect(x: from, y: y - thickness / 2, width: cut.minX - from, height: thickness)) }
+                from = cut.maxX
+            }
+            if x + width > from { path.addRect(CGRect(x: from, y: y - thickness / 2, width: x + width - from, height: thickness)) }
+        }
         return path
     }
 }
@@ -820,7 +850,7 @@ struct DayTint {
 
     static func of(_ account: WidgetAccount, _ style: WidgetStyle) -> DayTint {
         let p = style.palette
-        if style.mono { return DayTint(fill: p.band, pastFill: p.band, edge: p.text3, hatch: p.text3.opacity(0.35)) }
+        if style.mono { return DayTint(fill: p.band, pastFill: p.band, edge: p.text2, hatch: p.text3.opacity(0.5)) }
         let base = UInt32(account.color ?? fallback(account.id))
         if style.look == .paper {
             return DayTint(fill: Color(hex: mix(0xFFFFFF, base, 0.26)), pastFill: Color(hex: mix(0xFCFAF7, base, 0.12)),
@@ -1020,7 +1050,8 @@ private struct DayBlockView: View {
         }
         .foregroundStyle(p.onAccent)
         .padding(.horizontal, joinWide ? 7 : 5).frame(height: 16)
-        .background(Capsule().fill(p.accent))
+        .background(Capsule().fill(p.accentFill))
+        .widgetAccentable()
         .fixedSize()
         let vertical: CGFloat = tiny ? max(0, (height - 16) / 2) : 3
         return WidgetLink(destination: links.join(meeting)) { label }

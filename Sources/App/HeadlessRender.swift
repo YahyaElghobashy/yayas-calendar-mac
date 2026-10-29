@@ -6,8 +6,8 @@ import SwiftUI
 import WidgetKit
 
 /// `--render <dir>`: PNGs of every widget kind × family × look drawn from JSON snapshot fixtures (the
-/// widget's own read path: encode → decode → SnapshotModel), every state fixture, the accented
-/// (monochrome) variants, the Peeks, Widget Studio, the Calendar section and the Inbox section,
+/// widget's own read path: encode → decode → SnapshotModel), every state fixture, the accented and
+/// vibrant variants composited the way macOS draws them (`GlassComposite`, D-047), the Peeks, Widget Studio, the Calendar section and the Inbox section,
 /// the reader, the composer, the Mail Peek and Settings → Mail, plus `render-manifest.json` with row
 /// counts. ImageRenderer only: never a window, no Keychain, no network, no user defaults written; traces
 /// go to `<dir>/trace/`. Dates are pinned (Monday 19 October 2026, 9:48 AM, London) so renders are
@@ -44,8 +44,12 @@ enum HeadlessRender {
         func save<V: View>(_ view: V, _ name: String, _ info: [String: Any]) {
             let renderer = ImageRenderer(content: view)
             renderer.scale = renderScale
+            write(renderer.cgImage, name, info)
+        }
+
+        func write(_ image: CGImage?, _ name: String, _ info: [String: Any]) {
             let url = dir.appendingPathComponent(name)
-            guard let image = renderer.cgImage,
+            guard let image,
                   let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:]),
                   (try? png.write(to: url)) != nil else {
                 print("  ✗ \(name)")
@@ -70,11 +74,25 @@ enum HeadlessRender {
 
         let looks: [(WidgetSnapshot.Style.Look, String)] = [(.paper, "light"), (.ink, "dark")]
 
-        /// One widget image from a fixture, through JSON like the widget reads it.
+        // Accented maps a logo's brightness onto its opacity (`.widgetAccentedRenderingMode(.desaturated)`,
+        // which ImageRenderer ignores): the logos are handed over already converted.
+        var accentedLogos: [String: NSImage] = [:]
+        func logo(_ id: String, _ tone: WidgetStyle.Tone) -> NSImage? {
+            guard tone == .accented else { return logos.image(forId: id) }
+            if let done = accentedLogos[id] { return done }
+            let out = logos.image(forId: id).flatMap(GlassComposite.accentedLogo)
+            accentedLogos[id] = out
+            return out
+        }
+
+        /// One widget image from a fixture, through JSON like the widget reads it. A monochrome `tone` draws
+        /// it the way the extension does (`widgetRenderingMode` → `widgetTone`), then composites it as the
+        /// system would over a dimmed desktop's glass; `ink` in the manifest is the share of the card drawn
+        /// strongly (D-047: 0 = the blank panel, near 1 = a solid sheet).
         func widget(_ fixture: String, _ spec: WidgetKindSpec, _ family: Family, _ look: WidgetSnapshot.Style.Look,
-                    _ lookName: String, prefix: String, accented: Bool = false) {
+                    _ lookName: String, prefix: String, tone: WidgetStyle.Tone = .color) {
             var info: [String: Any] = ["kind": spec.kind, "family": family.short, "look": lookName, "fixture": fixture,
-                                       "mode": accented ? "accented" : "fullColor"]
+                                       "mode": tone == .color ? "fullColor" : tone.rawValue]
             let data: WidgetData, style: WidgetStyle, page: Int
             if fixture == "noSnapshot" {
                 data = .card(.noSnapshot, now: now)
@@ -94,7 +112,7 @@ enum HeadlessRender {
                     failures += 1
                     return
                 }
-                let model = SnapshotModel(decoded, logo: { logos.image(forId: $0) })
+                let model = SnapshotModel(decoded, logo: { logo($0, tone) })
                 let fixtureNow = fixture == "dst" ? SnapshotFixtures.dstNow : now
                 data = model.data(at: fixtureNow)
                 style = model.style(dark: look == .ink)
@@ -109,11 +127,17 @@ enum HeadlessRender {
             let view = KindView(spec: spec, family: family, data: data, style: style, page: page)
                 .environment(\.plainLinks, true)
             let name = "\(prefix)-\(spec.kind)-\(family.short)-\(lookName).png"
-            if accented {
-                save(RenderingModeBridge(content: view).environment(\.widgetRenderingMode, .accented), name, info)
-            } else {
-                save(view, name, info)
+            guard tone != .color else { return save(view, name, info) }
+            let renderer = ImageRenderer(content: RenderingModeBridge(content: view)
+                .environment(\.widgetRenderingMode, tone == .accented ? .accented : .vibrant))
+            renderer.scale = renderScale
+            guard let drawn = renderer.cgImage, let glass = GlassComposite.apply(drawn, tone: tone, scale: renderScale) else {
+                print("  ✗ \(name)")
+                failures += 1
+                return
             }
+            info["ink"] = (glass.ink * 1000).rounded() / 1000
+            write(glass.image, name, info)
         }
 
         // 1. Busy week: every kind × family × look (Inbox / Agenda & Inbox: the live sample inbox).
@@ -165,17 +189,42 @@ enum HeadlessRender {
         }
         print("  states: \(stateCount) PNGs (\(states.count) fixtures)")
 
-        // 3. Accented / vibrant (monochrome palette) over the busy week.
-        var accentedCount = 0
+        // 3. Accented and vibrant (a desktop not in focus, D-047) over the busy week, composited as macOS
+        // draws them, and the whole-card and strip states on glass.
+        var accentedCount = 0, vibrantCount = 0, glassStateCount = 0
         for spec in WidgetKinds.all {
             for family in spec.families {
                 for (look, lookName) in looks {
-                    widget("busy", spec, family, look, lookName, prefix: "accented", accented: true)
+                    widget("busy", spec, family, look, lookName, prefix: "accented", tone: .accented)
                     accentedCount += 1
+                    widget("busy", spec, family, look, lookName, prefix: "vibrant", tone: .vibrant)
+                    vibrantCount += 1
                 }
             }
         }
-        print("  accented: \(accentedCount) PNGs")
+        let glassStates: [(String, [(WidgetKindSpec, [Family])])] = [
+            ("noSnapshot", [(agenda, all)]),
+            ("noAccounts", [(day, all)]),
+            ("setup", [(custom("e"), all)]),
+            ("stale", [(day, all)]),
+            ("reauth", [(agenda, all)]),
+            ("empty", [(day, all), (month, [.small, .large])]),
+            ("justSynced", [(upNext, [.small, .medium])]),
+            ("mailArchived", [(WidgetKinds.inbox, [.medium, .large]), (WidgetKinds.combo, [.extraLargePortrait])]),
+            ("inboxZero", [(WidgetKinds.inbox, [.large])]),
+            ("busyDay", [(day, [.large, .extraLargePortrait])]),
+        ]
+        for (fixture, targets) in glassStates {
+            for (spec, families) in targets {
+                for family in families {
+                    for tone in [WidgetStyle.Tone.accented, .vibrant] {
+                        widget(fixture, spec, family, .paper, "light", prefix: "glass-\(tone.rawValue)-\(fixture)", tone: tone)
+                        glassStateCount += 1
+                    }
+                }
+            }
+        }
+        print("  accented: \(accentedCount) PNGs, vibrant: \(vibrantCount) PNGs, glass states: \(glassStateCount) PNGs")
 
         // 4. Windows: every section, Calendar states, Studio, the gallery, onboarding.
         var windowCount = 0
@@ -550,7 +599,8 @@ enum HeadlessRender {
             "now": ISO8601DateFormatter().string(from: now),
             "timeZone": WidgetCalendar.current.timeZone.identifier,
             "logos": logos.source,
-            "counts": ["busy": busyCount, "states": stateCount, "accented": accentedCount, "windows": windowCount, "peeks": peekCount,
+            "counts": ["busy": busyCount, "states": stateCount, "accented": accentedCount, "vibrant": vibrantCount,
+                       "glassStates": glassStateCount, "windows": windowCount, "peeks": peekCount,
                        "inbox": inboxCount, "composer": composerCount, "menuBar": menuBarCount],
             "images": manifest,
         ]
@@ -565,13 +615,94 @@ enum HeadlessRender {
     }
 }
 
-/// Maps `widgetRenderingMode` onto the shared views' `widgetMono` (what the extension's entry view
-/// does), so `.environment(\.widgetRenderingMode, .accented)` renders the monochrome palette.
+/// Maps `widgetRenderingMode` onto the shared views' `widgetTone` (what the extension's entry view
+/// does), so `.environment(\.widgetRenderingMode, .accented)` renders the accented glass palette.
 private struct RenderingModeBridge<Content: View>: View {
     @Environment(\.widgetRenderingMode) private var mode
     let content: Content
 
-    var body: some View { content.environment(\.widgetMono, mode != .fullColor) }
+    var body: some View { content.environment(\.widgetTone, WidgetStyle.Tone(mode)) }
+}
+
+/// What macOS makes of a widget it draws accented or vibrant (D-047), for renders. The container background
+/// is gone and the content lies on the desktop's glass. Accented paints every pixel white and keeps its
+/// opacity; vibrant desaturates and keeps its brightness ("maps greyscale content into a material"): one
+/// strength `k` per pixel, over a mid-grey glass. `ink` is the share of the card at k ≥ 0.5, the parts the
+/// system draws strongly: 1.0.0's widgets came out near 1 accented (their paper sheet became one white
+/// panel over the text) and near 0 vibrant on Light (dark text has no brightness left to keep).
+enum GlassComposite {
+    static let glass: (r: Double, g: Double, b: Double) = (0.30, 0.34, 0.37)
+
+    static func apply(_ image: CGImage, tone: WidgetStyle.Tone, scale: Double) -> (image: CGImage, ink: Double)? {
+        let w = image.width, h = image.height
+        guard var px = rgba(image) else { return nil }
+        let radius = 24 * scale
+        var strong = 0, inside = 0
+        for y in 0..<h {
+            for x in 0..<w {
+                let i = (y * w + x) * 4
+                guard inCard(Double(x) + 0.5, Double(y) + 0.5, w: Double(w), h: Double(h), r: radius) else {
+                    px[i] = 0; px[i + 1] = 0; px[i + 2] = 0; px[i + 3] = 0
+                    continue
+                }
+                let a = Double(px[i + 3]) / 255
+                let k: Double
+                if tone == .accented {
+                    k = a
+                } else {
+                    // Premultiplied: luminance × alpha straight from the stored channels.
+                    k = (0.2126 * Double(px[i]) + 0.7152 * Double(px[i + 1]) + 0.0722 * Double(px[i + 2])) / 255
+                }
+                inside += 1
+                if k >= 0.5 { strong += 1 }
+                px[i] = UInt8(((glass.r + (1 - glass.r) * k) * 255).rounded())
+                px[i + 1] = UInt8(((glass.g + (1 - glass.g) * k) * 255).rounded())
+                px[i + 2] = UInt8(((glass.b + (1 - glass.b) * k) * 255).rounded())
+                px[i + 3] = 255
+            }
+        }
+        guard let out = make(px, w: w, h: h) else { return nil }
+        return (out, inside > 0 ? Double(strong) / Double(inside) : 0)
+    }
+
+    /// `.widgetAccentedRenderingMode(.desaturated)`: white, with the logo's brightness as its opacity.
+    static func accentedLogo(_ logo: NSImage) -> NSImage? {
+        guard let cg = logo.cgImage(forProposedRect: nil, context: nil, hints: nil), var px = rgba(cg) else { return nil }
+        for i in stride(from: 0, to: px.count, by: 4) {
+            let k = (0.2126 * Double(px[i]) + 0.7152 * Double(px[i + 1]) + 0.0722 * Double(px[i + 2])) / 255
+            let v = UInt8((k * 255).rounded())
+            px[i] = v; px[i + 1] = v; px[i + 2] = v; px[i + 3] = v
+        }
+        return make(px, w: cg.width, h: cg.height).map { NSImage(cgImage: $0, size: logo.size) }
+    }
+
+    private static func inCard(_ x: Double, _ y: Double, w: Double, h: Double, r: Double) -> Bool {
+        let cx = min(max(x, r), w - r), cy = min(max(y, r), h - r)
+        return (x - cx) * (x - cx) + (y - cy) * (y - cy) <= r * r
+    }
+
+    /// Premultiplied RGBA8 in sRGB.
+    private static func rgba(_ image: CGImage) -> [UInt8]? {
+        let w = image.width, h = image.height
+        var px = [UInt8](repeating: 0, count: w * h * 4)
+        let ok = px.withUnsafeMutableBytes { buffer -> Bool in
+            guard let ctx = CGContext(data: buffer.baseAddress, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4,
+                                      space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return false }
+            ctx.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
+            return true
+        }
+        return ok ? px : nil
+    }
+
+    private static func make(_ px: [UInt8], w: Int, h: Int) -> CGImage? {
+        var copy = px
+        return copy.withUnsafeMutableBytes { buffer -> CGImage? in
+            CGContext(data: buffer.baseAddress, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4,
+                      space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)?.makeImage()
+        }
+    }
 }
 
 /// Badges for the fixture accounts: the cast's own, drawn in code (`Cast.badge`). Renders never read a
