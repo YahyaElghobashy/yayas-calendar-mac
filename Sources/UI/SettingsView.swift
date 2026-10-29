@@ -23,6 +23,7 @@ struct SettingsView: View {
     @Local private var fetchLogos = true
     @Local private var shareWithDeck = false
     @Local private var deckInstalled = false
+    @Local private var murmurInstalled = false
 
     private var canRegister: Bool { !headless && LoginItem.isInApplications }
 
@@ -90,6 +91,7 @@ struct SettingsView: View {
             placement = AppMover.placement()
             fetchLogos = AccountsPreferences.fetchLogos
             deckInstalled = DeckSharing.deckInstalled
+            murmurInstalled = DeckSharing.murmurInstalled
             shareWithDeck = DeckSharing.isOn
         }
     }
@@ -136,11 +138,11 @@ struct SettingsView: View {
             Text("STAYS ON THIS MAC").font(AppTheme.font(10, .bold)).tracking(0.5).foregroundStyle(AppTheme.text3)
                 .padding(.top, 4)
             ShellCard(padding: 0) {
-                row(title: "Share upcoming meetings with Deck", detail: deckDetail) {
+                row(title: shareTitle, detail: deckDetail) {
                     ShellSwitch(isOn: Binding(get: { shareWithDeck }, set: { on in
                         shareWithDeck = on
                         if !headless { DeckSharing.set(on) }
-                    }), label: "Share upcoming meetings with Deck")
+                    }), label: shareTitle)
                 }
             }
         }
@@ -151,9 +153,17 @@ struct SettingsView: View {
         return mail == nil ? what : what + " Your choices are under Mail, below."
     }
 
+    /// One switch, one file, one format (D-039); it names Yaya's Murmur while Murmur is on this Mac (D-046).
+    private var shareTitle: String {
+        murmurInstalled ? "Share upcoming meetings with Deck and Yaya\u{2019}s Murmur" : "Share upcoming meetings with Deck"
+    }
+
     private var deckDetail: String {
-        let what = "Titles, times, attendees and join links of the next two days, in a private file on this Mac that Deck, a meeting recorder, reads."
-        return deckInstalled ? what + " Deck is installed, so this starts on." : what + " Deck isn\u{2019}t on this Mac, so it starts off."
+        guard murmurInstalled else {
+            let what = "Titles, times, attendees and join links of the next two days, in a private file on this Mac that Deck, a meeting recorder, reads."
+            return deckInstalled ? what + " Deck is installed, so this starts on." : what + " Deck isn\u{2019}t on this Mac, so it starts off."
+        }
+        return "Titles, times, attendees and join links of the next two days, in a private file on this Mac that Deck and Yaya\u{2019}s Murmur read to name recordings and match them to the right meeting. Yaya\u{2019}s Murmur is installed, so this starts on."
     }
 
     // MARK: Remove everything (D-037)

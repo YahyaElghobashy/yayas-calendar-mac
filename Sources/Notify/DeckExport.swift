@@ -4,13 +4,19 @@ import Foundation
 /// `share/upcoming-meetings.json` for Deck, a meeting recorder on the same Mac (it names recordings and
 /// links them to the right people). Schema and rules: docs/CONTRACTS.md (Deck export). Local only: a 0600 file in the app's 0700
 /// folder, read by Deck on the same Mac; the change ping (`meetingsChanged`) carries no payload.
-/// Settings → "Share upcoming meetings with Deck" (D-039). Off unless Deck is on this Mac: the file
-/// holds meeting titles, attendees and join links, and nobody else reads it.
+/// Settings → "Share upcoming meetings with Deck" (D-039), "… with Deck and Yaya's Murmur" (D-046): Yaya's Murmur,
+/// the add-on notetaker, reads the same file under the same contract. Off unless Deck or Murmur is on this Mac: the
+/// file holds meeting titles, attendees and join links, and nobody else reads it.
 enum DeckExportSetting {
     static let key = "deck.shareUpcomingMeetings"
 
     /// The user's choice wins; until they make one, it follows whether Deck is installed.
     static func isOn(stored: Bool?, deckInstalled: Bool) -> Bool { stored ?? deckInstalled }
+
+    /// The same switch since Yaya's Murmur reads the file too (D-046): on by default when either is installed.
+    static func isOn(stored: Bool?, deckInstalled: Bool, murmurInstalled: Bool) -> Bool {
+        stored ?? (deckInstalled || murmurInstalled)
+    }
 }
 
 /// Which app counts as Deck when the switch has no stored choice. Any app may claim the `deck:` URL scheme and

@@ -122,7 +122,8 @@ enum Notifier {
     }
 }
 
-/// Settings → "Share upcoming meetings with Deck" on this Mac (D-039).
+/// Settings → "Share upcoming meetings with Deck" on this Mac (D-039), "… with Deck and Yaya's Murmur" while Murmur is
+/// installed (D-046).
 enum DeckSharing {
     nonisolated(unsafe) private static var cached: (installed: Bool, at: Date)?
 
@@ -140,8 +141,13 @@ enum DeckSharing {
         return found
     }
 
+    /// Yaya's Murmur reads the same file (D-046): installed, it turns sharing on as Deck does.
+    static var murmurInstalled: Bool { MurmurLive.installedFlag.get() }
+
     static var stored: Bool? { UserDefaults.standard.object(forKey: DeckExportSetting.key) as? Bool }
-    static var isOn: Bool { DeckExportSetting.isOn(stored: stored, deckInstalled: deckInstalled) }
+    static var isOn: Bool {
+        DeckExportSetting.isOn(stored: stored, deckInstalled: deckInstalled, murmurInstalled: murmurInstalled)
+    }
 
     /// The switch: off withdraws the file now (and pings Deck); on writes it with the next pass.
     @MainActor static func set(_ on: Bool) {
