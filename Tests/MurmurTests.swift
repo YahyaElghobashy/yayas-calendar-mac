@@ -566,6 +566,31 @@ enum MurmurTests {
         T.equal((try? WidgetSnapshot.decoder.decode(WidgetSnapshot.Meeting.self, from: data))?.recBy, "murmur", "and read back")
         T.equal((try? WidgetSnapshot.decoder.decode(WidgetSnapshot.Meeting.self, from: Data(fathomJSON.utf8)))?.recBy, nil,
                 "an older meeting decodes with recBy nil")
+
+        T.section("murmur: Join with Live Helper on the widgets (D-048)")
+        T.check(!fathomJSON.contains(#""lh""#), "no Live Helper mark: lh is left out, so older files hash the same")
+        var helper = murmur
+        helper.lh = true
+        let lhData = (try? WidgetSnapshot.encoder.encode(helper)) ?? Data()
+        T.check(String(data: lhData, encoding: .utf8)?.contains(#""lh":true"#) ?? false, "lh is written")
+        let back = try? WidgetSnapshot.decoder.decode(WidgetSnapshot.Meeting.self, from: lhData)
+        T.equal(back?.lh, true, "and read back")
+        T.equal((try? WidgetSnapshot.decoder.decode(WidgetSnapshot.Meeting.self, from: data))?.lh, nil, "a meeting without it reads nil")
+        let r = "ev2", k = FixtureLinkKeys.k("ev2")
+        func decide(_ s: String) -> RouteAction {
+            RouteDecider.decide(Route.parse(URL(string: s)!)!) { r, k in FixtureLinkKeys.k(r) == k }
+        }
+        T.equal(decide("yayacal://livehelper?r=\(r)&k=\(k)"), .liveHelper(r: r), "livehelper with a good key")
+        T.equal(decide("yayacal://livehelper?r=\(r)&k=\(FixtureLinkKeys.k("ev3"))"), .ignore(route: "livehelper", reason: "bad-key"), "forged")
+        T.equal(decide("yayacal://livehelper?r=\(r)"), .ignore(route: "livehelper", reason: "missing-param"), "no key")
+        T.equal(RouteAction.liveHelper(r: r).name, "livehelper", "trace name")
+        T.equal(RouteTable.spec("livehelper")?.quiet, true, "quiet")
+        var m = WidgetMeeting(id: 1, account: WidgetAccount(id: "a", short: "ORB", name: "", logo: nil), title: "T",
+                              start: now, end: now, place: nil, hasLink: true)
+        m.r = r
+        m.k = k
+        T.equal(WidgetLinkContext(kind: "upnext", family: .medium).liveHelper(m), YayaLink.liveHelper(r: r, k: k), "Up Next's Live Helper button")
+        T.equal(RecordButtonLabel.text("helper"), "Join with Live Helper", "the button says what it does")
     }
 }
 

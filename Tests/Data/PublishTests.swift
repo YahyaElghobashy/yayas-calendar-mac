@@ -164,6 +164,18 @@ enum PublishTests {
         _ = engine.publisher.publishAll(reason: .background)
         expect((h.snapshot("agenda.all")?.meetings ?? []).allSatisfy { $0.recBy == nil }, "restored")
 
+        // Join with Live Helper (D-048): `lh` rides only on meetings Murmur marked that have a join link.
+        expect((h.snapshot("agenda.all")?.meetings ?? []).allSatisfy { $0.lh == nil }, "no marks: no lh anywhere")
+        let savedMarked = SnapshotPublisher.liveHelperMarked
+        SnapshotPublisher.liveHelperMarked = { _ in true }
+        _ = engine.publisher.publishAll(reason: .background)
+        let marked = h.snapshot("agenda.all")?.meetings ?? []
+        expect(marked.contains { $0.lh == true }, "a marked meeting with a join link carries lh")
+        expect(marked.allSatisfy { ($0.lh == true) == $0.hasJoin }, "and only those with a join link")
+        SnapshotPublisher.liveHelperMarked = savedMarked
+        _ = engine.publisher.publishAll(reason: .background)
+        expect((h.snapshot("agenda.all")?.meetings ?? []).allSatisfy { $0.lh == nil }, "lh restored")
+
         // Only the sync time moved: the file is rewritten but no background reload is spent.
         h.reloader.reset()
         h.clock.advance(60)

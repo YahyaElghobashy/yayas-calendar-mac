@@ -79,6 +79,7 @@ with a DECISIONS entry.
 | `sync` | `w` (kind, optional; D-021) | yes |
 | `join` | `r`, `k` | yes |
 | `record` | `r`, `k` (Join with Fathom, D-045; the meeting's recorder while Yaya's Murmur is installed, D-046) | yes |
+| `livehelper` | `r`, `k` (Join with Live Helper: Yaya's Murmur for a meeting marked Live Helper, D-048) | yes |
 | `rsvp` | `r`, `k`, `v` | yes |
 | `mail/read`, `mail/archive`, `mail/undo`, `mail/star` | `r`, `k` | yes |
 | `open/event`, `open/message` | `r`, `k` | no |
@@ -155,6 +156,9 @@ missing or invalid one as "no data". Murmur's side: its own docs/CONTRACTS.md, "
   recorder is its primary copy's account's. `fathom.hotkeyRecords` (D-045) makes ⌃⌥J join with that recorder.
 - **Snapshot:** `Meeting.rec` (D-045) plus `Meeting.recBy`: `"murmur"` or `"ask"`, left out for Fathom; Up Next Medium
   draws Murmur's ringed planet or "…" in the widget's accent. Version stays 1.
+- **Snapshot, Live Helper** (D-048): `Meeting.lh` (`true` or left out) when Murmur's mark for `r` has a Live Helper kind
+  and the meeting has a join link; Up Next Medium then shows Join with Live Helper (`livehelper?r&k`) in place of the
+  recorder button. The route re-reads the marks and opens Murmur's `join?event=<r>`, then the meeting 0.6 s later.
 - **Notifications:** categories `yc.meeting.murmur` (actions `yc.join`, `yc.join.murmur`, `yc.snooze`) and
   `yc.meeting.ask` (`yc.join`, `yc.join.ask`, `yc.snooze`; Join and record… opens the Event Peek).
 - **Meeting export:** Murmur reads the Deck export (below) unchanged; the switch starts on when Deck or Murmur is installed.

@@ -50,6 +50,7 @@ struct SnapshotModel {
             meeting.allDay = m.allDay
             meeting.rec = m.rec ?? false
             meeting.recBy = m.recBy
+            meeting.lh = m.lh ?? false
             return meeting
         }
         mail = snapshot.mail.enumerated().map { index, m in

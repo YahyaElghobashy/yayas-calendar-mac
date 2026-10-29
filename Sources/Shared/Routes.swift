@@ -28,6 +28,7 @@ enum RouteTable {
         RouteSpec(name: "sync", params: ["w"], quiet: true),
         RouteSpec(name: "join", params: ["r", "k"], quiet: true),
         RouteSpec(name: "record", params: ["r", "k"], quiet: true),
+        RouteSpec(name: "livehelper", params: ["r", "k"], quiet: true),
         RouteSpec(name: "rsvp", params: ["r", "k", "v"], quiet: true),
         RouteSpec(name: "mail/read", params: ["r", "k"], quiet: true),
         RouteSpec(name: "mail/archive", params: ["r", "k"], quiet: true),

@@ -170,6 +170,9 @@ final class SnapshotPublisher: @unchecked Sendable {
     nonisolated(unsafe) static var recorderKind: @Sendable ([UUID], Bool) -> String? = { ids, hasJoin in
         SnapshotPublisher.fathomOffered(ids, hasJoin) ? "fathom" : nil
     }
+    /// Whether Yaya's Murmur marked the meeting `r` Live Helper (D-048). The app installs it while Murmur is on this
+    /// Mac; tests and renders keep the default (never).
+    nonisolated(unsafe) static var liveHelperMarked: @Sendable (String) -> Bool = { _ in false }
 
     private let lock = NSRecursiveLock()
     private var written: [String: UInt64] = [:]
@@ -499,7 +502,8 @@ final class SnapshotPublisher: @unchecked Sendable {
                                       title: Self.clip(e.title), start: e.start, end: e.end, allDay: e.allDay,
                                       place: Self.place(e.location), hasJoin: e.joinURL != nil, reply: reply,
                                       clashes: e.clashes, rec: recorder != nil ? true : nil,
-                                      recBy: recorder == nil || recorder == "fathom" ? nil : recorder)
+                                      recBy: recorder == nil || recorder == "fathom" ? nil : recorder,
+                                      lh: e.joinURL != nil && Self.liveHelperMarked(e.r) ? true : nil)
     }
 
     /// A location that is only a link (a Zoom URL pasted as the place) is left out: Join covers it,

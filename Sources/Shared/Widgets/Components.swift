@@ -188,7 +188,7 @@ struct JoinButton: View {
 /// asks each time (D-046), both in the widget's own accent.
 struct RecordButton: View {
     let style: WidgetStyle
-    /// nil = Fathom, "murmur", "ask" (snapshot `recBy`).
+    /// nil = Fathom, "murmur", "ask" (snapshot `recBy`); "helper" = Join with Live Helper (snapshot `lh`, D-048).
     var kind: String? = nil
 
     var body: some View {
@@ -208,15 +208,23 @@ struct RecordButton: View {
             RingedPlanet(color: p.accent).frame(width: 15 * style.scale, height: 11 * style.scale)
         case "ask":
             Image(systemName: "ellipsis").font(.system(size: 11 * style.scale, weight: .heavy)).foregroundStyle(p.accent)
+        case "helper":
+            Image(systemName: "sparkles").font(.system(size: 13 * style.scale, weight: .bold)).foregroundStyle(p.accent)
         default:
             Circle().fill(Color(hex: 0xE36166)).frame(width: 10 * style.scale, height: 10 * style.scale)
         }
     }
 
-    private var label: String {
+    private var label: String { RecordButtonLabel.text(kind) }
+}
+
+/// What the record button says (its accessibility label), by kind.
+enum RecordButtonLabel {
+    static func text(_ kind: String?) -> String {
         switch kind {
         case "murmur": return "Join with Yaya\u{2019}s Murmur"
         case "ask": return "Join and choose a recorder"
+        case "helper": return "Join with Live Helper"
         default: return "Join with Fathom"
         }
     }

@@ -20,6 +20,8 @@ enum MurmurLive {
         installedFlag.set(probe())
         checkedAt = Date()
         MurmurSession.shared.refresh()
+        SnapshotPublisher.liveHelperMarked = { helperEvents.get().contains($0) }
+        syncHelperEvents(republish: false)
         guard pingTarget == nil else { return }
         // Murmur pings after every write of its marks (and on its uninstall). AppKit holds distributed notifications
         // for an app that isn't active, and this agent rarely is: deliver at once.
@@ -37,6 +39,7 @@ enum MurmurLive {
             MainActor.assumeIsolated {
                 checkedAt = .distantPast   // an uninstall pings too: look again
                 MurmurSession.shared.refresh()
+                syncHelperEvents(republish: true)
                 Trace.app("murmur", ["action": "marks", "result": traceName(MurmurSession.shared.marks)])
             }
         }
@@ -72,6 +75,19 @@ enum MurmurLive {
 
     /// The publisher builds snapshots off the main thread, and the Deck export switch is read off it too.
     nonisolated static let installedFlag = LockedFlag()
+
+    /// The events Murmur marked Live Helper, for the widgets' Join with Live Helper button (D-048); empty while
+    /// Murmur isn't on this Mac. Read off the main thread by the publisher.
+    nonisolated static let helperEvents = LockedValue<Set<String>>([])
+
+    /// After a read of the marks: a changed set republishes the widgets.
+    static func syncHelperEvents(republish: Bool) {
+        let session = MurmurSession.shared
+        let next = session.installed ? Set(session.marks.marks.filter { $0.value.helper != nil }.keys) : []
+        guard next != helperEvents.get() else { return }
+        helperEvents.set(next)
+        if republish { DataServices.republishWidgets() }
+    }
 
     // MARK: The marks file
 

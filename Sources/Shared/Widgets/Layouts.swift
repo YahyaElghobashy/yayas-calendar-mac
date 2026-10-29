@@ -249,7 +249,9 @@ struct UpNextSmall: View {
                 if next.hasLink {
                     HStack(spacing: 6) {
                         WidgetLink(destination: links.join(next)) { JoinButton(style: style, big: true) }
-                        if showRecord && next.rec {
+                        if showRecord && next.lh {
+                            WidgetLink(destination: links.liveHelper(next)) { RecordButton(style: style, kind: "helper") }
+                        } else if showRecord && next.rec {
                             WidgetLink(destination: links.record(next)) { RecordButton(style: style, kind: next.recBy) }
                         }
                     }

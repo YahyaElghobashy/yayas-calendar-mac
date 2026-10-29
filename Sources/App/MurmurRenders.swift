@@ -157,6 +157,27 @@ enum MurmurRenders {
                  ["kind": "upnext", "family": "M", "look": lookName, "feature": "murmur"])
             count += 1
         }
+
+        // 6. Up Next Medium with Join with Live Helper (snapshot `lh`, D-048), light and dark.
+        for (look, lookName) in [(WidgetSnapshot.Style.Look.paper, "light"), (.ink, "dark")] {
+            var snapshot = SnapshotFixtures.named("busy", kind: WidgetKinds.upNext.kind)
+            snapshot.style.look = look
+            snapshot.meetings = snapshot.meetings.map { m in
+                var m = m
+                m.rec = m.hasJoin ? true : nil
+                m.recBy = m.hasJoin ? "murmur" : nil
+                m.lh = m.hasJoin ? true : nil
+                return m
+            }
+            guard let decoded = SnapshotFixtures.decode(SnapshotFixtures.json(snapshot)) else { continue }
+            let model = SnapshotModel(decoded, logo: logo)
+            let view = KindView(spec: WidgetKinds.upNext, family: .medium, data: model.data(at: now),
+                                style: model.style(dark: look == .ink), page: 1)
+                .environment(\.plainLinks, true)
+            save(AnyView(view), "murmur-widget-upnext-livehelper-M-\(lookName).png",
+                 ["kind": "upnext", "family": "M", "look": lookName, "feature": "livehelper"])
+            count += 1
+        }
         return count
     }
 }

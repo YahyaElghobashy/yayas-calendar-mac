@@ -5,6 +5,11 @@ All notable changes to Yaya’s Calendar. Versions follow the app’s `CFBundleS
 
 ## Unreleased
 
+- **Join with Live Helper on the widget.** When Yaya’s Murmur has a meeting marked Live Helper, Up Next (Medium)
+  swaps its round recorder button for a ✦ Join with Live Helper button: it opens the call with Yaya’s Murmur recording
+  and that meeting’s Live Helper chat attached, whichever recorder the account normally uses (D-048).
+- **Widgets on a dimmed desktop.** With another app in front, macOS draws widgets in its accented or vibrant style;
+  they now use a glass palette there instead of blank frosted panels (D-047).
 - **Join with Fathom.** With Fathom’s Mac app installed, the popover, the Event Peek, Up Next (Medium) and the
   heads-up offer Join with Fathom next to Join. Each account card in Accounts says which Fathom account that
   account’s meetings record to (its own address by default, another address, or off). Before recording, the app

@@ -111,6 +111,9 @@ struct WidgetSnapshot: Codable, Equatable {
         /// Which recorder that button joins with (D-046): "murmur" (Yaya's Murmur) or "ask" (the Event Peek's Join menu);
         /// nil = Fathom, as before. Optional and left out when nil, like `rec`.
         var recBy: String? = nil
+        /// Yaya's Murmur marked this meeting Live Helper and it has a join link (D-048): Up Next Medium's button joins
+        /// with Live Helper. `true` or left out, like `rec`.
+        var lh: Bool? = nil
     }
 
     struct Mail: Codable, Equatable {

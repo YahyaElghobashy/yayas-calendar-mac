@@ -19,6 +19,8 @@ enum RouteAction: Equatable {
     case join(r: String)
     /// Join with Fathom (D-045): records at once, or the Event Peek waits for Fathom to switch accounts.
     case record(r: String)
+    /// Join with Live Helper (D-048): Yaya's Murmur joins a meeting it marked Live Helper, whatever the account's recorder.
+    case liveHelper(r: String)
     case rsvp(r: String, response: CalendarEvent.Response)
     case openEvent(r: String)
     case openDay(kind: String, day: String)
@@ -46,6 +48,7 @@ enum RouteAction: Equatable {
         case .sync: return "sync"
         case .join: return "join"
         case .record: return "record"
+        case .liveHelper: return "livehelper"
         case .rsvp: return "rsvp"
         case .openEvent: return "open/event"
         case .openDay: return "open/day"
@@ -118,12 +121,13 @@ enum RouteDecider {
             guard p["w"] != nil else { return .sync(kind: nil) }
             guard let spec = kind() else { return ignore("bad-kind") }
             return .sync(kind: spec.kind)
-        case "join", "record", "open/event":
+        case "join", "record", "livehelper", "open/event":
             switch keyed() {
             case .ok(let r):
                 switch route.name {
                 case "join": return .join(r: r)
                 case "record": return .record(r: r)
+                case "livehelper": return .liveHelper(r: r)
                 default: return .openEvent(r: r)
                 }
             case .missing: return ignore("missing-param")

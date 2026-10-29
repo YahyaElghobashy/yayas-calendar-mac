@@ -205,6 +205,8 @@ final class LinkRouter {
             return join(r: r, at: ms) ? .handedOff : .quiet
         case .record(let r):
             return record(r: r, at: ms)
+        case .liveHelper(let r):
+            return liveHelper(r: r, at: ms)
         case .rsvp(let r, let response):
             Trace.app("recv rsvp", ["v": response.rawValue, "at": ms])
             Task {
@@ -313,6 +315,28 @@ final class LinkRouter {
         case .started: return .handedOff
         case .waiting: return peek.showEvent(r: r) ? .peek : .nothing
         case .notLinked: return join(r: r, at: ms) ? .handedOff : .quiet
+        case .blocked: return .quiet
+        }
+    }
+
+    /// Up Next's Live Helper button (D-048): Yaya's Murmur joins a meeting it marked Live Helper, whatever the
+    /// account's recorder, and Murmur attaches that meeting's chat. A meeting no longer marked (or Murmur gone) is the
+    /// record button's.
+    private func liveHelper(r: String, at ms: String) -> FrontRestorePolicy.Outcome {
+        guard let event = (try? Services.calendar.event(r: r)) ?? nil else {
+            Trace.app("recv livehelper", ["result": "missing", "at": ms])
+            return .quiet
+        }
+        MurmurSession.shared.refresh()
+        guard MurmurSession.shared.mark(r)?.helper != nil else {
+            Trace.app("recv livehelper", ["result": "unmarked", "at": ms])
+            return record(r: r, at: ms)
+        }
+        let outcome = MurmurSession.shared.join(event, mode: nil, via: "widget")
+        Trace.app("recv livehelper", ["result": "\(outcome)", "at": ms])
+        switch outcome {
+        case .started, .joinedOnly: return .handedOff
+        case .notInstalled: return record(r: r, at: ms)
         case .blocked: return .quiet
         }
     }

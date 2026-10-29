@@ -51,6 +51,12 @@ struct WidgetLinkContext {
         return YayaLink.record(r: key.r, k: key.k)
     }
 
+    /// Up Next Medium's Live Helper button → `livehelper?r&k`: Yaya's Murmur joins with the meeting's Live Helper (D-048).
+    func liveHelper(_ meeting: WidgetMeeting) -> URL {
+        guard let key = Self.keyed(meeting.r, meeting.k) else { return probe("livehelper", meeting.id) }
+        return YayaLink.liveHelper(r: key.r, k: key.k)
+    }
+
     /// "Reply?" chip → Event Peek, where Yes / Maybe / No live.
     func reply(_ meeting: WidgetMeeting) -> URL { event(meeting) }
 
@@ -131,6 +137,7 @@ struct WidgetLinkContext {
 extension YayaLink {
     static func join(r: String, k: String) -> URL { url("join", [("r", r), ("k", k)]) }
     static func record(r: String, k: String) -> URL { url("record", [("r", r), ("k", k)]) }
+    static func liveHelper(r: String, k: String) -> URL { url("livehelper", [("r", r), ("k", k)]) }
     static func openEvent(r: String, k: String) -> URL { url("open/event", [("r", r), ("k", k)]) }
     /// `v`: yes | maybe | no.
     static func rsvp(r: String, k: String, v: String) -> URL { url("rsvp", [("r", r), ("k", k), ("v", v)]) }

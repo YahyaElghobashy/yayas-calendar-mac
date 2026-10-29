@@ -36,6 +36,8 @@ struct WidgetMeeting {
     var rec = false
     /// Which recorder that button joins with (snapshot `recBy`, D-046): nil = Fathom, "murmur", "ask".
     var recBy: String?
+    /// Marked Live Helper in Yaya's Murmur (snapshot `lh`, D-048): Up Next Medium's button joins with Live Helper.
+    var lh = false
 
     /// Every account that has it, primary first.
     var accountIds: [String] { [account.id] + also.map(\.id) }
