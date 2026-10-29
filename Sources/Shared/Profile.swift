@@ -2,8 +2,9 @@ import Foundation
 
 /// The one identifier table (D-034). Every name that ties a build to a place on the Mac lives here: the
 /// bundle ids, the display name, the URL scheme, the data folder, the Keychain services and the installer
-/// handoff folder. `Paths`, `RouteTable`, `TokenVault`, `OAuthConfig`, `KeychainLinkKeyStore` and the
-/// uninstaller read it; nothing else spells these names out.
+/// handoff folder, and the names of Yaya's Murmur, the add-on this profile talks to (D-046). `Paths`, `RouteTable`,
+/// `TokenVault`, `OAuthConfig`, `KeychainLinkKeyStore`, the uninstaller and the Murmur link read it; nothing else
+/// spells these names out.
 ///
 /// Two profiles, chosen at compile time so a binary only ever contains one of them:
 /// - release (default): the identifiers every shipped and installed copy uses (D-001, D-027: never renamed).
@@ -30,6 +31,12 @@ enum Profile {
     static let keychainLinkKey = "com.yahyaelghobashy.yayascalendar.dev.linkkey"
     /// The widget's sandbox entitlements (its one exception is `<dataRoot>/widget/`).
     static let widgetEntitlements = "Resources/Widget.dev.entitlements"
+    /// Yaya's Murmur, the add-on notetaker on the same Mac (D-046): the app this profile talks to. A dev calendar only
+    /// ever finds and reads a dev Murmur, so it never sees a real Murmur's marks.
+    static let murmurBundleId = "com.yahyaelghobashy.yayasmurmur.dev"
+    static let murmurScheme = "yayamurmur-dev"
+    /// Relative to the user's real home. Read only: the calendar never writes there.
+    static let murmurDataRoot = "Library/Application Support/YayasMurmurDev"
     #else
     static let name = "release"
     static let bundleId = "com.yahyaelghobashy.yayascalendar"
@@ -45,6 +52,12 @@ enum Profile {
     static let keychainLinkKey = "com.yahyaelghobashy.yayascalendar.linkkey"
     /// The widget's sandbox entitlements (its one exception is `<dataRoot>/widget/`).
     static let widgetEntitlements = "Resources/Widget.entitlements"
+    /// Yaya's Murmur, the add-on notetaker on the same Mac (D-046): its bundle id, URL scheme and data folder
+    /// (its docs/CONTRACTS.md, "Calendar link").
+    static let murmurBundleId = "com.yahyaelghobashy.yayasmurmur"
+    static let murmurScheme = "yayamurmur"
+    /// Relative to the user's real home. Read only: the calendar never writes there.
+    static let murmurDataRoot = "Library/Application Support/YayasMurmur"
     #endif
 
     static var isDev: Bool { name == "dev" }

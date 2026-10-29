@@ -19,7 +19,8 @@
 #  4. Every URL literal (scheme://host) names a host from HTTP.allowedHosts, a reviewed browser link (the
 #     user's browser opens it; the app never fetches it), a loopback address in LoopbackServer.swift, a
 #     reserved .example host, or a host on the reviewed per-file list. Interpolated hosts only in
-#     LogoFetcher.swift. Other apps' URL schemes only on the reviewed per-file list (Fathom's two links, D-045).
+#     LogoFetcher.swift. Other apps' URL schemes only on the reviewed per-file list (Fathom's two links, D-045;
+#     Yaya's Murmur's three, D-046, built with URLComponents from Profile.murmurScheme in MurmurModels.swift).
 #  5. Bare host names in string literals only where links are recognised (join links), where mail domains
 #     are named, in HTTP.swift, in developer-tool files (fixtures, renders), and Google's two API service
 #     names in the setup guide (Sources/Accounts/GoogleSetup.swift).
@@ -53,7 +54,12 @@ PER_FILE_URL_HOSTS = {
 # Fathom (D-045): fathom://start-capture?url=<meeting> and fathom://open-app.
 PER_FILE_SCHEMES = {
     "Sources/UI/FathomModels.swift": {"fathom": {"start-capture", "open-app"}},
+    # Yaya's Murmur (D-046): <scheme>://join?event=<id>[&mode=…], helper?event=<id>, open?event=<id>; the scheme is the
+    # profile's (yayamurmur, or yayamurmur-dev for a dev build) and the hosts are Murmur's three commands.
+    "Sources/UI/MurmurModels.swift": {"yayamurmur": {"join", "helper", "open"}, "yayamurmur-dev": {"join", "helper", "open"}},
 }
+# Other apps' URL schemes may not be spelled anywhere else, not even outside a literal URL.
+OTHER_APP_SCHEMES = {"yayamurmur": {"Sources/Shared/Profile.swift", "Sources/UI/MurmurModels.swift"}}
 # Bare names that are identifiers, not places the app goes: the Google setup guide matches Google's API
 # service names in a 403 SERVICE_DISABLED answer and puts them in the user's "Enable" link. Its
 # "Check my setup" probes go through HTTP.swift to the allowlisted hosts.
@@ -180,6 +186,9 @@ for f in sorted(pathlib.Path("Sources").rglob("*.swift")):
                     ok = ok and False
                 if not ok:
                     problems.append(f"URL {scheme}://{host} not reviewed for this file: {where}")
+            for name, homes in OTHER_APP_SCHEMES.items():
+                if name in lit.lower() and path not in homes and not dev:
+                    problems.append(f"{name} named outside its reviewed files: {where}")
             if BARE.match(lit) and not re.match(r'^"(com|org|net|io)\.', lit):   # reverse-DNS ids are names, not hosts
                 host = lit.strip('"')
                 if not (path in BARE_HOST_FILES or dev or host in ALLOWED_HOSTS or host in BROWSER_HOSTS
@@ -239,7 +248,7 @@ if (( $# >= 1 )); then
     ok_hosts='(accounts\.google\.com|oauth2\.googleapis\.com|gmail\.googleapis\.com|www\.googleapis\.com|openidconnect\.googleapis\.com|github\.com|console\.cloud\.google\.com|console\.developers\.google\.com|support\.google\.com|myaccount\.google\.com|developers\.google\.com|calendar\.google\.com|mail\.google\.com|127\.0\.0\.1|localhost|www\.apple\.com|www\.w3\.org|[a-z0-9.-]+\.example|example\.com|login\.microsoftonline\.com|graph\.microsoft\.com|meet\.google\.com|zoom\.us|teams\.microsoft\.com)'
     for bin in "${expected[@]}"; do
       bad="$(strings -a "$bin" | grep -oE '[A-Za-z][A-Za-z0-9+.-]*://[A-Za-z0-9.-]+' | sort -u \
-             | grep -vxE "https?://$ok_hosts|file://|yayacal://|yayacal-dev://|fathom://(start-capture|open-app)" || true)"
+             | grep -vxE "https?://$ok_hosts|file://|yayacal://|yayacal-dev://|fathom://(start-capture|open-app)|yayamurmur(-dev)?://(join|helper|open)" || true)"
       [[ -z "$bad" ]] || say_fail "unexpected URL in ${bin:t}: ${(f)bad}"
       print -r -- "  ${bin:t} URLs: $(strings -a "$bin" | grep -oE 'https?://[A-Za-z0-9.-]+' | sort -u | tr '\n' ' ')"
     done

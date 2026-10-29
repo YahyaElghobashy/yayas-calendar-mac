@@ -22,6 +22,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         AccountDirectory.current = { AccountDirectory.live() }
         // Join with Fathom (D-045): the session's live side, the widgets' Fathom button and each account card's link.
         FathomLive.install()
+        // Yaya's Murmur (D-046): whether it's here, its marks and their ping. Before the notifier: the meeting export
+        // starts on when Murmur is installed.
+        MurmurLive.install()
         AccountCardExtras.footer = { account in
             AnyView(FathomAccountRow(model: FathomLinksModel.shared, accountId: account.id, email: account.email))
         }

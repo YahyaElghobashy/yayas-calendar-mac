@@ -181,7 +181,8 @@ yc_profile() {
     fi
   done < "$file"
   for k in name bundleId widgetBundleId displayName urlScheme dataRoot \
-           keychainOAuth keychainClient keychainLinkKey widgetEntitlements; do
+           keychainOAuth keychainClient keychainLinkKey widgetEntitlements \
+           murmurBundleId murmurScheme murmurDataRoot; do
     [[ -n "${YC_PROFILE[$k]:-}" ]] || yc_fail "Profile.swift ($want) has no '$k'"
   done
   [[ -n "$(yc_handoff_dir)" ]] || yc_fail "Profile.swift ($want) has no installer handoff folder"

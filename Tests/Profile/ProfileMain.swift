@@ -19,6 +19,10 @@ enum ProfileMain {
         "keychainClient": "com.yahyaelghobashy.yayascalendar.client",
         "keychainLinkKey": "com.yahyaelghobashy.yayascalendar.linkkey",
         "widgetEntitlements": "Resources/Widget.entitlements",
+        // Yaya's Murmur's release names (D-046): its own contract, so pinned here as well.
+        "murmurBundleId": "com.yahyaelghobashy.yayasmurmur",
+        "murmurScheme": "yayamurmur",
+        "murmurDataRoot": "Library/Application Support/YayasMurmur",
     ]
 
     static var table: [(String, String)] {
@@ -26,7 +30,8 @@ enum ProfileMain {
          ("displayName", Profile.displayName), ("urlScheme", Profile.urlScheme), ("dataRoot", Profile.dataRoot),
          ("suiteHandoffDir", Profile.suiteHandoffDir), ("keychainOAuth", Profile.keychainOAuth),
          ("keychainClient", Profile.keychainClient), ("keychainLinkKey", Profile.keychainLinkKey),
-         ("widgetEntitlements", Profile.widgetEntitlements)]
+         ("widgetEntitlements", Profile.widgetEntitlements), ("murmurBundleId", Profile.murmurBundleId),
+         ("murmurScheme", Profile.murmurScheme), ("murmurDataRoot", Profile.murmurDataRoot)]
     }
 
     /// Every string the uninstaller would act on.
@@ -47,6 +52,14 @@ enum ProfileMain {
         if value.replacingOccurrences(of: root + "Dev", with: "§").contains(root) { return true }
         if value.contains(release["suiteHandoffDir"]!) || value.contains("Application Support/YayaSuite") { return true }
         if value == release["urlScheme"]! || value.contains(release["urlScheme"]! + "://") { return true }
+        // Yaya's Murmur's release names (D-046): a dev calendar talks to a dev Murmur only.
+        let murmur = release["murmurBundleId"]!
+        var murmurRest = value
+        for devName in [murmur + ".dev.", murmur + ".dev"] { murmurRest = murmurRest.replacingOccurrences(of: devName, with: "§") }
+        if murmurRest.contains(murmur) { return true }
+        let murmurRoot = release["murmurDataRoot"]!
+        if value.replacingOccurrences(of: murmurRoot + "Dev", with: "§").contains(murmurRoot) { return true }
+        if value == release["murmurScheme"]! || value.contains(release["murmurScheme"]! + "://") { return true }
         return false
     }
 
@@ -75,6 +88,11 @@ enum ProfileMain {
         check(Profile.dataRootForDisplay == "~/" + Profile.dataRoot, "data folder for display")
         check(!Profile.dataRoot.hasPrefix("/") && Profile.dataRoot.hasPrefix("Library/"), "data root is home-relative")
         check(Profile.urlScheme.range(of: "^[a-z][a-z0-9+.-]*$", options: .regularExpression) != nil, "URL scheme is RFC 3986 lowercase")
+        check(Profile.murmurScheme.range(of: "^[a-z][a-z0-9+.-]*$", options: .regularExpression) != nil, "Murmur's scheme is RFC 3986 lowercase")
+        check(!Profile.murmurDataRoot.hasPrefix("/") && Profile.murmurDataRoot.hasPrefix("Library/Application Support/"),
+              "Murmur's data root is home-relative")
+        check(Profile.murmurBundleId != Profile.bundleId && !Profile.murmurBundleId.hasPrefix(Profile.bundleId),
+              "Murmur's bundle id is not under this app's")
 
         #if YC_PROFILE_DEV
         check(Profile.isDev, "isDev")
@@ -88,6 +106,9 @@ enum ProfileMain {
         check(Profile.suiteHandoffDir.hasPrefix(Profile.dataRoot + "/"), "dev handoff marker stays inside the dev data folder")
         check(Profile.displayName.hasSuffix(" Dev"), "dev display name says Dev")
         check(Profile.widgetEntitlements == "Resources/Widget.dev.entitlements", "dev widget entitlements")
+        check(Profile.murmurBundleId == release["murmurBundleId"]! + ".dev", "dev Murmur bundle id = release + .dev")
+        check(Profile.murmurScheme == release["murmurScheme"]! + "-dev", "dev Murmur scheme = release + -dev")
+        check(Profile.murmurDataRoot == release["murmurDataRoot"]! + "Dev", "dev Murmur data root = release + Dev")
         // The test's own guard must catch the release values.
         for (key, value) in release where key != "name" && key != "displayName" && key != "widgetEntitlements" {
             check(reachesRelease(value), "the guard recognises release \(key)")
