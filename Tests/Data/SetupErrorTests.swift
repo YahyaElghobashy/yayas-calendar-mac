@@ -47,6 +47,12 @@ enum SetupErrorTests {
         expect(DeckExportSetting.isOn(stored: nil, deckInstalled: true), "Deck installed, no choice: on")
         expect(DeckExportSetting.isOn(stored: false, deckInstalled: true) == false, "the user's off wins over Deck")
         expect(DeckExportSetting.isOn(stored: true, deckInstalled: false), "the user's on wins too")
+        // The same switch for Deck and Yaya's Murmur (D-046): on by default when either is installed.
+        expect(DeckExportSetting.isOn(stored: nil, deckInstalled: false, murmurInstalled: false) == false, "neither, no choice: off")
+        expect(DeckExportSetting.isOn(stored: nil, deckInstalled: false, murmurInstalled: true), "Murmur installed, no choice: on")
+        expect(DeckExportSetting.isOn(stored: nil, deckInstalled: true, murmurInstalled: false), "Deck installed, no choice: on")
+        expect(DeckExportSetting.isOn(stored: false, deckInstalled: true, murmurInstalled: true) == false, "the user's off wins over both")
+        expect(DeckExportSetting.isOn(stored: true, deckInstalled: false, murmurInstalled: false), "the user's on wins with neither")
     }
 
     static func deckSwitchOff() async {

@@ -453,6 +453,12 @@ enum HeadlessRender {
             save(view, name, info)
         }
         print("  fathom: \(fathomCount) PNGs")
+        // Yaya's Murmur and recording per account (D-046): popover, Peek, account rows, Settings, Up Next; with and
+        // without Murmur, fake sessions.
+        let murmurCount = MurmurRenders.run(dir: dir, now: now, directory: directory, logo: { logos.image(forId: $0) }) { view, name, info in
+            save(view, name, info)
+        }
+        print("  murmur: \(murmurCount) PNGs")
 
         // The status item: glyph + title in a strip of menu bar, light and dark, for every title shape.
         let glyph = StatusItemController.glyph()

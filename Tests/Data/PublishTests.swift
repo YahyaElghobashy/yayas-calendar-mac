@@ -148,6 +148,22 @@ enum PublishTests {
         expect(inode3 != inode, "atomic replace: a new file renamed over the old one")
         expect(h.snapshot("agenda.all")?.meetings.contains { $0.title == "New one" } == true, "new content readable")
 
+        // Recording per account (D-046): the record button's recorder rides in `rec` and `recBy`; Fathom keeps D-045's form.
+        let savedKind = SnapshotPublisher.recorderKind
+        expect(savedKind([firstAccount], true) == (SnapshotPublisher.fathomOffered([firstAccount], true) ? "fathom" : nil),
+               "the default recorder is D-045's Fathom button")
+        SnapshotPublisher.recorderKind = { _, _ in "murmur" }
+        _ = engine.publisher.publishAll(reason: .background)
+        let murmurRows = h.snapshot("agenda.all")?.meetings ?? []
+        expect(!murmurRows.isEmpty && murmurRows.allSatisfy { $0.rec == true && $0.recBy == "murmur" }, "Yaya's Murmur: rec + recBy murmur")
+        SnapshotPublisher.recorderKind = { _, _ in "fathom" }
+        _ = engine.publisher.publishAll(reason: .background)
+        let fathomRows = h.snapshot("agenda.all")?.meetings ?? []
+        expect(!fathomRows.isEmpty && fathomRows.allSatisfy { $0.rec == true && $0.recBy == nil }, "Fathom: rec alone, as D-045 wrote it")
+        SnapshotPublisher.recorderKind = savedKind
+        _ = engine.publisher.publishAll(reason: .background)
+        expect((h.snapshot("agenda.all")?.meetings ?? []).allSatisfy { $0.recBy == nil }, "restored")
+
         // Only the sync time moved: the file is rewritten but no background reload is spent.
         h.reloader.reset()
         h.clock.advance(60)

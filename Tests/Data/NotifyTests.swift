@@ -121,6 +121,22 @@ enum NotifyTests {
         fathomCtx.fathom = { _ in true }
         let noLink = N.event("gQ", "x", start: start, people: [N.person("a@orb.example", me: true), N.person("b@orb.example")])
         expect(HeadsUp.desired([noLink], fathomCtx).first?.category == NoteIds.meetingNoLinkCategory, "no join link → never Fathom")
+        // Recording per account (D-046): with Yaya's Murmur on this Mac the recorder names the category; it wins over the
+        // Fathom answer, including "none".
+        var recCtx = fathomCtx
+        for (kind, category) in [("fathom", NoteIds.meetingFathomCategory), ("murmur", NoteIds.meetingMurmurCategory),
+                                 ("ask", NoteIds.meetingAskCategory)] {
+            recCtx.recorder = { _ in kind }
+            expect(HeadsUp.desired([e], recCtx).first?.category == category, "recorder \(kind) → \(category)")
+        }
+        recCtx.recorder = { _ in nil }
+        expect(HeadsUp.desired([e], recCtx).first?.category == NoteIds.meetingCategory, "recorder off → Join + Snooze, whatever Fathom says")
+        recCtx.recorder = { _ in "murmur" }
+        expect(HeadsUp.desired([noLink], recCtx).first?.category == NoteIds.meetingNoLinkCategory, "no join link → no recorder either")
+        expect(NoteIds.category(recorder: "something") == NoteIds.meetingCategory, "an unknown recorder → Join + Snooze")
+        expect(Set([NoteIds.meetingMurmurCategory, NoteIds.meetingAskCategory, NoteIds.murmurAction, NoteIds.askAction]).count == 4
+               && NoteIds.meetingMurmurCategory.hasPrefix("yc.meeting.") && NoteIds.murmurAction.hasPrefix("yc.join."),
+               "Murmur's category and action ids are their own")
         expect(HeadsUp.lead(fire: start, start: start) == "Starting now"
                && HeadsUp.lead(fire: start.addingTimeInterval(180), start: start) == "Started 3 min ago"
                && HeadsUp.lead(fire: start.addingTimeInterval(-300), start: start) == "In 5 minutes", "lead text")

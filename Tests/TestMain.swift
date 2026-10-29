@@ -42,6 +42,8 @@ enum TestMain {
         MenuBarTests.run()
         // Join with Fathom (D-045).
         FathomTests.run()
+        // Yaya's Murmur and recording per account (D-046).
+        MurmurTests.run()
         // First-run UX.
         StrangerUXTests.run()
         // Mail defaults (D-029).
