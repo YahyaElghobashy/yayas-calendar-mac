@@ -1,8 +1,11 @@
 import Foundation
 
-/// Sidebar sections of the main window; also the `section` value of `yayacal://open/app`.
+/// Sidebar sections of the main window; also the `section` value of `yayacal://open/app`. Mail helper shows only
+/// while Yaya's Mail Helper is installed (D-050).
 enum AppSection: String, CaseIterable, Identifiable {
-    case inbox, calendar, widgets, accounts, settings
+    case inbox
+    case mailHelper = "mailhelper"
+    case calendar, widgets, accounts, settings
     var id: String { rawValue }
 }
 

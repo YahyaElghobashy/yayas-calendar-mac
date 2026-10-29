@@ -24,6 +24,7 @@ SOURCES=( "$YC_ROOT"/Sources/Shared/**/*.swift(N) "$YC_ROOT/Sources/App/SuiteJSO
           "$YC_ROOT"/Sources/UI/{MailModels,ComposerModel,InboxSectionModel,SettingsMailModel}.swift
           "$YC_ROOT"/Sources/UI/{MenuBarModels,PopoverModel,OnboardingFlow,AccessibilityText,FathomModels}.swift
           "$YC_ROOT"/Sources/UI/{MurmurModels,RecorderModels}.swift   # Yaya's Murmur link and recording per account (D-046)
+          "$YC_ROOT"/Sources/UI/{MailHelperModels,MailHelperSession}.swift   # Yaya's Mail Helper link (D-050)
           "$YC_ROOT"/Sources/UI/RichMail/*.swift(N) "$YC_ROOT"/Sources/Mail/{MailHTMLWriter,MailAttribution,MailSize}.swift
           "$YC_ROOT"/Tests/*.swift(N) )
 SOURCES=( ${(u)SOURCES} )   # one copy of each file, however many globs name it

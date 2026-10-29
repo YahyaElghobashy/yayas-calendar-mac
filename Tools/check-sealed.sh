@@ -20,7 +20,9 @@
 #     user's browser opens it; the app never fetches it), a loopback address in LoopbackServer.swift, a
 #     reserved .example host, or a host on the reviewed per-file list. Interpolated hosts only in
 #     LogoFetcher.swift. Other apps' URL schemes only on the reviewed per-file list (Fathom's two links, D-045;
-#     Yaya's Murmur's three, D-046, built with URLComponents from Profile.murmurScheme in MurmurModels.swift).
+#     Yaya's Murmur's three, D-046, built with URLComponents from Profile.murmurScheme in MurmurModels.swift;
+#     Yaya's Mail Helper's one, D-050, `cmd?id=<uuid>`, built the same way from Profile.mailHelperScheme in
+#     MailHelperModels.swift: the helper reads the command file the app wrote in its own data folder).
 #  5. Bare host names in string literals only where links are recognised (join links), where mail domains
 #     are named, in HTTP.swift, in developer-tool files (fixtures, renders), and Google's two API service
 #     names in the setup guide (Sources/Accounts/GoogleSetup.swift).
@@ -57,9 +59,13 @@ PER_FILE_SCHEMES = {
     # Yaya's Murmur (D-046): <scheme>://join?event=<id>[&mode=…], helper?event=<id>, open?event=<id>; the scheme is the
     # profile's (yayamurmur, or yayamurmur-dev for a dev build) and the hosts are Murmur's three commands.
     "Sources/UI/MurmurModels.swift": {"yayamurmur": {"join", "helper", "open"}, "yayamurmur-dev": {"join", "helper", "open"}},
+    # Yaya's Mail Helper (D-050): <scheme>://cmd?id=<uuid>, one command file per link; the scheme is the profile's
+    # (yayamail, or yayamail-dev for a dev build).
+    "Sources/UI/MailHelperModels.swift": {"yayamail": {"cmd"}, "yayamail-dev": {"cmd"}},
 }
 # Other apps' URL schemes may not be spelled anywhere else, not even outside a literal URL.
-OTHER_APP_SCHEMES = {"yayamurmur": {"Sources/Shared/Profile.swift", "Sources/UI/MurmurModels.swift"}}
+OTHER_APP_SCHEMES = {"yayamurmur": {"Sources/Shared/Profile.swift", "Sources/UI/MurmurModels.swift"},
+                     "yayamail": {"Sources/Shared/Profile.swift", "Sources/UI/MailHelperModels.swift"}}
 # Bare names that are identifiers, not places the app goes: the Google setup guide matches Google's API
 # service names in a 403 SERVICE_DISABLED answer and puts them in the user's "Enable" link. Its
 # "Check my setup" probes go through HTTP.swift to the allowlisted hosts.
@@ -248,7 +254,7 @@ if (( $# >= 1 )); then
     ok_hosts='(accounts\.google\.com|oauth2\.googleapis\.com|gmail\.googleapis\.com|www\.googleapis\.com|openidconnect\.googleapis\.com|github\.com|console\.cloud\.google\.com|console\.developers\.google\.com|support\.google\.com|myaccount\.google\.com|developers\.google\.com|calendar\.google\.com|mail\.google\.com|127\.0\.0\.1|localhost|www\.apple\.com|www\.w3\.org|[a-z0-9.-]+\.example|example\.com|login\.microsoftonline\.com|graph\.microsoft\.com|meet\.google\.com|zoom\.us|teams\.microsoft\.com)'
     for bin in "${expected[@]}"; do
       bad="$(strings -a "$bin" | grep -oE '[A-Za-z][A-Za-z0-9+.-]*://[A-Za-z0-9.-]+' | sort -u \
-             | grep -vxE "https?://$ok_hosts|file://|yayacal://|yayacal-dev://|fathom://(start-capture|open-app)|yayamurmur(-dev)?://(join|helper|open)" || true)"
+             | grep -vxE "https?://$ok_hosts|file://|yayacal://|yayacal-dev://|fathom://(start-capture|open-app)|yayamurmur(-dev)?://(join|helper|open)|yayamail(-dev)?://cmd" || true)"
       [[ -z "$bad" ]] || say_fail "unexpected URL in ${bin:t}: ${(f)bad}"
       print -r -- "  ${bin:t} URLs: $(strings -a "$bin" | grep -oE 'https?://[A-Za-z0-9.-]+' | sort -u | tr '\n' ' ')"
     done

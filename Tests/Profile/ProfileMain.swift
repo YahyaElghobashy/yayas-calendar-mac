@@ -23,6 +23,10 @@ enum ProfileMain {
         "murmurBundleId": "com.yahyaelghobashy.yayasmurmur",
         "murmurScheme": "yayamurmur",
         "murmurDataRoot": "Library/Application Support/YayasMurmur",
+        // Yaya's Mail Helper's release names (D-050): its own contract, so pinned here as well.
+        "mailHelperBundleId": "com.yahyaelghobashy.yayasmailhelper",
+        "mailHelperScheme": "yayamail",
+        "mailHelperDataRoot": "Library/Application Support/YayasMailHelper",
     ]
 
     static var table: [(String, String)] {
@@ -31,7 +35,9 @@ enum ProfileMain {
          ("suiteHandoffDir", Profile.suiteHandoffDir), ("keychainOAuth", Profile.keychainOAuth),
          ("keychainClient", Profile.keychainClient), ("keychainLinkKey", Profile.keychainLinkKey),
          ("widgetEntitlements", Profile.widgetEntitlements), ("murmurBundleId", Profile.murmurBundleId),
-         ("murmurScheme", Profile.murmurScheme), ("murmurDataRoot", Profile.murmurDataRoot)]
+         ("murmurScheme", Profile.murmurScheme), ("murmurDataRoot", Profile.murmurDataRoot),
+         ("mailHelperBundleId", Profile.mailHelperBundleId), ("mailHelperScheme", Profile.mailHelperScheme),
+         ("mailHelperDataRoot", Profile.mailHelperDataRoot)]
     }
 
     /// Every string the uninstaller would act on.
@@ -60,6 +66,14 @@ enum ProfileMain {
         let murmurRoot = release["murmurDataRoot"]!
         if value.replacingOccurrences(of: murmurRoot + "Dev", with: "§").contains(murmurRoot) { return true }
         if value == release["murmurScheme"]! || value.contains(release["murmurScheme"]! + "://") { return true }
+        // Yaya's Mail Helper's release names (D-050): a dev calendar talks to a dev helper only.
+        let helper = release["mailHelperBundleId"]!
+        var helperRest = value
+        for devName in [helper + ".dev.", helper + ".dev"] { helperRest = helperRest.replacingOccurrences(of: devName, with: "§") }
+        if helperRest.contains(helper) { return true }
+        let helperRoot = release["mailHelperDataRoot"]!
+        if value.replacingOccurrences(of: helperRoot + "Dev", with: "§").contains(helperRoot) { return true }
+        if value == release["mailHelperScheme"]! || value.contains(release["mailHelperScheme"]! + "://") { return true }
         return false
     }
 
@@ -93,6 +107,12 @@ enum ProfileMain {
               "Murmur's data root is home-relative")
         check(Profile.murmurBundleId != Profile.bundleId && !Profile.murmurBundleId.hasPrefix(Profile.bundleId),
               "Murmur's bundle id is not under this app's")
+        check(Profile.mailHelperScheme.range(of: "^[a-z][a-z0-9+.-]*$", options: .regularExpression) != nil,
+              "the Mail helper's scheme is RFC 3986 lowercase")
+        check(!Profile.mailHelperDataRoot.hasPrefix("/") && Profile.mailHelperDataRoot.hasPrefix("Library/Application Support/"),
+              "the Mail helper's data root is home-relative")
+        check(Profile.mailHelperBundleId != Profile.bundleId && !Profile.mailHelperBundleId.hasPrefix(Profile.bundleId),
+              "the Mail helper's bundle id is not under this app's")
 
         #if YC_PROFILE_DEV
         check(Profile.isDev, "isDev")
@@ -109,6 +129,9 @@ enum ProfileMain {
         check(Profile.murmurBundleId == release["murmurBundleId"]! + ".dev", "dev Murmur bundle id = release + .dev")
         check(Profile.murmurScheme == release["murmurScheme"]! + "-dev", "dev Murmur scheme = release + -dev")
         check(Profile.murmurDataRoot == release["murmurDataRoot"]! + "Dev", "dev Murmur data root = release + Dev")
+        check(Profile.mailHelperBundleId == release["mailHelperBundleId"]! + ".dev", "dev Mail helper bundle id = release + .dev")
+        check(Profile.mailHelperScheme == release["mailHelperScheme"]! + "-dev", "dev Mail helper scheme = release + -dev")
+        check(Profile.mailHelperDataRoot == release["mailHelperDataRoot"]! + "Dev", "dev Mail helper data root = release + Dev")
         // The test's own guard must catch the release values.
         for (key, value) in release where key != "name" && key != "displayName" && key != "widgetEntitlements" {
             check(reachesRelease(value), "the guard recognises release \(key)")

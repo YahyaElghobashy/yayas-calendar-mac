@@ -7,7 +7,7 @@ struct MainView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            Sidebar(shell: shell)
+            Sidebar(shell: shell, helper: shell.mailHelper)
                 .frame(width: 200)
                 .background(AppTheme.sidebar)
             Rectangle().fill(Color.white.opacity(0.07)).frame(width: 1)
@@ -28,6 +28,8 @@ struct MainView: View {
             } else {
                 MailOffView(symbol: "tray.full", title: "Inbox", line: MailOffCopy.inboxLine, detail: MailOffCopy.inboxDetail)
             }
+        case .mailHelper:
+            MailHelperSectionView(model: shell.mailHelper)
         case .calendar:
             CalendarSectionView(model: shell.calendar)
         case .widgets:
@@ -48,6 +50,8 @@ struct MainView: View {
 
 private struct Sidebar: View {
     @ObservedObject var shell: ShellModel
+    /// Mail helper's entry comes and goes with the helper (D-050).
+    @ObservedObject var helper: MailHelperModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -65,7 +69,7 @@ private struct Sidebar: View {
             // Many accounts make a long mailbox list: the sections and the list scroll, the version stays.
             ShellScroll {
                 VStack(alignment: .leading, spacing: 4) {
-                    ForEach(AppSection.allCases) { section in
+                    ForEach(shell.visibleSections) { section in
                         SidebarButton(section: section, selected: shell.section == section) { shell.section = section }
                         if section == .inbox, shell.section == .inbox, shell.mailEnabled() {
                             InboxMailboxList(model: shell.inbox)

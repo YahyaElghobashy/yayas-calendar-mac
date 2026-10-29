@@ -130,6 +130,8 @@ final class InboxSectionModel: ObservableObject {
     @Published private(set) var selection: String?
     @Published private(set) var reader: ThreadReaderModel?
     @Published private(set) var now: Date
+    /// Yaya's Mail Helper's Priority and Review labels at the last load (D-050); nil = the inbox as it always was.
+    @Published private(set) var helperLabels: MailHelperInboxLabels?
     let toasts: MailToastCenter
 
     private let store: () -> MailStore
@@ -139,6 +141,7 @@ final class InboxSectionModel: ObservableObject {
     private let clock: () -> Date
     private let undoBook: MailUndoBook
     private let local: MailLocalStore
+    private let mailHelperLabels: () -> MailHelperInboxLabels?
     /// Opens a composer window (the app) or records the request (tests).
     var compose: (ComposerRequest) -> Void
 
@@ -150,8 +153,10 @@ final class InboxSectionModel: ObservableObject {
          undoBook: MailUndoBook = .shared,
          local: MailLocalStore = DefaultsMailLocalStore.shared,
          toasts: MailToastCenter? = nil,
+         mailHelperLabels: @escaping () -> MailHelperInboxLabels? = { MailHelperInbox.current.get() },
          compose: @escaping (ComposerRequest) -> Void = { _ in }) {
         self.store = store
+        self.mailHelperLabels = mailHelperLabels
         self.actions = actions
         self.prefs = prefs
         self.directory = directory
@@ -164,6 +169,8 @@ final class InboxSectionModel: ObservableObject {
     }
 
     var directoryNow: AccountDirectory { AccountDirectory(accounts: accounts) }
+    /// The Mail helper's chips on a thread's row (⭐ Priority, Review); none without the helper.
+    func chips(_ thread: MailThread) -> [MailHelperChip] { helperLabels?.chips(thread) ?? [] }
     var selectedThread: MailThread? { selection.flatMap { r in threads.first { $0.r == r } } }
     var mailboxAccount: UUID? { if case .account(let id) = mailbox { return id } else { return nil } }
 
@@ -227,6 +234,10 @@ final class InboxSectionModel: ObservableObject {
             case .starred: threads = inbox.filter(\.starred)
             case .account(let id): threads = try s.threads(accounts: [id], limit: Self.limit)
             }
+            // Priority first (stable), only while the helper reports its labels (D-050).
+            let labels = mailHelperLabels()
+            if labels != helperLabels { helperLabels = labels }
+            threads = MailHelperInbox.order(threads, labels)
             phase = .ready
             if let selection, !threads.contains(where: { $0.r == selection }) {
                 self.selection = nil

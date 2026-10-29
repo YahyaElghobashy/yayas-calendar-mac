@@ -425,6 +425,8 @@ final class ComposerModel: ObservableObject {
     private(set) var selection = NSRange(location: 0, length: 0)
     private(set) var typingAttributes: [NSAttributedString.Key: Any] = [:]
     weak var editor: ComposerEditing?
+    /// Plain mode: inserts at the text view's cursor (the view registers it); false = no view (renders, tests).
+    var insertAtCursor: ((String) -> Bool)?
     /// Settings → Writing at the time the composer opened.
     let writing: RichMailSettings
     @Published private(set) var phase: Phase = .editing
