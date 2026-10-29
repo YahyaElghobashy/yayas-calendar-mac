@@ -19,6 +19,8 @@ where that helps.
   in mail (blocked until you allow them).
 - Settings → **Remove everything and quit** clears the app’s data off your Mac and asks Google to revoke
   its sign-ins.
+- With Yaya’s Mail Helper installed, an account’s sign-in goes to it only when you approve handing it over,
+  sealed so only your own server can open it ([below](#yayas-mail-helper)).
 
 ## Your own Google client
 
@@ -142,7 +144,7 @@ macOS hands these over without asking only to an app with this app’s signature
 | `compose/` | Copies of files attached to a draft; deleted when the composer closes |
 | `outbox/` | Large messages, or messages with files, waiting for Gmail; deleted once sent or cancelled, kept 7 days if sending failed |
 | `widget/` | What the widgets draw (meeting titles and times, inbox senders and subjects), account logos and the widget’s log |
-| `share/` | The Deck file, only while that setting is on |
+| `share/` | The Deck file, only while that setting is on; `share/mailhelper/`, the requests for Yaya’s Mail Helper (each deleted by the helper, a leftover after an hour), only while it’s installed |
 | `logs/` | The app’s log |
 
 Folders are `0700` and files `0600`, so other user accounts on this Mac can’t read them. Apps you run
@@ -153,7 +155,7 @@ yourself can, as with anything in your home folder. The widget extension is sand
 links. They stay small (512 KB for the app, 256 KB for the widget, one older copy each).
 
 **Elsewhere:** the app’s preferences (`~/Library/Preferences/com.yahyaelghobashy.yayascalendar.plist`:
-your settings and a copy of the allowed-sender list), and folders macOS makes for the app by its bundle id
+your settings, a copy of the allowed-sender list and, with Yaya’s Mail Helper, your VIP lists as it last took them and the Draft with AI choices), and folders macOS makes for the app by its bundle id
 under `~/Library/Caches`, `~/Library/WebKit` (the reader’s compiled blocking rules),
 `~/Library/HTTPStorages` and `~/Library/Saved Application State`.
 
@@ -241,6 +243,36 @@ time or Off), and Join gets a menu with every way to join one meeting.
   writes Yaya’s Murmur’s files and never puts what it read into a log.
 - **What leaves your Mac.** Nothing. Yaya’s Murmur is reached only through those links and the file; there is no
   Yaya’s Murmur host on the app’s list. When it’s not installed, nothing is read and nothing changes.
+
+## Yaya’s Mail Helper
+
+Yaya’s Mail Helper is a separate, private companion app by the same author that sorts mail on its owner’s own server.
+Yaya’s Calendar shows its page (Mail helper, in the sidebar) and its Draft with AI button only when it’s installed:
+the app that handles its `yayamail:` links must carry Yaya’s Mail Helper’s own bundle identifier. Yaya’s Calendar never
+talks to that server; the helper does.
+
+- **What Yaya’s Calendar reads.** Two files the helper keeps in its data folder (`~/Library/Application
+  Support/YayasMailHelper/share/state.json` and `digest.json`) and its answers there (`results/`): how sorting is going
+  per account, the labels it uses, its suggestions, the emails it was unsure about, what it did, the backlog plan and
+  the daily digest (senders, subjects and short summaries of mail that left your inbox). They are opened read-only,
+  only if they are regular files of yours and at most 4 MiB, shown as plain text, never written and never put into a
+  log. The app deletes each answer once it has read it.
+- **What Yaya’s Calendar writes.** Your choices on that page (pause, the AI setting, a Review decision, Undo, Apply, a
+  VIP list, your style card, a draft request) as small command files in its own folder
+  (`~/Library/Application Support/YayasCalendar/share/mailhelper/`, readable only by you), then a `yayamail://cmd?id=…`
+  link that tells the helper to pick one up. The helper deletes each one it reads; anything left over goes after an hour.
+- **Handing over a sign-in.** Only when you press **Hand over sign-in** and then approve a card that names the account
+  and shows the server key’s fingerprint (check it matches the one the helper shows). Then, and only then, the app
+  reads that account’s Google sign-in (its refresh token and your Google client) from your Keychain and seals it with
+  that server key, so only your server can open it; the helper carries it but can’t read it. The token appears nowhere
+  else: not on screen, not in a log, not in any other file. **Take back the sign-in** asks the server to forget it.
+- **Once a day,** for each account you handed over, the addresses of the people in its meetings from the last 60 and
+  next 30 days go to the helper (so mail from them stays in your inbox). Nothing goes for an account you didn’t hand over.
+- **Draft with AI** sends the helper only which conversation you are answering (its account and Gmail thread id), the
+  model and thinking level you picked and what you typed in “What should it say?”. The draft comes back as plain text
+  into the composer; nothing is sent until you press Send, with the usual approval card.
+- **What leaves your Mac from Yaya’s Calendar.** Nothing. There is no helper or server host on the app’s list. When the
+  helper isn’t installed, nothing is read, written or changed.
 
 ## Diagnostics you can paste
 

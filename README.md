@@ -58,6 +58,9 @@ Calendar server in the middle, because there is no Yaya’s Calendar server.
 - **Join with Yaya’s Murmur.** With Yaya’s Murmur, the bot-free notetaker by the same author, each account picks its
   recorder (Fathom, Yaya’s Murmur, Ask each time or Off), Join gets a ▾ with every way in, the Event Peek gets a Live
   Helper switch, and meetings show Yaya’s Murmur’s badges. Without it, nothing changes.
+- **Mail helper.** With Yaya’s Mail Helper, the author’s private mail sorter, a Mail helper page shows how each inbox
+  is being sorted, the daily digest, the emails it wasn’t sure about and every change with Undo; Priority mail sorts
+  first in the inbox, and replies get a Draft with AI button. Without it, nothing changes.
 - **↻ on every widget.** A meeting got cancelled? Tap ↻ and that widget re-reads its calendars now
   instead of at the next 15-minute sync. It shows ✓ when it’s done.
 - **One inbox for every account.** A unified inbox in the app and on the desktop. Mark read or

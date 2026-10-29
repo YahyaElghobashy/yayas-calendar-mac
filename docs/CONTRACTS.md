@@ -5,16 +5,18 @@ Bundle `com.yahyaelghobashy.yayascalendar` (executable `YayasCalendar`, app name
 widget `com.yahyaelghobashy.yayascalendar.widget` (executable `YayasCalendarWidget`, appex
 `PlugIns/YayasCalendarWidget.appex`), URL scheme `yayacal`, LSMinimumSystemVersion 26.0, arm64.
 One table holds these names, the data folder and the Keychain services below, and the names of Yaya's Murmur (its
-bundle id, URL scheme and data folder, D-046): `Sources/Shared/Profile.swift`.
+bundle id, URL scheme and data folder, D-046) and of Yaya's Mail Helper (the same three, D-050): `Sources/Shared/Profile.swift`.
 `./build.sh --dev` builds a separate dev profile from the same table (`….dev` ids, "Yaya's Calendar Dev",
 `yayacal-dev`, `YayasCalendarDev`, `….dev.*` services; Murmur's `….yayasmurmur.dev`, `yayamurmur-dev`,
-`YayasMurmurDev`), ad-hoc signed, that never touches these names. Every
+`YayasMurmurDev`; the Mail helper's `….yayasmailhelper.dev`, `yayamail-dev`, `YayasMailHelperDev`), ad-hoc signed, that
+never touches these names. Every
 other build is signed with a stable identity, never ad-hoc (D-030); its expected designated requirement is
 derived from that identity, and the release identity's is `docs/DR.txt`.
 
 ## Paths (`Sources/Shared/Paths.swift`)
 `~/Library/Application Support/YayasCalendar/` (0700): `store.sqlite`, `widget/` (snapshots, `logos/`,
-`trace.log`; the widget's only sandbox exception), `share/` (Deck export), `logs/app.log`.
+`trace.log`; the widget's only sandbox exception), `share/` (Deck export; `share/mailhelper/`, Yaya's Mail Helper's
+command files, D-050), `logs/app.log`.
 
 ## Keychain (file-based login keychain, every query `kSecUseAuthenticationUIFail`)
 `com.yahyaelghobashy.yayascalendar.oauth` (account = account UUID, refresh token JSON),
@@ -65,13 +67,13 @@ Ownership: data layer = Sources/Store, Sources/Sync, Sources/Providers, Sources/
 v2 calendars/events, v3 widget settings/state, v4 mail threads/actions, v5 action queue, v6 rich mail — numbered now,
 written by the data layer only). UI layer = Sources/Widget, Sources/Shared/Widgets, Sources/UI,
 Sources/App, Sources/Contracts/Fixtures.swift. Shared/Snapshot.swift + Contracts/Stores.swift change only
-with a DECISIONS entry.
+with a DECISIONS entry. `MailThread.labels` (D-050): the thread's Gmail label ids, from the stored `labels_json`; `[]` by default.
 
 ## URL routes (`yayacal://`) — quiet routes hide the agent within 250 ms
 | Route | Params | Quiet |
 |---|---|---|
 | `ping` | `probe` | yes |
-| `open/app` | `section` | no |
+| `open/app` | `section` (`inbox`, `mailhelper` while Yaya's Mail Helper is installed, `calendar`, `widgets`, `accounts`, `settings`) | no |
 | `page` | `w` (kind), `fam`, `to` | yes |
 | `day` | `w`, `d` (YYYY-MM-DD) | yes |
 | `month` | `w`, `to` (YYYY-MM) | yes |
@@ -170,6 +172,62 @@ missing or invalid one as "no data". Murmur's side: its own docs/CONTRACTS.md, "
 - **Notifications:** categories `yc.meeting.murmur` (actions `yc.join`, `yc.join.murmur`, `yc.snooze`) and
   `yc.meeting.ask` (`yc.join`, `yc.join.ask`, `yc.snooze`; Join and record… opens the Event Peek).
 - **Meeting export:** Murmur reads the Deck export (below) unchanged; the switch starts on when Deck or Murmur is installed.
+
+## Yaya's Mail Helper link (D-050)
+Yaya's Mail Helper is a private companion app on the same Mac; it talks to the owner's own mail server, the calendar
+never does. The calendar reads the helper's files, writes command files in its own data folder and opens one link;
+the two share no code, Keychain item or network. The helper's side: its docs/CONTRACT.md, "Helper ⇄ Calendar"
+(contract v1, plus v1.1's writer).
+
+| | Release profile | Dev profile |
+|---|---|---|
+| Installed when | a handler of `yayamail:` has bundle id `com.yahyaelghobashy.yayasmailhelper` | `yayamail-dev:`, `….yayasmailhelper.dev` |
+| Its files (read only) | `~/Library/Application Support/YayasMailHelper/share/state.json`, `digest.json`, `results/<id>.json` | `…/YayasMailHelperDev/share/…` |
+| Ping (observed) | `com.yahyaelghobashy.yayasmailhelper.changed` | `….yayasmailhelper.dev.changed` |
+| Commands (written) | `~/Library/Application Support/YayasCalendar/share/mailhelper/cmd-<uuid>.json` | `…/YayasCalendarDev/share/mailhelper/…` |
+| Link (opened) | `yayamail://cmd?id=<uuid>` | `yayamail-dev://cmd?id=<uuid>` |
+
+- **Without the helper nothing changes:** no Mail helper entry in the sidebar, the inbox's order and rows as before, no
+  Draft with AI in the composer.
+- **Reading** (`MailHelperParse`, `MailHelperLive`): `open(O_NOFOLLOW)`, then `fstat` on that descriptor (a regular file
+  owned by this user, at most **4 MiB**), read through it; re-parsed only when its device, inode, size or modification time
+  changed, on the ping (`.deliverImmediately`, pings within 0.3 s read once) and every 30 s while the section is open.
+  `version` must be the integer 1; higher is "newer" and ignored; anything else is "unreadable". Every item is checked on
+  its own and skipped when it fails: accounts and credential names `[A-Za-z0-9_-]{1,64}`, Gmail thread ids
+  `[0-9a-f]{1,32}`, backlog runs `bf-` + 12 hex digits, a 32-byte seal key; text loses control and direction characters
+  and is capped, and is drawn as plain text only. An answer (`{version:1,id,ok,error,data}`, its `id` the command's) is
+  deleted once read.
+- **`state.json` fields used:** `updated_at`; `lab.{paired,reachable,last_ok_at,error}`; `server.{seal_key,seal_fingerprint}`;
+  `status.{accounts[],claude_credentials,root_label,errors}` (per account: `id` = the calendar's account UUID string,
+  `email, kind, paused, state, detail, ai_policy, claude_credential, claude_ready, today, review_waiting, backfill{id,state},
+  has_sign_in`); `labels{account: [{label_id,path,category,topic}]}`; `proposals`; `review`; `activity` (newest first,
+  at most 150); `backfills{run: {state, scanned, applied, totals, labels[{label,category,topic,count,stays_in_inbox,
+  senders[≤5],samples[≤3]}]}}`. `digest.json`: `digest.{id,day,total,read{section: bool},sections[{key,title,count,items}]}`,
+  items `{account,thread_id,sender,subject,topic,headline,bullets,worth_opening}` or, for updates,
+  `{service,subjects,threads[{account,thread_id}]}`.
+- **Commands** (`MailHelperCommand`): `{ "version":1, "id":"<uuid, lowercase>", "kind", "args" }`, compact JSON with sorted
+  keys, at most **64 KiB**, written 0600 to a temporary name with `O_EXCL | O_NOFOLLOW`, synced and renamed into a 0700
+  folder that is never a link; then the link, opened without bringing the helper forward. Kinds sent: `refresh`,
+  `handover {account, kind, envelope}`, `account {account, paused | ai_policy | claude_credential}`, `forget {account}`,
+  `people {account, kind: vip | vip_domain | meeting, addresses}` (lowercased, checked, de-duplicated; meetings at most
+  2,000), `undo {action_ids | batch | since}`, `proposal {id, decision}`, `review {account, thread_id, category, scope:
+  sender | thread}`, `backfill_start {account}`, `backfill_override {run, sender, category}`, `backfill_apply | _stop |
+  _undo {run}`, `digest_build`, `digest_read {id, section?}`, `needs_reply`, `voice_get | voice_put {account, card ≤ 3,000}`,
+  `voice_build {account, use_claude}`, `draft {account, thread_id, model, effort, instruction? ≤ 1,000}`. The calendar waits
+  120 s for an answer (a draft 330 s), looks on every ping and every 1.5 s, and deletes its own command files the helper
+  never picked up after an hour.
+- **Hand-over** (`handover`): only from the approval card (account, server-key fingerprint, Personal / Work), after
+  checking `seal_fingerprint` is the fingerprint of `seal_key` (SHA-256 of the raw key, its first 12 bytes mapped to
+  `ABCDEFGHJKMNPQRSTVWXYZ23456789` by `byte % 30`, groups of 4 joined by `-`). The envelope (CONTRACT §2): a fresh
+  X25519 key agreed with `seal_key`, HKDF-SHA256 (empty salt, info `yaya-mail-helper seal v1`, 32 bytes),
+  ChaCha20-Poly1305 with a fresh 12-byte nonce over `{refresh_token, client_id, client_secret, email}`, AAD
+  `mh-seal-v1|gmail|<account UUID>`; `{v:1, purpose:"gmail", account, epk, nonce, ct}` (base64; `ct` = ciphertext + tag).
+- **Inbox order and chips** (`MailHelperInbox`): from `labels[account]`, a thread whose `MailThread.labels` include the
+  account's Priority label (`category == "priority"`) sorts first, both groups keeping their order, with a ⭐ chip; the
+  Review label gives a "Review" chip. Only the Inbox section; the popover and widgets don't change.
+- **Preferences** (UserDefaults): `mailhelper.vip.<UUID>`, `mailhelper.vipDomains.<UUID>` (the lists the helper last
+  took), `mailhelper.draft.model.<UUID>`, `mailhelper.draft.effort.<UUID>`.
+- **Meeting people:** once a day (checked hourly) and when the helper appears, per handed-over account with meetings.
 
 ## Accounts interface (shell ↔ accounts)
 `AccountsModel.shared: ObservableObject` with `start()`; `AccountsScreen(model:)` view.

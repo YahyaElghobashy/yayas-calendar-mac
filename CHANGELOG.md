@@ -10,6 +10,13 @@ All notable changes to Yaya’s Calendar. Versions follow the app’s `CFBundleS
   Yaya’s Murmur listening and that meeting’s chat beside it. The ▾ beside Join offers it too, and still every recorder.
   A meeting without one gets a small ✦ Live Helper button that sets it up in Yaya’s Murmur. The card follows as soon
   as Yaya’s Murmur changes a mark. Without Yaya’s Murmur, nothing changes (D-049).
+- **Mail helper.** With Yaya’s Mail Helper, a private companion that sorts mail on its owner’s own server, a Mail
+  helper page appears in the sidebar: each account’s sorting (pause, AI setting, VIPs, your writing style), the inbox
+  clean-up plan with Apply and Undo all, emails to review, Needs reply, suggestions and every change with Undo, plus a
+  daily Digest where reading a section to its end marks its mail read. Priority mail sorts first in the inbox with a ⭐,
+  and replies get Draft with AI. Handing over an account’s sign-in takes an approval card and is sealed for your own
+  server. Yaya’s Calendar talks to nothing new: it reads the helper’s files and leaves it small command files
+  (PRIVACY.md, D-050). Without the helper, nothing changes.
 - **Join with Live Helper on the widget.** When Yaya’s Murmur has a meeting marked Live Helper, Up Next (Medium)
   swaps its round recorder button for a ✦ Join with Live Helper button: it opens the call with Yaya’s Murmur recording
   and that meeting’s Live Helper chat attached, whichever recorder the account normally uses (D-048).
