@@ -508,12 +508,6 @@ enum HeadlessRender {
             save(view, name, info)
         }
         print("  murmur: \(murmurCount) PNGs")
-        // Yaya's Mail Helper (D-050): the section (Overview, Digest, the hand-over card), the Inbox's Priority chips and the
-        // composer's Draft with AI; a fake session over the fixture files.
-        let mailHelperCount = MailHelperRenders.run(dir: dir, now: now, directory: directory) { view, name, info in
-            save(view, name, info)
-        }
-        print("  mail helper: \(mailHelperCount) PNGs")
 
         // The status item: glyph + title in a strip of menu bar, light and dark, for every title shape.
         let glyph = StatusItemController.glyph()
@@ -598,6 +592,12 @@ enum HeadlessRender {
 
         RichMailRenders.run(dir: dir, now: now, save: save)
         RichComposerRenders.run(dir: dir, now: now) { save($0, $1, $2) }
+        // Yaya's Mail Helper (D-050), last so nothing it loads can touch the earlier renders: the section (Overview, Digest, the hand-over card), the Inbox's Priority chips and the
+        // composer's Draft with AI; a fake session over the fixture files.
+        let mailHelperCount = MailHelperRenders.run(dir: dir, now: now, directory: directory) { view, name, info in
+            save(view, name, info)
+        }
+        print("  mail helper: \(mailHelperCount) PNGs")
         let manifestURL = dir.appendingPathComponent("render-manifest.json")
         let document: [String: Any] = [
             "app": "yayascalendar",

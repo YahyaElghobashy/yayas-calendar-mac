@@ -304,7 +304,7 @@ struct MailDraftPopover: View {
                     AccountsKit.PopUpMenuButton.Item(title: e.title) { model.effort = e }
                 })
             }
-            if let note = model.note {
+            if let note = model.note, !model.isFailed {
                 Text(verbatim: note).font(AppTheme.font(11.5)).foregroundStyle(AppTheme.warn)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -348,11 +348,11 @@ struct MailDraftPopover: View {
                     .keyboardShortcut(.defaultAction)
             }
         case .working:
-            TimelineView(.periodic(from: .now, by: 1)) { context in
+            TimelineView(.periodic(from: .now, by: 1)) { _ in
                 HStack(spacing: 8) {
                     if !headless { ProgressView().controlSize(.small) }
                     VStack(alignment: .leading, spacing: 1) {
-                        Text("Writing\u{2026} \(model.elapsed(context.date))").font(AppTheme.font(12, .semibold)).foregroundStyle(AppTheme.text)
+                        Text("Writing\u{2026} \(model.elapsed(model.now))").font(AppTheme.font(12, .semibold)).foregroundStyle(AppTheme.text)
                         Text("This can take a few minutes.").font(AppTheme.font(11)).foregroundStyle(AppTheme.text3)
                     }
                     Spacer()

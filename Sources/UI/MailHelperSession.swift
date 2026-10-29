@@ -788,6 +788,9 @@ final class MailHelperDraftModel: ObservableObject {
     }
 
     var isWorking: Bool { if case .working = phase { return true } else { return false } }
+    var isFailed: Bool { if case .failed = phase { return true } else { return false } }
+    /// The model's clock (the pop-over's "Writing… 1 min 35 s" ticks against it).
+    var now: Date { clock() }
 
     /// A word before the person asks: the account isn't with the helper yet, or Claude is off for it.
     var note: String? {

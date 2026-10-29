@@ -128,8 +128,8 @@ enum MailHelperRenders {
 
             // 5. The composer: Draft with AI on a reply (plain), its pop-over (rich), drafting, and the helper's error.
             func composer(_ name: String, format: ComposerFormat, draftAnswer: MailHelperResult?, open: Bool, act: Bool,
-                          pick: MailDraftModel = .local) {
-                let fixture = FixtureMail.threads(now: now).first { $0.thread.r == "th-juniper" }!
+                          pick: MailDraftModel = .local, thread: String = "th-juniper") {
+                let fixture = FixtureMail.threads(now: now).first { $0.thread.r == thread }!
                 let request = ComposerRequest.reply(fixture.thread, fixture.messages.max { $0.date < $1.date })
                 let composer = ComposerModel(request: request, accounts: directory.accounts, safeSend: true, local: MemoryMailLocalStore(),
                                              clock: { now }, schedule: { _, _ in }, toasts: MailToastCenter(clock: { now }, schedule: { _, _ in }),
@@ -151,8 +151,10 @@ enum MailHelperRenders {
                 count += 1
             }
             composer("mailhelper-composer-draft-button", format: .plain, draftAnswer: nil, open: false, act: false)
-            composer("mailhelper-composer-draft-popover", format: .rich, draftAnswer: nil, open: true, act: false, pick: .sonnet)
-            composer("mailhelper-composer-draft-working", format: .rich, draftAnswer: nil, open: true, act: true, pick: .sonnet)
+            // Personal (Local + Claude on): no warning before asking.
+            composer("mailhelper-composer-draft-popover", format: .rich, draftAnswer: nil, open: true, act: false, pick: .sonnet, thread: "th-rafa")
+            composer("mailhelper-composer-draft-working", format: .rich, draftAnswer: nil, open: true, act: true, pick: .sonnet, thread: "th-rafa")
+            // ORB (Claude off): the helper's own answer, inline.
             composer("mailhelper-composer-draft-error", format: .rich,
                      draftAnswer: MailHelperResult(id: UUID(), ok: false, error: "Claude is off for this account.", data: .null),
                      open: true, act: true, pick: .opus)
