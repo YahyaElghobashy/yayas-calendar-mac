@@ -8,6 +8,8 @@ struct SettingsView: View {
     var menuBar: MenuBarSettingsModel? = nil
     /// Join with Fathom (D-045): which account Fathom is on, and ⌃⌥J. The card shows while Fathom is on this Mac.
     var fathom: FathomLinksModel? = nil
+    /// Yaya's Murmur (D-046): its state and ⌃⌥J. The card shows while Murmur is on this Mac.
+    var recorders: RecorderChoicesModel? = nil
     var directory: () -> AccountDirectory = { AccountDirectory.current() }
     /// "Welcome guide · Open": the onboarding sheet again (resumes where you left off).
     var openGuide: (() -> Void)? = nil
@@ -61,8 +63,12 @@ struct SettingsView: View {
                         .frame(maxWidth: 640)
                 }
                 if let fathom {
-                    SettingsFathomCard(model: fathom, directory: directory)
+                    SettingsFathomCard(model: fathom, directory: directory, showsHotkey: !(recorders?.active ?? false))
                         .frame(maxWidth: 640)
+                    if let recorders {
+                        SettingsMurmurCard(recorders: recorders, links: fathom)
+                            .frame(maxWidth: 640)
+                    }
                 }
                 if let mail {
                     SettingsMailCard(model: mail)

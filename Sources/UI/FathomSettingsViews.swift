@@ -6,6 +6,8 @@ struct FathomAccountRow: View {
     @ObservedObject var model: FathomLinksModel
     let accountId: UUID
     let email: String
+    /// "Record with Fathom"; "Fathom account" under the card's "Record with" while Yaya's Murmur is on this Mac (D-046).
+    var title = "Record with Fathom"
     @Local private var editing = false
     @Local private var draft = ""
     @Local private var refused = false
@@ -17,7 +19,7 @@ struct FathomAccountRow: View {
                 HStack(alignment: .center, spacing: 10) {
                     Circle().fill(model.link(accountId) == .off ? AppTheme.text3 : AppTheme.bad).frame(width: 8, height: 8)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Record with Fathom").font(AppTheme.font(12.5, .semibold)).foregroundStyle(AppTheme.text)
+                        Text(title).font(AppTheme.font(12.5, .semibold)).foregroundStyle(AppTheme.text)
                         Text(model.detail(accountId, email: email)).font(AppTheme.font(11.5)).foregroundStyle(AppTheme.text2)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -29,7 +31,7 @@ struct FathomAccountRow: View {
                         }
                     }
                     .buttonStyle(AccountsKit.SecondaryButton(compact: true, tint: AppTheme.text))
-                    .accessibilityLabel(Text("Record with Fathom: \(choiceTitle)"))
+                    .accessibilityLabel(Text("\(title): \(choiceTitle)"))
                 }
                 if editing { addressEditor }
                 if model.isSignedIn(accountId, email: email) {
@@ -96,6 +98,8 @@ struct FathomAccountRow: View {
 struct SettingsFathomCard: View {
     @ObservedObject var model: FathomLinksModel
     let directory: () -> AccountDirectory
+    /// "⌃⌥J records with Fathom"; Settings → Yaya's Murmur holds it instead while Murmur is on this Mac (D-046).
+    var showsHotkey = true
     @Environment(\.headlessRender) private var headless
 
     var body: some View {
@@ -113,11 +117,13 @@ struct SettingsFathomCard: View {
                         row(title: "Fathom on this Mac", detail: model.appStatus(directory: directory())) {
                             Button("Check again") { model.refresh() }.buttonStyle(AccountsKit.LinkButton())
                         }
-                        Rectangle().fill(AppTheme.stroke).frame(height: 1).padding(.leading, 18)
-                        row(title: "\(JoinHotkey.display) records with Fathom",
-                            detail: "When the meeting\u{2019}s account has Fathom linked, \(JoinHotkey.display) joins and records. Off, it only joins.") {
-                            ShellSwitch(isOn: Binding(get: { model.hotkeyRecords }, set: { model.setHotkeyRecords($0) }),
-                                        label: "Control Option J records with Fathom")
+                        if showsHotkey {
+                            Rectangle().fill(AppTheme.stroke).frame(height: 1).padding(.leading, 18)
+                            row(title: "\(JoinHotkey.display) records with Fathom",
+                                detail: "When the meeting\u{2019}s account has Fathom linked, \(JoinHotkey.display) joins and records. Off, it only joins.") {
+                                ShellSwitch(isOn: Binding(get: { model.hotkeyRecords }, set: { model.setHotkeyRecords($0) }),
+                                            label: "Control Option J records with Fathom")
+                            }
                         }
                     }
                 }

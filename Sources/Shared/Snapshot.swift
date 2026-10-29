@@ -108,6 +108,9 @@ struct WidgetSnapshot: Codable, Equatable {
         /// Join with Fathom is offered (D-045): one of its accounts records with Fathom on this Mac. Optional and
         /// left out when nil, so version-1 files without it still decode and unchanged meetings hash the same.
         var rec: Bool? = nil
+        /// Which recorder that button joins with (D-046): "murmur" (Yaya's Murmur) or "ask" (the Event Peek's Join menu);
+        /// nil = Fathom, as before. Optional and left out when nil, like `rec`.
+        var recBy: String? = nil
     }
 
     struct Mail: Codable, Equatable {

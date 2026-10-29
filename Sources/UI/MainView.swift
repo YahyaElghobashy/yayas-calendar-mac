@@ -39,6 +39,7 @@ struct MainView: View {
         case .settings:
             SettingsView(mail: shell.mailEnabled() ? shell.settingsMail : nil, menuBar: shell.menuBar,
                          fathom: shell.fixedNow == nil ? FathomLinksModel.shared : nil,
+                         recorders: shell.fixedNow == nil ? RecorderChoicesModel.shared : nil,
                          openGuide: shell.fixedNow == nil ? { MainWindowController.shared.presentOnboarding() } : nil,
                          removeEverything: shell.fixedNow == nil ? { MainWindowController.shared.presentRemoveEverything() } : nil)
         }

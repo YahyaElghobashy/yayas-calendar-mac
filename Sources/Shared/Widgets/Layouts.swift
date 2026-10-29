@@ -250,7 +250,7 @@ struct UpNextSmall: View {
                     HStack(spacing: 6) {
                         WidgetLink(destination: links.join(next)) { JoinButton(style: style, big: true) }
                         if showRecord && next.rec {
-                            WidgetLink(destination: links.record(next)) { RecordButton(style: style) }
+                            WidgetLink(destination: links.record(next)) { RecordButton(style: style, kind: next.recBy) }
                         }
                     }
                 } else if let place = next.place {

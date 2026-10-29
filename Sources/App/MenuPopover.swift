@@ -119,6 +119,7 @@ final class MenuPopoverController {
             },
             join: { [weak self] event in self?.join(event) },
             joinWithFathom: { [weak self] event in self?.joinWithFathom(event) },
+            joinWith: { [weak self] event, entry in self?.joinWith(event, entry) },
             showEvent: { [weak self] r in
                 guard let self else { return }
                 PeekController.shared.showEvent(r: r, at: self.peekAnchor())
@@ -145,6 +146,23 @@ final class MenuPopoverController {
     private func joinWithFathom(_ event: CalendarEvent) {
         let outcome = FathomSession.shared.join(event, directory: AccountDirectory.current(), via: "popover")
         if outcome == .started { close(reason: "join") }
+    }
+
+    /// The Join menu's choices and the card's Join with Yaya's Murmur (D-046). The popover closes once the call
+    /// opens; a Fathom wait stays on the card.
+    private func joinWith(_ event: CalendarEvent, _ entry: JoinMenu.Entry) {
+        switch entry {
+        case .fathom(let target):
+            let outcome = FathomSession.shared.join(event, target: target, directory: AccountDirectory.current(), via: "popover-menu")
+            if outcome == .started { close(reason: "join") }
+        case .murmur(let mode):
+            switch MurmurSession.shared.join(event, mode: mode, via: "popover") {
+            case .started, .joinedOnly: close(reason: "join")
+            case .blocked, .notInstalled: break
+            }
+        case .justJoin:
+            join(event)
+        }
     }
 
     /// Peeks open beside the popover (left of it when there's room), level with the row clicked.

@@ -165,6 +165,11 @@ final class SnapshotPublisher: @unchecked Sendable {
     /// Join with Fathom (D-045): whether a meeting on these accounts, with a join link, gets the widget's Fathom
     /// button. The app installs it before the engine starts; tests and renders keep the default (never).
     nonisolated(unsafe) static var fathomOffered: @Sendable ([UUID], Bool) -> Bool = { _, _ in false }
+    /// The recorder a meeting's record button (and its heads-up's second action) joins with (D-046): "fathom",
+    /// "murmur", "ask" or nil (no button). The app installs it while it runs; the default is D-045's Fathom button.
+    nonisolated(unsafe) static var recorderKind: @Sendable ([UUID], Bool) -> String? = { ids, hasJoin in
+        SnapshotPublisher.fathomOffered(ids, hasJoin) ? "fathom" : nil
+    }
 
     private let lock = NSRecursiveLock()
     private var written: [String: UInt64] = [:]
@@ -489,10 +494,12 @@ final class SnapshotPublisher: @unchecked Sendable {
         case .needsAction: reply = .needsReply
         default: reply = .accepted
         }
+        let recorder = Self.recorderKind(e.accountIds, e.joinURL != nil)
         return WidgetSnapshot.Meeting(r: e.r, k: links.k(for: e.r), accountIds: e.accountIds.map(\.uuidString),
                                       title: Self.clip(e.title), start: e.start, end: e.end, allDay: e.allDay,
                                       place: Self.place(e.location), hasJoin: e.joinURL != nil, reply: reply,
-                                      clashes: e.clashes, rec: Self.fathomOffered(e.accountIds, e.joinURL != nil) ? true : nil)
+                                      clashes: e.clashes, rec: recorder != nil ? true : nil,
+                                      recBy: recorder == nil || recorder == "fathom" ? nil : recorder)
     }
 
     /// A location that is only a link (a Zoom URL pasted as the place) is left out: Join covers it,

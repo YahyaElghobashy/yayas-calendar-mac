@@ -34,6 +34,8 @@ struct WidgetMeeting {
     var allDay = false
     /// Join with Fathom offered (snapshot `rec`, D-045): Up Next Medium shows its Fathom button.
     var rec = false
+    /// Which recorder that button joins with (snapshot `recBy`, D-046): nil = Fathom, "murmur", "ask".
+    var recBy: String?
 
     /// Every account that has it, primary first.
     var accountIds: [String] { [account.id] + also.map(\.id) }

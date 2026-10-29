@@ -171,19 +171,62 @@ struct JoinButton: View {
     }
 }
 
-/// Up Next Medium's Join with Fathom (`record?r&k`, D-045): a round record button beside the big Join, as tall as
-/// it, so Join keeps its word.
+/// Up Next Medium's record button (`record?r&k`): a round button beside the big Join, as tall as it, so Join keeps
+/// its word. Fathom's red dot (D-045); with Yaya's Murmur on this Mac, its ringed planet, or "…" when the account
+/// asks each time (D-046), both in the widget's own accent.
 struct RecordButton: View {
     let style: WidgetStyle
+    /// nil = Fathom, "murmur", "ask" (snapshot `recBy`).
+    var kind: String? = nil
 
     var body: some View {
         let p = style.palette
         let side = 30 * style.scale
-        Circle().fill(Color(hex: 0xE36166)).frame(width: 10 * style.scale, height: 10 * style.scale)
+        glyph
             .frame(width: side, height: side)
             .background(Circle().fill(p.accentSoft))
             .overlay(Circle().strokeBorder(p.rule, lineWidth: 1))
-            .accessibilityLabel(Text("Join with Fathom"))
+            .accessibilityLabel(Text(label))
+    }
+
+    @ViewBuilder private var glyph: some View {
+        let p = style.palette
+        switch kind {
+        case "murmur":
+            RingedPlanet(color: p.accent).frame(width: 15 * style.scale, height: 11 * style.scale)
+        case "ask":
+            Image(systemName: "ellipsis").font(.system(size: 11 * style.scale, weight: .heavy)).foregroundStyle(p.accent)
+        default:
+            Circle().fill(Color(hex: 0xE36166)).frame(width: 10 * style.scale, height: 10 * style.scale)
+        }
+    }
+
+    private var label: String {
+        switch kind {
+        case "murmur": return "Join with Yaya\u{2019}s Murmur"
+        case "ask": return "Join and choose a recorder"
+        default: return "Join with Fathom"
+        }
+    }
+}
+
+/// Yaya's Murmur's mark, drawn in one colour: a planet with a tilted ring (D-046).
+struct RingedPlanet: View {
+    let color: Color
+
+    var body: some View {
+        GeometryReader { g in
+            let w = g.size.width, h = g.size.height
+            let r = min(w, h) * 0.36
+            ZStack {
+                Circle().fill(color).frame(width: r * 2, height: r * 2)
+                Ellipse().stroke(color, lineWidth: max(1, h * 0.11))
+                    .frame(width: w * 0.98, height: h * 0.42)
+                    .rotationEffect(.degrees(-14))
+            }
+            .frame(width: w, height: h)
+        }
+        .accessibilityHidden(true)
     }
 }
 

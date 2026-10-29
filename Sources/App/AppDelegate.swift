@@ -22,11 +22,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         AccountDirectory.current = { AccountDirectory.live() }
         // Join with Fathom (D-045): the session's live side, the widgets' Fathom button and each account card's link.
         FathomLive.install()
-        // Yaya's Murmur (D-046): whether it's here, its marks and their ping. Before the notifier: the meeting export
-        // starts on when Murmur is installed.
+        // Yaya's Murmur (D-046): whether it's here, its marks and their ping, the widgets' and heads-ups' recorder. Before
+        // the notifier: the meeting export starts on when Murmur is installed.
         MurmurLive.install()
+        RecorderDispatch.install()
         AccountCardExtras.footer = { account in
-            AnyView(FathomAccountRow(model: FathomLinksModel.shared, accountId: account.id, email: account.email))
+            AnyView(AccountRecorderSection(recorders: RecorderChoicesModel.shared, links: FathomLinksModel.shared,
+                                           accountId: account.id, email: account.email))
         }
         router = LinkRouter(openMain: { section in MainWindowController.shared.show(section) })
         // Notification delegate + categories (set before launch finishes), heads-up/re-auth/mail notices

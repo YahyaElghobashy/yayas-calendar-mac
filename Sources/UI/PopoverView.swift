@@ -7,6 +7,8 @@ struct PopoverActions {
     var join: (CalendarEvent) -> Void = { _ in }
     /// Join with Fathom (D-045): records at once, or the card waits for Fathom to switch accounts.
     var joinWithFathom: (CalendarEvent) -> Void = { _ in }
+    /// The Join menu's choices and Join with Yaya's Murmur (D-046; `.murmur(nil)` leaves the mode to Murmur).
+    var joinWith: (CalendarEvent, JoinMenu.Entry) -> Void = { _, _ in }
     var showEvent: (String) -> Void = { _ in }
     var showThread: (String) -> Void = { _ in }
 }
@@ -249,8 +251,12 @@ private struct NextMeetingCard: View {
             .ycAccessibleButton(A11yText.card(card).label, value: A11yText.card(card).value,
                                 hint: "Opens the meeting details") { actions.showEvent(e.r) }
             // While a Join with Fathom for this meeting waits, its panel offers the plain join too.
-            if card.canJoin && !fathom.isPending(e.r) { joinButton(card) }
-            if let target = card.fathom.first {
+            if card.canJoin && !fathom.isPending(e.r) {
+                if card.recorder != nil { splitJoin(card) } else { joinButton(card) }
+            }
+            if let recorder = card.recorder {
+                recorderControls(card, recorder)
+            } else if let target = card.fathom.first {
                 FathomControls(session: fathom, event: e, target: target, directory: model.accountDirectory,
                                height: 34, join: { actions.joinWithFathom(e) })
             }
@@ -281,6 +287,34 @@ private struct NextMeetingCard: View {
         .padding(.horizontal, 9).frame(height: 22)
         .background(Capsule().fill(card.soon ? AppTheme.accentSoft : Color.white.opacity(0.07)))
         .accessibilityHidden(true)
+    }
+
+    /// With Yaya's Murmur on this Mac (D-046): Join keeps its word and gains "▾", every way to join this meeting.
+    private func splitJoin(_ card: PopoverModel.Card) -> some View {
+        JoinSplitButton(title: card.joinTitle, filled: card.soon, height: 36, join: { actions.join(card.event) },
+                        menu: { showMenu(card) })
+    }
+
+    private func showMenu(_ card: PopoverModel.Card) {
+        let e = card.event
+        JoinMenuPresenter.show(model.joinMenu(card)) { entry in
+            if entry == .justJoin { actions.join(e) } else { actions.joinWith(e, entry) }
+        }
+    }
+
+    /// The account's recorder under Join: Join with Fathom (as D-045 drew it), Join with Yaya's Murmur, or
+    /// "Join and record…". A Fathom wait started from the menu shows here whatever the recorder.
+    @ViewBuilder
+    private func recorderControls(_ card: PopoverModel.Card, _ recorder: Recorder) -> some View {
+        let e = card.event
+        if (recorder == .fathom || fathom.isPending(e.r)), let target = card.fathom.first {
+            FathomControls(session: fathom, event: e, target: target, directory: model.accountDirectory,
+                           height: 34, join: { actions.joinWithFathom(e) })
+        } else if card.canJoin && recorder == .murmur {
+            MurmurJoinControls(mark: card.murmurMark, height: 34) { actions.joinWith(e, .murmur(nil)) }
+        } else if card.canJoin && recorder == .ask {
+            AskRecorderButton(height: 34) { showMenu(card) }
+        }
     }
 
     private func joinButton(_ card: PopoverModel.Card) -> some View {

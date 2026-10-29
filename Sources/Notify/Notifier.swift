@@ -216,11 +216,15 @@ final class SystemNoteCenter: NoteCenter, @unchecked Sendable {
     static var categories: Set<UNNotificationCategory> {
         let join = UNNotificationAction(identifier: NoteIds.joinAction, title: "Join", options: [])
         let fathom = UNNotificationAction(identifier: NoteIds.fathomAction, title: "Join with Fathom", options: [])
+        let murmur = UNNotificationAction(identifier: NoteIds.murmurAction, title: "Join with Yaya\u{2019}s Murmur", options: [])
+        let ask = UNNotificationAction(identifier: NoteIds.askAction, title: "Join and record\u{2026}", options: [])
         let snooze = UNNotificationAction(identifier: NoteIds.snoozeAction, title: "Snooze 1 min", options: [])
         let fix = UNNotificationAction(identifier: NoteIds.fixAction, title: "Sign in again", options: [.foreground])
         return [
             UNNotificationCategory(identifier: NoteIds.meetingCategory, actions: [join, snooze], intentIdentifiers: [], options: []),
             UNNotificationCategory(identifier: NoteIds.meetingFathomCategory, actions: [join, fathom, snooze], intentIdentifiers: [], options: []),
+            UNNotificationCategory(identifier: NoteIds.meetingMurmurCategory, actions: [join, murmur, snooze], intentIdentifiers: [], options: []),
+            UNNotificationCategory(identifier: NoteIds.meetingAskCategory, actions: [join, ask, snooze], intentIdentifiers: [], options: []),
             UNNotificationCategory(identifier: NoteIds.meetingNoLinkCategory, actions: [snooze], intentIdentifiers: [], options: []),
             UNNotificationCategory(identifier: NoteIds.reauthCategory, actions: [fix], intentIdentifiers: [], options: []),
             UNNotificationCategory(identifier: NoteIds.mailCategory, actions: [], intentIdentifiers: [], options: []),
@@ -326,7 +330,7 @@ final class NotifyDelegate: NSObject, UNUserNotificationCenterDelegate, @uncheck
                                open: @escaping @MainActor (AppSection) -> Void) async {
         let kind = info["kind"] ?? "-"
         // An action can launch the app: give the store a moment to open before reading it.
-        if action == NoteIds.joinAction || action == NoteIds.fathomAction || action == NoteIds.snoozeAction {
+        if [NoteIds.joinAction, NoteIds.fathomAction, NoteIds.murmurAction, NoteIds.askAction, NoteIds.snoozeAction].contains(action) {
             _ = await coordinator.waitUntilReady(5)
         }
         switch action {
@@ -353,6 +357,26 @@ final class NotifyDelegate: NSObject, UNUserNotificationCenterDelegate, @uncheck
                     break
                 }
             }
+        case NoteIds.murmurAction:
+            // Join with Yaya's Murmur (D-046): its join link for the event, then the meeting.
+            guard let event = await coordinator.event(userInfo: info) else {
+                Trace.app("notify-action", ["action": "murmur", "result": "blocked"])
+                return
+            }
+            await MainActor.run {
+                if MurmurSession.shared.join(event, mode: nil, via: "heads-up") == .notInstalled,
+                   let url = event.joinURL, JoinGuard.isAllowed(url) {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+        case NoteIds.askAction:
+            // "Join and record…" (D-046): the Event Peek, where the Join menu offers every recorder.
+            guard let event = await coordinator.event(userInfo: info) else {
+                Trace.app("notify-action", ["action": "ask", "result": "blocked"])
+                return
+            }
+            await MainActor.run { PeekController.shared.showEvent(r: event.r) }
+            Trace.app("notify-action", ["action": "ask", "result": "peek"])
         case NoteIds.snoozeAction:
             let ok = await coordinator.snooze(userInfo: info)
             Trace.app("notify-action", ["action": "snooze", "result": ok ? "ok" : "ignored"])

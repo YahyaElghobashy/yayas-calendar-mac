@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 
 /// The menu-bar popover's brain: the next-meeting card, Agenda | Inbox, account chips, and the
@@ -28,6 +29,11 @@ final class PopoverModel: ObservableObject {
         let countdown: String
         /// The Fathom accounts this meeting can record to (D-045), primary copy first; empty = no Fathom button.
         var fathom: [FathomTarget] = []
+        /// The meeting's recorder (D-046); nil while Yaya's Murmur isn't on this Mac (the card is then exactly D-045's).
+        var recorder: Recorder? = nil
+        /// Murmur's mark for this meeting (its badges, and where it records).
+        var murmurMark: MurmurMark? = nil
+        var badges: [MurmurBadge] { murmurMark?.badges ?? [] }
     }
 
     /// The agenda reaches a week ahead (today + 6): enough to scroll, light on the store.
@@ -58,6 +64,11 @@ final class PopoverModel: ObservableObject {
     private let clock24: () -> Bool
     /// Join with Fathom (D-045): which accounts record with it and what the Fathom app is signed into.
     let fathom: FathomSession
+    /// Yaya's Murmur (D-046): whether it's here, and its marks (badges).
+    let murmur: MurmurSession
+    /// Each account's "Record with" (D-046).
+    private let recorderChoice: (UUID) -> RecorderChoice
+    private var murmurWatch: AnyCancellable?
 
     init(store: @escaping () -> CalendarStore = { Services.calendar },
          actions: @escaping () -> CalendarActions = { Services.calendarActions },
@@ -67,7 +78,8 @@ final class PopoverModel: ObservableObject {
          mailEnabled: @escaping () -> Bool = { true },
          syncedAt: @escaping () -> Date? = { WidgetSnapshot.read(kind: WidgetKinds.agenda.kind)?.health.syncedAt },
          use24Hour: @escaping () -> Bool = { Services.widgetSettings.settings(kind: WidgetKinds.agenda.kind).style.use24Hour },
-         fathom: FathomSession? = nil) {
+         fathom: FathomSession? = nil, murmur: MurmurSession? = nil,
+         recorderChoice: @escaping (UUID) -> RecorderChoice = { RecorderPrefs.choice($0) }) {
         self.store = store
         self.actions = actions
         self.mail = mail
@@ -77,7 +89,30 @@ final class PopoverModel: ObservableObject {
         self.lastSync = syncedAt
         self.clock24 = use24Hour
         self.fathom = fathom ?? .shared
+        self.murmur = murmur ?? .shared
+        self.recorderChoice = recorderChoice
         now = clock()
+        // Murmur's marks changed (its ping): the card's badges and every row's follow.
+        murmurWatch = self.murmur.$marks.dropFirst().sink { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                DispatchQueue.main.async { MainActor.assumeIsolated { self.remark() } }
+            }
+        }
+    }
+
+    /// Murmur's marks moved: the card again (rows read `badges(_:)` as they draw).
+    private func remark() {
+        if let card { self.card = makeCard(card.event) }
+        objectWillChange.send()
+    }
+
+    /// The meeting's badges from Murmur's marks (none without Murmur).
+    func badges(_ r: String) -> [MurmurBadge] { murmur.badges(r) }
+
+    /// The "▾" beside Join (only while Murmur is on this Mac).
+    func joinMenu(_ card: Card) -> [JoinMenu.Item] {
+        JoinMenu.items(fathomTargets: card.fathom, murmurInstalled: murmur.installed)
     }
 
     var showsInbox: Bool { mailEnabled() }
@@ -100,6 +135,7 @@ final class PopoverModel: ObservableObject {
         syncedAt = lastSync()
         accounts = directory().accounts
         fathom.refresh()
+        murmur.refresh()
         if tab == .inbox, !showsInbox { tab = .agenda }
         filter = filter.filter { id in accounts.contains { $0.id == id } }
         loadAgenda()
@@ -167,7 +203,11 @@ final class PopoverModel: ObservableObject {
                     joinTitle: JoinPolicy.providerName(e.joinURL).map { "Join \($0)" } ?? "Join meeting",
                     when: Self.when(e, now: now, use24Hour: use24Hour),
                     countdown: Self.countdown(e, now: now),
-                    fathom: canJoin ? fathom.targets(e, directory: accountDirectory) : [])
+                    fathom: canJoin ? fathom.targets(e, directory: accountDirectory) : [],
+                    recorder: RecorderRouting.meeting(accountIds: e.accountIds, murmurInstalled: murmur.installed,
+                                                      fathomInstalled: fathom.installed, link: fathom.env.link,
+                                                      choice: recorderChoice),
+                    murmurMark: murmur.mark(e.r))
     }
 
     // MARK: Filter

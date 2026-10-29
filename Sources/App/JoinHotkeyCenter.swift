@@ -89,18 +89,27 @@ final class JoinHotkeyCenter {
             // The decision only returns allowlisted links; checked once more right before opening.
             guard JoinPolicy.isAllowed(url) else { return }
             // Settings → "⌃⌥J records with Fathom" (D-045): the meeting's Fathom account records it; while Fathom
-            // is on another account, the Event Peek waits for the switch.
+            // is on another account, the Event Peek waits for the switch. With Yaya's Murmur on this Mac the same
+            // switch joins with the meeting's recorder (D-046); "Ask each time" shows the Event Peek.
             if FathomPrefs.hotkeyRecords(), let event = events.first(where: { $0.r == r }) {
-                switch FathomSession.shared.join(event, directory: AccountDirectory.current(), via: "hotkey") {
-                case .started:
+                switch RecorderDispatch.join(event, via: "hotkey") {
+                case .recorded, .joined, .blocked:
                     return
-                case .waiting:
+                case .waiting, .ask:
                     PeekController.shared.showEvent(r: r)
                     return
-                case .blocked:
-                    return
-                case .notLinked:
-                    break
+                case .inactive:
+                    switch FathomSession.shared.join(event, directory: AccountDirectory.current(), via: "hotkey") {
+                    case .started:
+                        return
+                    case .waiting:
+                        PeekController.shared.showEvent(r: r)
+                        return
+                    case .blocked:
+                        return
+                    case .notLinked:
+                        break
+                    }
                 }
             }
             let opened = NSWorkspace.shared.open(url)

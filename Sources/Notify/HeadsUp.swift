@@ -23,6 +23,9 @@ enum HeadsUp {
         var tags: [UUID: String]
         /// Whether a meeting on these accounts gets Join with Fathom (D-045; the app's link settings).
         var fathom: @Sendable ([UUID]) -> Bool = { _ in false }
+        /// The recorder the heads-up's second action joins with (D-046): "fathom", "murmur", "ask" or nil (none). When
+        /// it is left at its default, `fathom` decides as before.
+        var recorder: (@Sendable ([UUID]) -> String?)? = nil
     }
 
     /// What one refresh does to the pending requests.
@@ -138,7 +141,7 @@ enum HeadsUp {
             title: title.isEmpty ? "Meeting" : String(title.prefix(120)),
             body: parts.joined(separator: " \u{00B7} "),
             category: !hasJoin ? NoteIds.meetingNoLinkCategory
-                : c.fathom(e.accountIds) ? NoteIds.meetingFathomCategory : NoteIds.meetingCategory,
+                : NoteIds.category(recorder: c.recorder.map { $0(e.accountIds) } ?? (c.fathom(e.accountIds) ? "fathom" : nil)),
             thread: "meet-\(e.r)",
             fireAt: fire,
             trigger: snooze ? .interval(max(1, fire.timeIntervalSince(c.now).rounded()))

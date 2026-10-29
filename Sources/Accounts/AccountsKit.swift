@@ -245,6 +245,8 @@ enum AccountsKit {
             var enabled = true
             var destructive = false
             let action: () -> Void
+            /// A submenu (Join with Yaya's Murmur ▸ Home lab / MacBook); its own action is never called.
+            var children: [Item] = []
             static var separator: Item { Item(title: "-", action: {}) }
         }
 
@@ -274,12 +276,25 @@ enum AccountsKit {
         }
 
         static func show(_ items: [PopUpMenuButton.Item]) {
+            var targets: [Target] = []
+            let menu = build(items, &targets)
+            menu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
+            withExtendedLifetime(targets) {}
+        }
+
+        private static func build(_ items: [PopUpMenuButton.Item], _ targets: inout [Target]) -> NSMenu {
             let menu = NSMenu()
             menu.autoenablesItems = false
-            var targets: [Target] = []
             for item in items {
                 if item.title == "-" {
                     menu.addItem(.separator())
+                    continue
+                }
+                if !item.children.isEmpty {
+                    let entry = NSMenuItem(title: item.title, action: nil, keyEquivalent: "")
+                    entry.isEnabled = item.enabled
+                    entry.submenu = build(item.children, &targets)
+                    menu.addItem(entry)
                     continue
                 }
                 let target = Target(item.action)
@@ -293,8 +308,7 @@ enum AccountsKit {
                 }
                 menu.addItem(entry)
             }
-            menu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
-            withExtendedLifetime(targets) {}
+            return menu
         }
     }
 

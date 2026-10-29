@@ -80,6 +80,10 @@ final class EventPeekModel: ObservableObject {
     private let actions: CalendarActions
     private let open: (URL) -> Bool
     let fathom: FathomSession
+    /// Yaya's Murmur (D-046): its marks for this event, Join with Yaya's Murmur, the Live Helper row.
+    let murmur: MurmurSession
+    private let recorderChoice: (UUID) -> RecorderChoice
+    private var murmurWatch: AnyCancellable?
     var onClose: () -> Void = {}
     /// The switch panel appeared or went away: the panel measures its height again.
     var onResize: () -> Void = {}
@@ -93,7 +97,8 @@ final class EventPeekModel: ObservableObject {
     static let guestLimit = 8
 
     init(event: CalendarEvent, directory: AccountDirectory, actions: CalendarActions = Services.calendarActions,
-         open: @escaping (URL) -> Bool = { NSWorkspace.shared.open($0) }, fathom: FathomSession? = nil) {
+         open: @escaping (URL) -> Bool = { NSWorkspace.shared.open($0) }, fathom: FathomSession? = nil,
+         murmur: MurmurSession? = nil, recorderChoice: @escaping (UUID) -> RecorderChoice = { RecorderPrefs.choice($0) }) {
         self.event = event
         self.response = event.myResponse
         self.directory = directory
@@ -101,6 +106,13 @@ final class EventPeekModel: ObservableObject {
         self.open = open
         self.fathom = fathom ?? .shared
         self.fathom.refresh()
+        self.murmur = murmur ?? .shared
+        self.recorderChoice = recorderChoice
+        self.murmur.refresh()
+        // Murmur's marks changed (its ping, say after the Live Helper was set up there): the badges and the switch follow.
+        murmurWatch = self.murmur.$marks.dropFirst().sink { [weak self] _ in
+            DispatchQueue.main.async { MainActor.assumeIsolated { self?.objectWillChange.send() } }
+        }
         // Fathom switched while the panel waited: the session recorded on its own, so the Peek goes.
         fathomWatch = self.fathom.$pending.dropFirst().sink { [weak self] next in
             MainActor.assumeIsolated {
@@ -189,6 +201,55 @@ final class EventPeekModel: ObservableObject {
         case .notLinked: break
         }
         return outcome
+    }
+
+    // MARK: Recorders (D-046)
+
+    /// The meeting's recorder; nil while Yaya's Murmur isn't on this Mac (the Peek is then exactly D-045's).
+    var recorder: Recorder? {
+        RecorderRouting.meeting(accountIds: event.accountIds, murmurInstalled: murmur.installed,
+                                fathomInstalled: fathom.installed, link: fathom.env.link, choice: recorderChoice)
+    }
+
+    var murmurMark: MurmurMark? { murmur.mark(event.r) }
+    var badges: [MurmurBadge] { murmurMark?.badges ?? [] }
+    /// "Live Helper for this meeting": timed meetings, while Murmur is on this Mac.
+    var showsLiveHelper: Bool { murmur.installed && !event.allDay }
+    var joinMenu: [JoinMenu.Item] { JoinMenu.items(fathomTargets: fathomTargets, murmurInstalled: murmur.installed) }
+
+    /// A choice from the Join menu.
+    func perform(_ entry: JoinMenu.Entry) {
+        switch entry {
+        case .fathom(let target):
+            fathomChoice = target
+            joinWithFathom()
+        case .murmur(let mode):
+            joinWithMurmur(mode)
+        case .justJoin:
+            join()
+        }
+    }
+
+    /// Join with Yaya's Murmur: its link for this event, then the call; the Peek closes.
+    @discardableResult
+    func joinWithMurmur(_ mode: MurmurMode?) -> MurmurSession.Outcome {
+        let outcome = murmur.join(event, mode: mode, via: "peek")
+        switch outcome {
+        case .started: onClose()
+        case .joinedOnly: show(toast: "Yaya\u{2019}s Murmur didn\u{2019}t open, so the call started without it.")
+        case .blocked: show(toast: "That meeting link doesn\u{2019}t look right, so I didn\u{2019}t open it.")
+        case .notInstalled: show(toast: "Yaya\u{2019}s Murmur isn\u{2019}t on this Mac any more.")
+        }
+        return outcome
+    }
+
+    /// The Live Helper switch and Set up…: Murmur's helper setup for this event (Murmur makes the change).
+    func openHelper() {
+        if !murmur.openHelper(event, via: "peek") { show(toast: "I couldn\u{2019}t open Yaya\u{2019}s Murmur.") }
+    }
+
+    func openNotes() {
+        if !murmur.openNotes(event, via: "peek") { show(toast: "I couldn\u{2019}t open Yaya\u{2019}s Murmur.") }
     }
 
     /// The switch panel's own buttons acted.

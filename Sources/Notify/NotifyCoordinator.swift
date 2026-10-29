@@ -154,7 +154,8 @@ actor NotifyCoordinator {
         HeadsUp.Context(now: now, calendar: calendar(), locale: locale, meetingsOn: prefs.meetingsOn,
                         pausedUntil: prefs.isPaused(at: now) ? prefs.pausedUntil : nil,
                         tags: Dictionary(accounts.map { ($0.id, $0.tag) }, uniquingKeysWith: { first, _ in first }),
-                        fathom: { SnapshotPublisher.fathomOffered($0, true) })
+                        fathom: { SnapshotPublisher.fathomOffered($0, true) },
+                        recorder: { SnapshotPublisher.recorderKind($0, true) })
     }
 
     private func planMeetings(_ events: [CalendarEvent], accounts: [AccountRecord], now: Date) async {

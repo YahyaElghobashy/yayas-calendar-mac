@@ -135,6 +135,9 @@ enum NoteIds {
     static let meetingCategory = "yc.meeting"
     /// Same, plus Join with Fathom (D-045): one of the meeting's accounts records with Fathom.
     static let meetingFathomCategory = "yc.meeting.fathom"
+    /// Same, with Join with Yaya's Murmur, or "Join and record…" for an account that asks each time (D-046).
+    static let meetingMurmurCategory = "yc.meeting.murmur"
+    static let meetingAskCategory = "yc.meeting.ask"
     /// Same, without Join (no allowlisted link).
     static let meetingNoLinkCategory = "yc.meeting.nolink"
     static let reauthCategory = "yc.reauth"
@@ -142,6 +145,18 @@ enum NoteIds {
 
     static let joinAction = "yc.join"
     static let fathomAction = "yc.join.fathom"
+    static let murmurAction = "yc.join.murmur"
+    static let askAction = "yc.join.ask"
+
+    /// A meeting heads-up's category by its recorder ("fathom", "murmur", "ask"; nil = Join and Snooze only).
+    static func category(recorder: String?) -> String {
+        switch recorder {
+        case "fathom": return meetingFathomCategory
+        case "murmur": return meetingMurmurCategory
+        case "ask": return meetingAskCategory
+        default: return meetingCategory
+        }
+    }
     static let snoozeAction = "yc.snooze"
     static let fixAction = "yc.fix"
 

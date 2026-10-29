@@ -49,6 +49,7 @@ struct SnapshotModel {
             meeting.also = m.accountIds.dropFirst().map { account($0) }
             meeting.allDay = m.allDay
             meeting.rec = m.rec ?? false
+            meeting.recBy = m.recBy
             return meeting
         }
         mail = snapshot.mail.enumerated().map { index, m in

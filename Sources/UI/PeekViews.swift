@@ -67,10 +67,13 @@ struct EventPeekView: View {
     @ObservedObject var model: EventPeekModel
     /// The Join with Fathom wait redraws the Peek (its panel replaces Join).
     @ObservedObject private var fathom: FathomSession
+    /// Yaya's Murmur coming or going redraws the Peek (D-046).
+    @ObservedObject private var murmur: MurmurSession
 
     init(model: EventPeekModel) {
         _model = ObservedObject(wrappedValue: model)
         _fathom = ObservedObject(wrappedValue: model.fathom)
+        _murmur = ObservedObject(wrappedValue: model.murmur)
     }
 
     var body: some View {
@@ -91,8 +94,14 @@ struct EventPeekView: View {
             if let place = e.location, !place.isEmpty {
                 detailRow("mappin.and.ellipse", place)
             }
-            if model.canJoin && !fathom.isPending(e.r) { joinButton }
-            if let target = model.fathomTarget { fathomSection(target) }
+            if model.canJoin && !fathom.isPending(e.r) {
+                if model.recorder != nil { splitJoin } else { joinButton }
+            }
+            if let recorder = model.recorder {
+                recorderSection(recorder)
+            } else if let target = model.fathomTarget {
+                fathomSection(target)
+            }
             if model.canReply {
                 replyRow
             } else if model.isOrganizer {
@@ -152,6 +161,28 @@ struct EventPeekView: View {
         }
         .buttonStyle(.plain)
         .accessibilityHint(Text("Opens the video call"))
+    }
+
+    /// With Yaya's Murmur on this Mac (D-046): Join keeps its word and gains "▾", every way to join this meeting.
+    private var splitJoin: some View {
+        JoinSplitButton(title: model.joinProvider.map { "Join \($0)" } ?? "Join meeting", filled: true, height: 40,
+                        fontSize: 14.5, join: { model.join() }, menu: { showMenu() })
+    }
+
+    private func showMenu() {
+        JoinMenuPresenter.show(model.joinMenu) { model.perform($0) }
+    }
+
+    /// The account's recorder under Join; a Fathom wait started from the menu shows here whatever the recorder.
+    @ViewBuilder
+    private func recorderSection(_ recorder: Recorder) -> some View {
+        if (recorder == .fathom || fathom.isPending(model.event.r)), let target = model.fathomTarget {
+            fathomSection(target)
+        } else if model.canJoin && recorder == .murmur {
+            MurmurJoinControls(mark: model.murmurMark, height: 38) { model.joinWithMurmur(nil) }
+        } else if model.canJoin && recorder == .ask {
+            AskRecorderButton(height: 38) { showMenu() }
+        }
     }
 
     /// Join with Fathom and, for a meeting on more than one linked account, "Records to" (D-045).

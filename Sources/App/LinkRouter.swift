@@ -288,13 +288,24 @@ final class LinkRouter {
         return opened
     }
 
-    /// Up Next's Fathom button (D-045): records with the meeting's Fathom account and leaves the front to the
+    /// Up Next's record button. With Yaya's Murmur on this Mac it joins with the meeting's recorder (D-046): Fathom or
+    /// Murmur leave the front to the meeting; a Fathom wait or "Ask each time" shows the Event Peek; Off joins.
+    /// Without Murmur, Join with Fathom (D-045): records with the meeting's Fathom account and leaves the front to the
     /// meeting, or shows the Event Peek with the switch panel while Fathom is on another account. A meeting whose
     /// accounts no longer record with Fathom joins as usual.
     private func record(r: String, at ms: String) -> FrontRestorePolicy.Outcome {
         guard let event = (try? Services.calendar.event(r: r)) ?? nil else {
             Trace.app("recv record", ["result": "missing", "at": ms])
             return .quiet
+        }
+        let routed = RecorderDispatch.join(event, via: "widget")
+        if routed != .inactive {
+            Trace.app("recv record", ["result": "\(routed)", "at": ms])
+            switch routed {
+            case .recorded, .joined: return .handedOff
+            case .waiting, .ask: return peek.showEvent(r: r) ? .peek : .nothing
+            case .blocked, .inactive: return .quiet
+            }
         }
         let outcome = FathomSession.shared.join(event, directory: AccountDirectory.current(), via: "widget")
         Trace.app("recv record", ["result": "\(outcome)", "at": ms])
