@@ -90,6 +90,7 @@ struct EventPeekView: View {
                     Label("Overlaps another meeting", systemImage: "exclamationmark.triangle.fill")
                         .font(AppTheme.font(11.5, .semibold)).foregroundStyle(AppTheme.warn)
                 }
+                if !model.badges.isEmpty { MurmurBadgeRow(badges: model.badges).padding(.top, 2) }
             }
             if let place = e.location, !place.isEmpty {
                 detailRow("mappin.and.ellipse", place)
@@ -101,6 +102,9 @@ struct EventPeekView: View {
                 recorderSection(recorder)
             } else if let target = model.fathomTarget {
                 fathomSection(target)
+            }
+            if model.showsLiveHelper {
+                LiveHelperRow(mark: model.murmurMark, openHelper: { model.openHelper() }, openNotes: { model.openNotes() })
             }
             if model.canReply {
                 replyRow
@@ -350,11 +354,27 @@ struct PeekRow: View {
     let meeting: WidgetMeeting
     let now: Date
     let style: WidgetStyle
+    /// Yaya's Murmur's badges for this meeting (the popover's rows, D-046), on a line under the title; none = as before.
+    var badges: [MurmurBadge] = []
     let action: () -> Void
     @Local private var hover = false
 
+    @ViewBuilder private var row: some View {
+        if badges.isEmpty {
+            WidgetMeetingRow(meeting: meeting, now: now, style: style)
+        } else {
+            VStack(alignment: .leading, spacing: 0) {
+                WidgetMeetingRow(meeting: meeting, now: now, style: style)
+                // Under the title: past the account badge and the time column.
+                MurmurBadgeRow(badges: badges)
+                    .padding(.leading, (16 + 7 + (style.use24Hour ? 48 : 54) + 7) * style.scale)
+                    .padding(.bottom, 5)
+            }
+        }
+    }
+
     var body: some View {
-        WidgetMeetingRow(meeting: meeting, now: now, style: style)
+        row
             .environment(\.plainLinks, true)
             .padding(.horizontal, 8)
             .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(hover ? Color.white.opacity(0.06) : .clear))

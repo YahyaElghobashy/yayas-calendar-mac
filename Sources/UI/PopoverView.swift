@@ -150,7 +150,8 @@ struct PopoverView: View {
                     .padding(.bottom, 3)
                     .accessibilityAddTraits(.isHeader)
                 ForEach(Array(day.events.enumerated()), id: \.element.r) { i, event in
-                    PeekRow(meeting: event.widgetMeeting(index: i + 1, directory: directory), now: model.now, style: style) {
+                    PeekRow(meeting: event.widgetMeeting(index: i + 1, directory: directory), now: model.now, style: style,
+                            badges: model.badges(event.r)) {
                         actions.showEvent(event.r)
                     }
                 }
@@ -245,6 +246,7 @@ private struct NextMeetingCard: View {
                     .font(AppTheme.font(17, .heavy)).foregroundStyle(AppTheme.text)
                     .lineLimit(2).fixedSize(horizontal: false, vertical: true)
                 Text(card.when).font(AppTheme.font(12.5, .medium)).foregroundStyle(AppTheme.text2).lineLimit(1)
+                if !card.badges.isEmpty { MurmurBadgeRow(badges: card.badges).padding(.top, 3) }
             }
             .contentShape(Rectangle())
             .onTapGesture { actions.showEvent(e.r) }
