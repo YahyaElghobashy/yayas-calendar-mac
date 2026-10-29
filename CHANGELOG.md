@@ -11,6 +11,14 @@ All notable changes to Yaya’s Calendar. Versions follow the app’s `CFBundleS
   checks which account Fathom is signed into. When it’s another one, nothing records: the app asks you to switch
   Fathom and records by itself once you do. Settings → Fathom can make ⌃⌥J record too. The checks read two small
   files Fathom keeps on your Mac and send nothing anywhere (PRIVACY.md, D-045).
+- **Yaya’s Murmur.** With Yaya’s Murmur, the bot-free notetaker, on your Mac, each account card says how that
+  account’s meetings are recorded: Fathom, Yaya’s Murmur, Ask each time or Off (accounts linked to Fathom keep Fathom;
+  the rest start on Yaya’s Murmur). Join gets a ▾ with Join with Fathom, Join with Yaya’s Murmur ▸ Home lab /
+  MacBook, and Just join; Up Next, the heads-up and ⌃⌥J (when its switch is on) follow the account’s choice. The
+  Event Peek has a Live Helper switch, and meetings show Yaya’s Murmur’s badges (Live Helper, Notes ready, Me only,
+  Explicit consent). The meeting-sharing switch becomes “Share upcoming meetings with Deck and Yaya’s Murmur”. The app
+  reads one small file Yaya’s Murmur keeps on your Mac and sends nothing anywhere. Without Yaya’s Murmur, nothing
+  changes (PRIVACY.md, D-046).
 
 ## 1.0.0 · 2026-10-28
 

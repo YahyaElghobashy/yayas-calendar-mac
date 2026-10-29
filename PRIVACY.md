@@ -203,6 +203,10 @@ each change, the app posts a system notification with no content, telling Deck t
 The file never leaves your Mac through the app. Turning the setting off deletes it at once
 (`Sources/Notify/DeckExport.swift`, [docs/CONTRACTS.md](docs/CONTRACTS.md#deck-export)).
 
+Yaya’s Murmur (below) reads the same file in the same way. While it’s installed, the switch is called **Share
+upcoming meetings with Deck and Yaya’s Murmur**, and until you choose it’s on when either app is installed. It is
+still one file and one switch.
+
 ## Join with Fathom
 
 If [Fathom](https://fathom.video)'s Mac app is installed, meetings can offer **Join with Fathom** (each account card
@@ -218,6 +222,25 @@ The address is compared with your links and shown to you; it never leaves your M
 the accounts match, the app opens Fathom's own `fathom://start-capture` link with the meeting's join link, so the
 Fathom app records the meeting under Fathom's terms, and then opens the meeting. Nothing goes to Fathom from Yaya's
 Calendar itself: there is no Fathom host on the app's list.
+
+## Yaya’s Murmur
+
+Yaya’s Murmur is a separate notetaker app for the Mac by the same author. Yaya’s Calendar shows its options only
+when it’s installed: the app that handles its `yayamurmur:` links must carry Yaya’s Murmur’s own bundle identifier.
+Then each account card in Accounts picks how that account’s meetings are recorded (Fathom, Yaya’s Murmur, Ask each
+time or Off), and Join gets a menu with every way to join one meeting.
+
+- **What Yaya’s Calendar opens.** Join with Yaya’s Murmur opens a `yayamurmur://join` link carrying only the
+  meeting’s local id (the same opaque id as in the shared meetings file) and, if you picked one, Home lab or
+  MacBook; then it opens the meeting. The Live Helper switch and Set up… open `yayamurmur://helper` for that id, and
+  Open the notes opens `yayamurmur://open`. Yaya’s Murmur handles them on your Mac under its own settings.
+- **What it reads.** `share/murmur-marks.json` in Yaya’s Murmur’s data folder (`~/Library/Application
+  Support/YayasMurmur/`): for meeting ids, whether a Live Helper is set, whether notes are ready, “me only”, the
+  consent level and where it records. The file holds no titles, names, addresses or links. Yaya’s Calendar opens it
+  read-only, only if it’s a regular file of yours and at most 256 KB, and shows its contents as badges. It never
+  writes Yaya’s Murmur’s files and never puts what it read into a log.
+- **What leaves your Mac.** Nothing. Yaya’s Murmur is reached only through those links and the file; there is no
+  Yaya’s Murmur host on the app’s list. When it’s not installed, nothing is read and nothing changes.
 
 ## Diagnostics you can paste
 

@@ -4,9 +4,11 @@
 Bundle `com.yahyaelghobashy.yayascalendar` (executable `YayasCalendar`, app name "Yaya's Calendar"),
 widget `com.yahyaelghobashy.yayascalendar.widget` (executable `YayasCalendarWidget`, appex
 `PlugIns/YayasCalendarWidget.appex`), URL scheme `yayacal`, LSMinimumSystemVersion 26.0, arm64.
-One table holds these names, the data folder and the Keychain services below: `Sources/Shared/Profile.swift`.
+One table holds these names, the data folder and the Keychain services below, and the names of Yaya's Murmur (its
+bundle id, URL scheme and data folder, D-046): `Sources/Shared/Profile.swift`.
 `./build.sh --dev` builds a separate dev profile from the same table (`….dev` ids, "Yaya's Calendar Dev",
-`yayacal-dev`, `YayasCalendarDev`, `….dev.*` services), ad-hoc signed, that never touches these names. Every
+`yayacal-dev`, `YayasCalendarDev`, `….dev.*` services; Murmur's `….yayasmurmur.dev`, `yayamurmur-dev`,
+`YayasMurmurDev`), ad-hoc signed, that never touches these names. Every
 other build is signed with a stable identity, never ad-hoc (D-030); its expected designated requirement is
 derived from that identity, and the release identity's is `docs/DR.txt`.
 
@@ -45,7 +47,7 @@ Type: `WidgetSnapshot` in `Sources/Shared/Snapshot.swift` (version 1). The data 
 UI layer reads it. Content: agenda | upNext | month | inbox | combo | day | setup | mailComingSoon (`day`: D-022).
 Carries style (look auto/paper/ink, typeface, text size, logos, 24 h), accounts (id, tag, name, colour,
 hasLogo → `widget/logos/<id>.png`), health (ok/noAccounts/stale/reauth + syncedAt), meetings (r, k,
-accountIds, title, start, end, allDay, place, hasJoin, reply, clashes, rec: optional, D-045), mail (r, k, accountId, sender,
+accountIds, title, start, end, allDay, place, hasJoin, reply, clashes, rec: optional, D-045; recBy: optional, D-046), mail (r, k, accountId, sender,
 subject, at, unread, starred), unreadCount, pages per family + pageResetAt, selectedDay, monthShown,
 busyDays, windowStart/End, rangeDays. Day reuses `selectedDay` (nil = today; ‹ › send `day?w&d`). **No time-relative text**; atomic write only when `contentHash`
 (FNV-1a over sorted JSON, `generatedAt` excluded) changes; caps 120 meetings / 96 mail / 192 KB.
@@ -76,7 +78,7 @@ with a DECISIONS entry.
 | `range` | `w`, `v` (1/2/7) | yes |
 | `sync` | `w` (kind, optional; D-021) | yes |
 | `join` | `r`, `k` | yes |
-| `record` | `r`, `k` (Join with Fathom, D-045) | yes |
+| `record` | `r`, `k` (Join with Fathom, D-045; the meeting's recorder while Yaya's Murmur is installed, D-046) | yes |
 | `rsvp` | `r`, `k`, `v` | yes |
 | `mail/read`, `mail/archive`, `mail/undo`, `mail/star` | `r`, `k` | yes |
 | `open/event`, `open/message` | `r`, `k` | no |
@@ -118,6 +120,44 @@ Dev: `--selftest`, `--render <dir>`.
   join link; Up Next Medium then shows Fathom beside Join (`record?r&k`). Version stays 1.
 - **Notifications:** category `yc.meeting.fathom` (actions `yc.join`, `yc.join.fathom`, `yc.snooze`) for heads-ups of such
   meetings.
+
+## Yaya's Murmur link (D-046)
+Yaya's Murmur is a separate notetaker app on the same Mac. The two apps share no code, Keychain item or network:
+each writes one file in its own data folder and pings after each write; each reads the other's file and treats a
+missing or invalid one as "no data". Murmur's side: its own docs/CONTRACTS.md, "Calendar link".
+
+| | Release profile | Dev profile |
+|---|---|---|
+| Installed when | a handler of `yayamurmur:` has bundle id `com.yahyaelghobashy.yayasmurmur` | `yayamurmur-dev:`, `….yayasmurmur.dev` |
+| Marks (read only) | `~/Library/Application Support/YayasMurmur/share/murmur-marks.json` | `…/YayasMurmurDev/share/murmur-marks.json` |
+| Marks ping (observed) | `com.yahyaelghobashy.yayasmurmur.marksChanged` | `….yayasmurmur.dev.marksChanged` |
+| Links (opened) | `yayamurmur://join\|helper\|open?event=…` | `yayamurmur-dev://…` |
+
+- **Without Murmur nothing changes:** every Murmur option is hidden and every surface is Join with Fathom's (D-045).
+- **Presence** (`MurmurPresence`, `MurmurLive`): looked up at launch, then at most every 30 s while surfaces load and
+  after each ping; another app claiming the scheme does not count. A change republishes the widgets.
+- **Reading the marks** (`MurmurMarks.parse`, `MurmurLive.marks`): `open(O_NOFOLLOW)`, then `fstat` on that descriptor:
+  a regular file owned by this user, at most **256 KB**, read through the same descriptor; re-parsed only when its
+  device, inode, size or modification time changed, at launch, when a surface loads and on the ping (`.deliverImmediately`;
+  pings within 0.3 s are read once). `v` must be the integer 1; a higher `v` is ignored ("newer"); anything else, or a
+  file that isn't a JSON object with a `marks` object, is "unreadable" (no badges). Each mark is checked on its own: an id
+  outside the event-id rule (1–128 of `A–Z a–z 0–9 _ -`) or a mark that isn't an object is skipped; a field of the wrong
+  type or with an unknown value reads as absent (`liveHelperKind`: `clientMeeting`, `interview`, `discussion`, or another
+  word of 1–32 letters = on; `mode`: `homelab`, `macbook`; `consentTier`: `notice`, `explicit`; `status`: `notesReady`,
+  `meOnly`; `updatedAt`: ISO 8601); unknown keys are ignored; past 500 marks the newest 500 (by `updatedAt`) are kept.
+  Never written, never logged (traces carry outcomes and counts only).
+- **Links** (`MurmurLinks`, built with `URLComponents` from the profile's scheme; never from text): `join?event=<r>`
+  with `&mode=homelab|macbook` when the Join menu names one (none: Murmur's own setting), `helper?event=<r>`,
+  `open?event=<r>`. `r` is the calendar's row id (the export's `id`) and must pass the event-id rule; a link is at most
+  512 bytes. Join with Yaya's Murmur opens the join link, then the meeting's allowlisted link 0.6 s later.
+- **Preferences** (UserDefaults): `recorder.<account UUID>`: absent = automatic, `"fathom"`, `"murmur"`, `"ask"`, `"off"`.
+  Automatic = Fathom when Fathom is installed and the account's Fathom link isn't off, else Yaya's Murmur. A meeting's
+  recorder is its primary copy's account's. `fathom.hotkeyRecords` (D-045) makes ⌃⌥J join with that recorder.
+- **Snapshot:** `Meeting.rec` (D-045) plus `Meeting.recBy`: `"murmur"` or `"ask"`, left out for Fathom; Up Next Medium
+  draws Murmur's ringed planet or "…" in the widget's accent. Version stays 1.
+- **Notifications:** categories `yc.meeting.murmur` (actions `yc.join`, `yc.join.murmur`, `yc.snooze`) and
+  `yc.meeting.ask` (`yc.join`, `yc.join.ask`, `yc.snooze`; Join and record… opens the Event Peek).
+- **Meeting export:** Murmur reads the Deck export (below) unchanged; the switch starts on when Deck or Murmur is installed.
 
 ## Accounts interface (shell ↔ accounts)
 `AccountsModel.shared: ObservableObject` with `start()`; `AccountsScreen(model:)` view.
@@ -178,8 +218,10 @@ scalar: "\r\n" is one Swift Character) are refused before any of this.
 
 ## Deck export
 `share/upcoming-meetings.json` (v1, atomic 0600, written only on change) + DistributedNotification `com.yahyaelghobashy.yayascalendar.meetingsChanged` (no payload). Removed on uninstall.
-For Deck, a meeting recorder on the same Mac: it names recordings, links them to the right event within
-±15 minutes and tells internal from external calls. Nothing leaves the machine.
+For Deck, a meeting recorder on the same Mac, and Yaya's Murmur (D-046), which reads the same file under the same
+contract: they name recordings, link them to the right event within ±15 minutes and tell internal from external
+calls. Nothing leaves the machine. Settings: "Share upcoming meetings with Deck" ("… with Deck and Yaya's Murmur"
+while Murmur is installed); with no stored choice it is on when Deck or Murmur is installed.
 
 | | |
 |---|---|

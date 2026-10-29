@@ -55,6 +55,9 @@ Calendar server in the middle, because there is no Yaya’s Calendar server.
   links to its own Fathom account, and Join with Fathom (popover, Event Peek, Up Next, the heads-up, and ⌃⌥J if
   you like) records the meeting there. If Fathom is signed into a different account, it waits for you to switch
   instead of recording in the wrong place.
+- **Join with Yaya’s Murmur.** With Yaya’s Murmur, the bot-free notetaker by the same author, each account picks its
+  recorder (Fathom, Yaya’s Murmur, Ask each time or Off), Join gets a ▾ with every way in, the Event Peek gets a Live
+  Helper switch, and meetings show Yaya’s Murmur’s badges. Without it, nothing changes.
 - **↻ on every widget.** A meeting got cancelled? Tap ↻ and that widget re-reads its calendars now
   instead of at the next 15-minute sync. It shows ✓ when it’s done.
 - **One inbox for every account.** A unified inbox in the app and on the desktop. Mark read or
@@ -160,7 +163,7 @@ remove the account in the app.
 
 | Keys | What happens |
 |---|---|
-| **⌃⌥J** | Join your next meeting, from anywhere (Settings → Menu bar can switch it off; Settings → Fathom can make it record too) |
+| **⌃⌥J** | Join your next meeting, from anywhere (Settings → Menu bar can switch it off; Settings → Fathom, or Settings → Yaya’s Murmur when it’s installed, can make it record too) |
 | **⌘N** | New message |
 | **J / K** or **↓ / ↑** | Next / previous conversation in the inbox |
 | **Return** | Open it |
@@ -284,7 +287,8 @@ recording after the meeting it belongs to. When Deck itself is installed (recogn
 identifier, checked by digest), Yaya’s Calendar keeps your next 48 hours of meetings in one local file for
 it and taps it on the shoulder when they change; otherwise the export stays off. The file never leaves
 your Mac. Settings → **Share upcoming meetings with Deck**, under “Stays on this Mac”, is the switch;
-turning it off deletes the file. The format is in [docs/CONTRACTS.md](docs/CONTRACTS.md#deck-export).
+turning it off deletes the file. The format is in [docs/CONTRACTS.md](docs/CONTRACTS.md#deck-export). Yaya’s Murmur
+reads the same file; while it’s installed the switch says so and starts on.
 
 ## For installers
 
