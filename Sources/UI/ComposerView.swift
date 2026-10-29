@@ -9,6 +9,8 @@ import UniformTypeIdentifiers
 /// who I'll check with you about, and Send brings up the approval card over the draft (every time).
 struct ComposerView: View {
     @ObservedObject var model: ComposerModel
+    /// "Draft with AI" (Yaya's Mail Helper, D-050): a reply while the helper is installed; nil otherwise.
+    var drafting: MailHelperDraftModel? = nil
     @Environment(\.headlessRender) private var headless
     @Environment(\.undoManager) private var undoManager
     @Local private var confirmPlain = false
@@ -31,7 +33,17 @@ struct ComposerView: View {
     private var draft: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 12) {
-                Text(model.title).font(AppTheme.font(18, .heavy)).foregroundStyle(AppTheme.text).lineLimit(1)
+                if let drafting {
+                    HStack(spacing: 10) {
+                        Text(model.title).font(AppTheme.font(18, .heavy)).foregroundStyle(AppTheme.text).lineLimit(1)
+                        Spacer(minLength: 8)
+                        MailDraftButton(model: drafting)
+                            .disabled(model.isSending || model.isConfirming)
+                    }
+                    .zIndex(2)
+                } else {
+                    Text(model.title).font(AppTheme.font(18, .heavy)).foregroundStyle(AppTheme.text).lineLimit(1)
+                }
                 fields.disabled(model.isConfirming)
             }
             .padding(.horizontal, 22).padding(.top, headless ? 22 : 34).padding(.bottom, model.format == .rich ? 4 : 12)
@@ -49,7 +61,14 @@ struct ComposerView: View {
                 ComposerBody(text: Binding(get: { model.body }, set: { model.body = $0 }), editable: !model.isSending && !model.isConfirming,
                              accessible: !model.isConfirming, toggleRich: model.togglePlainText,
                              attachFiles: attachFiles, attachImage: { data, name, _ in model.attach(imageData: data, name: name, asFile: true) },
-                             attachRequest: chooseFiles)
+                             attachRequest: chooseFiles,
+                             onTextView: { [weak model] view in
+                                 model?.insertAtCursor = { [weak view] text in
+                                     guard let view, view.isEditable else { return false }
+                                     view.insertText(text, replacementRange: view.selectedRange())
+                                     return true
+                                 }
+                             })
                     .padding(.horizontal, 14).padding(.vertical, 10)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(AppTheme.card))
@@ -79,6 +98,10 @@ struct ComposerView: View {
         }
         .overlay(alignment: .bottom) {
             MailToastView(center: model.toasts).padding(.bottom, 64)
+        }
+        .overlay(alignment: .topTrailing) {
+            // Renders only: Draft with AI's pop-over (the app shows a real pop-over, D-050).
+            if headless, let drafting { MailDraftHeadlessPopover(model: drafting).padding(.top, 60).padding(.trailing, 22) }
         }
         .alert("Make this plain text?", isPresented: Binding(get: { confirmPlain && !headless }, set: { confirmPlain = $0 })) {
             Button("Make Plain Text") { model.togglePlainText() }
@@ -508,6 +531,8 @@ struct ComposerBody: View {
     var attachFiles: (([URL]) -> Void)?
     var attachImage: ((Data, String?, Bool) -> Void)?
     var attachRequest: (() -> Void)?
+    /// The text view, once made (the composer's "insert at the cursor" for a draft, D-050).
+    var onTextView: ((NSTextView) -> Void)?
     @Environment(\.headlessRender) private var headless
 
     var body: some View {
@@ -518,7 +543,7 @@ struct ComposerBody: View {
                 .clipped()
         } else {
             PlainBodyTextView(text: $text, editable: editable, accessible: accessible, toggleRich: toggleRich,
-                              attachFiles: attachFiles, attachImage: attachImage, attachRequest: attachRequest)
+                              attachFiles: attachFiles, attachImage: attachImage, attachRequest: attachRequest, onTextView: onTextView)
         }
     }
 }
@@ -531,6 +556,7 @@ private struct PlainBodyTextView: NSViewRepresentable {
     var attachFiles: (([URL]) -> Void)?
     var attachImage: ((Data, String?, Bool) -> Void)?
     var attachRequest: (() -> Void)?
+    var onTextView: ((NSTextView) -> Void)?
 
     func makeCoordinator() -> Coordinator { Coordinator(text: $text) }
 
@@ -544,6 +570,7 @@ private struct PlainBodyTextView: NSViewRepresentable {
         view.onAttachRequest = attachRequest
         view.updateDragTypeRegistration()
         view.setSelectedRange(NSRange(location: 0, length: 0))
+        onTextView?(view)
         DispatchQueue.main.async { view.window?.makeFirstResponder(view) }
         return scroll
     }
@@ -692,6 +719,8 @@ final class ComposerWindowController: NSObject, NSWindowDelegate {
     private static var controllers: [ComposerWindowController] = []
 
     let model: ComposerModel
+    /// "Draft with AI" (D-050), when the helper is installed and this is a reply.
+    private var drafting: MailHelperDraftModel?
     private var window: NSWindow?
     private var approvalWatch: AnyCancellable?
     private var keyMonitor: Any?
@@ -702,6 +731,7 @@ final class ComposerWindowController: NSObject, NSWindowDelegate {
         let accounts = AccountDirectory.current().accounts
         let model = ComposerModel(request: request, accounts: accounts, staging: ComposeStaging())
         let controller = ComposerWindowController(model: model)
+        controller.drafting = MailHelperDraftModel.make(for: request, composer: model)
         controllers.append(controller)
         controller.show()
         Trace.app("composer", ["kind": "\(request.kind)"])
@@ -726,7 +756,7 @@ final class ComposerWindowController: NSObject, NSWindowDelegate {
         window.contentMinSize = NSSize(width: 560, height: 480)
         window.isReleasedWhenClosed = false
         window.delegate = self
-        let host = NSHostingView(rootView: ComposerView(model: model))
+        let host = NSHostingView(rootView: ComposerView(model: model, drafting: drafting))
         host.sizingOptions = []
         window.contentView = host
         model.onClose = { [weak window] in window?.close() }

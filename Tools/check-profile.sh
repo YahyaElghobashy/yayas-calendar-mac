@@ -7,7 +7,8 @@
 #   - the release URL scheme as a word ("yayacal", "yayacal://"),
 #   - the release data folder (not followed by the dev suffix) and the installer handoff folder,
 #   - Yaya's Murmur's release names (D-046): its bundle id outside `….dev`, its URL scheme as a word and its data
-#     folder (not followed by "Dev"), so a dev calendar can only ever find and read a dev Murmur.
+#     folder (not followed by "Dev"), so a dev calendar can only ever find and read a dev Murmur,
+#   - Yaya's Mail Helper's release names (D-050), the same way: a dev calendar only finds and talks to a dev helper.
 #
 #   Tools/check-profile.sh "build/Yaya's Calendar Dev.app"
 #
@@ -34,6 +35,9 @@ export YCP_HANDOFF_PARENT="${${rel_handoff#Library/}%/*}"
 [[ "${DEV[murmurBundleId]}" == "${REL[murmurBundleId]}.dev" ]] || yc_fail "the dev Murmur bundle id must be the release one + .dev"
 [[ "${DEV[murmurDataRoot]}" == "${REL[murmurDataRoot]}Dev" ]] || yc_fail "the dev Murmur data root must be the release one + Dev"
 export YCP_MURMUR_ID="${REL[murmurBundleId]}" YCP_MURMUR_SCHEME="${REL[murmurScheme]}" YCP_MURMUR_ROOT="${REL[murmurDataRoot]#Library/}"
+[[ "${DEV[mailHelperBundleId]}" == "${REL[mailHelperBundleId]}.dev" ]] || yc_fail "the dev Mail helper bundle id must be the release one + .dev"
+[[ "${DEV[mailHelperDataRoot]}" == "${REL[mailHelperDataRoot]}Dev" ]] || yc_fail "the dev Mail helper data root must be the release one + Dev"
+export YCP_HELPER_ID="${REL[mailHelperBundleId]}" YCP_HELPER_SCHEME="${REL[mailHelperScheme]}" YCP_HELPER_ROOT="${REL[mailHelperDataRoot]#Library/}"
 
 # What the app carries: strings of every Mach-O, every plist and entitlements file, the signing identifiers.
 SCRATCH="$YC_ROOT/.work/check-profile"; rm -rf "$SCRATCH"; mkdir -p "$SCRATCH"
@@ -63,10 +67,14 @@ hits="$(/usr/bin/perl -ne '
     $mid = qr/\Q$ENV{YCP_MURMUR_ID}\E(?!\.dev(?![A-Za-z0-9]))/;
     $mscheme = qr/(?<![A-Za-z0-9.-])\Q$ENV{YCP_MURMUR_SCHEME}\E(?![A-Za-z0-9.-])/;
     $mroot = qr/\Q$ENV{YCP_MURMUR_ROOT}\E(?!Dev)/;
+    $hid = qr/\Q$ENV{YCP_HELPER_ID}\E(?!\.dev(?![A-Za-z0-9]))/;
+    $hscheme = qr/(?<![A-Za-z0-9.-])\Q$ENV{YCP_HELPER_SCHEME}\E(?![A-Za-z0-9.-])/;
+    $hroot = qr/\Q$ENV{YCP_HELPER_ROOT}\E(?!Dev)/;
   }
   my ($where, $text) = /\A(.*?): (.*)\z/s or next;
   for my $p (["bundle id", $id], ["URL scheme", $scheme], ["data folder", $root], ["handoff folder", $handoff],
-             ["Murmur bundle id", $mid], ["Murmur scheme", $mscheme], ["Murmur data folder", $mroot]) {
+             ["Murmur bundle id", $mid], ["Murmur scheme", $mscheme], ["Murmur data folder", $mroot],
+             ["Mail helper bundle id", $hid], ["Mail helper scheme", $hscheme], ["Mail helper data folder", $hroot]) {
     if ($text =~ $p->[1]) { chomp $text; print "$p->[0]\t$where\t$text\n"; last }
   }' "$SCRATCH/strings.txt" | sort -u)"
 
@@ -76,4 +84,4 @@ if [[ -n "$hits" ]]; then
   print -r -- "$hits" | awk -F'\t' '{ printf "    %-13s %s: %s\n", $1, $2, $3 }' >&2
   exit 1
 fi
-print -r -- "✓ check-profile: ${APP:t} ($n files) reaches no release identifier (bundle id, scheme, data folder, handoff folder; Murmur's bundle id, scheme, data folder)"
+print -r -- "✓ check-profile: ${APP:t} ($n files) reaches no release identifier (bundle id, scheme, data folder, handoff folder; Murmur's and the Mail helper's bundle id, scheme, data folder)"

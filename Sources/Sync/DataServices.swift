@@ -116,6 +116,34 @@ enum DataServices {
         return parts?.url
     }
 
+    /// Yaya's Mail Helper (D-050): a thread the helper named (its digest, Review, Needs reply), by account and Gmail
+    /// thread id, for the app's own reader and reply composer. A stored row answers at once; otherwise one metadata
+    /// GET (Google, through the account's own sign-in) stores it, outside the inbox when Gmail says so (such a row
+    /// goes at the next prune, as every row outside the inbox does).
+    static func mailThread(accountId: UUID, threadId: String) async throws -> MailThread {
+        guard let engine else { throw ServiceError(description: "Mail isn\u{2019}t running yet.") }
+        guard (1...32).contains(threadId.utf8.count),
+              threadId.utf8.allSatisfy({ ($0 >= 0x30 && $0 <= 0x39) || ($0 >= 0x61 && $0 <= 0x66) }) else {
+            throw LocalMailStore.notFound
+        }
+        let repo = MailRepo(db: engine.db)
+        if let row = try repo.thread(accountId: accountId, threadId: threadId) { return LocalMailStore.thread(row) }
+        guard let client = await engine.gmailClient(for: accountId) else {
+            throw ServiceError(description: "That account needs you to sign in again.")
+        }
+        guard let record = GmailThreadMapper.record(try await client.threadMetadata(threadId), accountId: accountId) else {
+            throw LocalMailStore.notFound
+        }
+        try repo.upsert(record)
+        return LocalMailStore.thread(record)
+    }
+
+    /// The Gmail thread id behind a row id (the composer's "Draft with AI", D-050); nil when the row is gone.
+    static func gmailThreadId(r: String) -> String? {
+        guard let engine else { return nil }
+        return (try? MailRepo(db: engine.db).thread(r: r))?.threadId
+    }
+
     /// Where a queued send stands (composer toast). Failures are also posted as `.ycMailSendFailed`.
     static func sendStatus(_ token: UndoToken) -> SendStatus {
         engine?.mailActions.sendStatus(token) ?? .unknown

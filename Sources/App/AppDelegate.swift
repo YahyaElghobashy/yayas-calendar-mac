@@ -61,6 +61,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // polling (docs/CONTRACTS.md "App seam").
         DataServices.start(accounts: AccountsModel.shared)
         MailIntegration.install()
+        // Yaya's Mail Helper (D-050): whether it's here, its files and their ping, the Mail helper section, the inbox's
+        // Priority-first order and the composer's Draft with AI.
+        MailHelperLive.install()
         // The status title reads the store now that it's installed; ⌃⌥J registers (Settings can turn it off).
         status.refreshTitle()
         JoinHotkeyCenter.shared.start()

@@ -15,6 +15,8 @@ final class ShellModel: ObservableObject {
     let settingsMail: SettingsMailModel
     /// Settings → Menu bar.
     let menuBar: MenuBarSettingsModel
+    /// Yaya's Mail Helper's page (D-050); its sidebar entry shows only while the helper is installed.
+    let mailHelper: MailHelperModel
     /// Mail on (D-029: always, in the app); renders pin it off for the mail-off comparisons.
     let mailEnabled: () -> Bool
     /// Renders pin the clock (Monday 19 October 2026, 9:48 AM); nil = now.
@@ -27,6 +29,7 @@ final class ShellModel: ObservableObject {
          }),
          settingsMail: SettingsMailModel = SettingsMailModel(),
          menuBar: MenuBarSettingsModel? = nil,
+         mailHelper: MailHelperModel? = nil,
          mailEnabled: @escaping () -> Bool = { true },
          fixedNow: Date? = nil) {
         self.section = section
@@ -36,8 +39,17 @@ final class ShellModel: ObservableObject {
         self.inbox = inbox
         self.settingsMail = settingsMail
         self.menuBar = menuBar ?? MenuBarSettingsModel()
+        self.mailHelper = mailHelper ?? MainActor.assumeIsolated { MailHelperModel() }
         self.mailEnabled = mailEnabled
         self.fixedNow = fixedNow
+    }
+}
+
+extension ShellModel {
+    /// The sidebar's sections: Mail helper only while Yaya's Mail Helper is installed (D-050).
+    @MainActor
+    var visibleSections: [AppSection] {
+        AppSection.allCases.filter { $0 != .mailHelper || mailHelper.installed }
     }
 }
 
@@ -45,6 +57,7 @@ extension AppSection {
     var title: String {
         switch self {
         case .inbox: return "Inbox"
+        case .mailHelper: return "Mail helper"
         case .calendar: return "Calendar"
         case .widgets: return "Widgets"
         case .accounts: return "Accounts"
@@ -55,6 +68,7 @@ extension AppSection {
     var symbol: String {
         switch self {
         case .inbox: return "tray"
+        case .mailHelper: return "line.3.horizontal.decrease.circle"
         case .calendar: return "calendar"
         case .widgets: return "square.grid.2x2"
         case .accounts: return "person.2"

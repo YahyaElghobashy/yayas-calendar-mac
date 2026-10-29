@@ -68,6 +68,8 @@ struct MailThread: Equatable, Identifiable {
     var unread: Bool
     var starred: Bool
     var messageCount: Int
+    /// Gmail label ids on the thread (D-050: the Mail helper's Priority and Review chips read them). Empty in fixtures.
+    var labels: [String] = []
 }
 
 struct MailMessage: Equatable, Identifiable {

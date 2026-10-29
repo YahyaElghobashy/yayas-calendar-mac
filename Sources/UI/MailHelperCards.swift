@@ -1,0 +1,378 @@
+import SwiftUI
+
+// Yaya's Mail Helper's cards (D-050): the hand-over approval card (in the spirit of D-023's send card, but its own
+// component: the send card is untouched), the confirmation card (Undo all, Undo today, Take back), and the composer's
+// "Draft with AI" button and its pop-over.
+
+// MARK: - Hand-over
+
+/// The dimmed page and, on top, the card. A click on the dimmed part is Cancel.
+struct MailHelperHandoverOverlay: View {
+    @ObservedObject var model: MailHelperModel
+    let handover: MailHelperHandover
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack {
+                Color.black.opacity(0.62)
+                    .contentShape(Rectangle())
+                    .onTapGesture { model.cancelHandover() }
+                    .accessibilityHidden(true)
+                MailHelperHandoverCard(model: model, handover: handover)
+                    .frame(maxHeight: max(0, proxy.size.height - 48))
+                    .padding(24)
+            }
+            .frame(width: proxy.size.width, height: proxy.size.height)
+        }
+    }
+}
+
+/// "Hand over ORB's sign-in?": the account, the mail server's key fingerprint (to compare with the helper's own
+/// window), personal or work, what is handed over and what it can and can't do. Return hands over (only 0.3 s after
+/// the card appears), Esc goes back.
+struct MailHelperHandoverCard: View {
+    @ObservedObject var model: MailHelperModel
+    let handover: MailHelperHandover
+    @AccessibilityFocusState private var titleFocused: Bool
+    @Environment(\.headlessRender) private var headless
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "key.horizontal.fill")
+                    .font(.system(size: 15, weight: .bold)).foregroundStyle(AppTheme.accent)
+                    .frame(width: 38, height: 38)
+                    .background(Circle().fill(AppTheme.accentSoft))
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 5) {
+                    if headless { title } else { title.accessibilityFocused($titleFocused) }
+                    Text("Your mail server sorts this mailbox from now on: labels, archive, read or unread. It has no way to send, delete, forward or change settings, and every change can be undone.")
+                        .font(AppTheme.font(12.5, .medium)).foregroundStyle(AppTheme.text2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .fixedSize(horizontal: false, vertical: true)
+            details
+            Text("What goes: this account\u{2019}s Google sign-in (its refresh token and your Google client), sealed so only your mail server can open it. Yaya\u{2019}s Mail Helper carries it but can\u{2019}t read it. Nothing else leaves this Mac.")
+                .font(AppTheme.font(12)).foregroundStyle(AppTheme.text3)
+                .fixedSize(horizontal: false, vertical: true)
+            if let problem = model.handoverProblem {
+                Label {
+                    Text(verbatim: problem)
+                } icon: {
+                    Image(systemName: "exclamationmark.circle.fill")
+                }
+                .font(AppTheme.font(12, .semibold)).foregroundStyle(AppTheme.warn)
+                .fixedSize(horizontal: false, vertical: true)
+            }
+            buttons
+        }
+        .padding(22)
+        .frame(width: 460, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(AppTheme.background))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(AppTheme.strokeStrong, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .shadow(color: .black.opacity(0.5), radius: 26, y: 12)
+        .accessibilityElement(children: .contain)
+        .accessibilityAddTraits(.isModal)
+        .onAppear { titleFocused = true }
+    }
+
+    private var title: some View {
+        Text(verbatim: "Hand over \(handover.tag)\u{2019}s sign-in?")
+            .font(AppTheme.font(19, .heavy)).foregroundStyle(AppTheme.text)
+            .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+            .accessibilityAddTraits(.isHeader)
+    }
+
+    private var details: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            detail("Account") {
+                HStack(spacing: 6) {
+                    MailLogoBadge(account: model.cards.first { $0.id == handover.account }?.account, size: 15)
+                    Text(verbatim: handover.tag).font(AppTheme.font(12.5, .bold)).foregroundStyle(AppTheme.text)
+                    Text(verbatim: handover.email).font(AppTheme.font(12)).foregroundStyle(AppTheme.text3)
+                        .lineLimit(1).truncationMode(.middle)
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text(verbatim: "Account \(handover.tag), \(handover.email)"))
+            }
+            Rectangle().fill(AppTheme.stroke).frame(height: 1).padding(.leading, 86)
+            detail("Server key") {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(verbatim: handover.fingerprint).font(.system(size: 13.5, weight: .bold, design: .monospaced))
+                        .foregroundStyle(AppTheme.text).tracking(0.6)
+                    Text("Check it matches the key Yaya\u{2019}s Mail Helper shows.").font(AppTheme.font(11)).foregroundStyle(AppTheme.text3)
+                }
+                .padding(.vertical, 6)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text(verbatim: "Server key \(handover.fingerprint.map { String($0) }.joined(separator: " "))"))
+            }
+            Rectangle().fill(AppTheme.stroke).frame(height: 1).padding(.leading, 86)
+            detail("Kind") {
+                HStack(spacing: 10) {
+                    SegmentPicker(options: [("personal", "Personal"), ("work", "Work")],
+                                  selection: Binding(get: { model.handover?.kind ?? handover.kind }, set: { model.setHandoverKind($0) }))
+                    Text(handover.kind == "work" ? "Claude stays off unless you pick a work credential." : "Your own Claude may help with mail it\u{2019}s unsure about.")
+                        .font(AppTheme.font(11)).foregroundStyle(AppTheme.text3).fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.vertical, 6)
+            }
+        }
+        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(AppTheme.card))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(AppTheme.stroke, lineWidth: 1))
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func detail<Content: View>(_ label: String, @ViewBuilder _ content: () -> Content) -> some View {
+        HStack(spacing: 10) {
+            Text(label).font(AppTheme.font(12, .semibold)).foregroundStyle(AppTheme.text3)
+                .frame(width: 64, alignment: .leading)
+                .accessibilityHidden(true)
+            content()
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12).frame(minHeight: 36)
+    }
+
+    private var buttons: some View {
+        HStack(spacing: 12) {
+            Text("Return hands over  \u{00B7}  Esc goes back")
+                .font(AppTheme.font(11.5, .medium)).foregroundStyle(AppTheme.text3)
+                .lineLimit(1)
+                .accessibilityHidden(true)
+            Spacer(minLength: 8)
+            Button("Cancel") { model.cancelHandover() }
+                .buttonStyle(.plain)
+                .font(AppTheme.font(12.5, .semibold)).foregroundStyle(AppTheme.text2)
+                .keyboardShortcut(.cancelAction)
+                .disabled(model.handoverBusy)
+                .accessibilityHint(Text("Hands nothing over"))
+            Button {
+                Task { await model.approveHandover() }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "key.horizontal.fill").font(.system(size: 11.5, weight: .bold))
+                    Text(model.handoverBusy ? "Sealing\u{2026}" : "Hand over")
+                }
+            }
+            .buttonStyle(PrimaryButtonStyle())
+            .keyboardShortcut(.defaultAction)
+            .disabled(model.handoverBusy)
+            .accessibilityLabel(Text(verbatim: "Hand over \(handover.tag)\u{2019}s sign-in"))
+        }
+        .padding(.top, 2)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+// MARK: - Confirmations
+
+struct MailHelperConfirmOverlay: View {
+    @ObservedObject var model: MailHelperModel
+    let confirm: MailHelperModel.Confirm
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.62)
+                .contentShape(Rectangle())
+                .onTapGesture { model.confirm = nil }
+                .accessibilityHidden(true)
+            card.padding(24)
+        }
+    }
+
+    private var words: (title: String, line: String, button: String) {
+        switch confirm {
+        case .undoAll(_, let tag):
+            return ("Undo \(tag)\u{2019}s whole clean-up?",
+                    "Every conversation it moved goes back exactly as it was: inbox, labels and read state. Your rules stay.", "Undo all")
+        case .undoToday:
+            return ("Undo everything sorted today?",
+                    "Every email sorted since midnight goes back the way it was, in every account.", "Undo today")
+        case .forget(_, let tag):
+            return ("Take back \(tag)\u{2019}s sign-in?",
+                    "Your mail server forgets it and stops sorting this mailbox. Nothing in Gmail changes; you can hand it over again.", "Take back")
+        }
+    }
+
+    private var card: some View {
+        let w = words
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "arrow.uturn.backward")
+                    .font(.system(size: 14, weight: .bold)).foregroundStyle(AppTheme.bad)
+                    .frame(width: 36, height: 36).background(Circle().fill(AppTheme.bad.opacity(0.16)))
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(verbatim: w.title).font(AppTheme.font(18, .heavy)).foregroundStyle(AppTheme.text)
+                        .fixedSize(horizontal: false, vertical: true).accessibilityAddTraits(.isHeader)
+                    Text(verbatim: w.line).font(AppTheme.font(12.5)).foregroundStyle(AppTheme.text2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            HStack(spacing: 12) {
+                Spacer()
+                Button("Cancel") { model.confirm = nil }.buttonStyle(.plain)
+                    .font(AppTheme.font(12.5, .semibold)).foregroundStyle(AppTheme.text2)
+                    .keyboardShortcut(.cancelAction)
+                Button(w.button) { model.confirmed() }
+                    .buttonStyle(AccountsKit.SecondaryButton(tint: AppTheme.bad))
+            }
+        }
+        .padding(22)
+        .frame(width: 420, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(AppTheme.background))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(AppTheme.strokeStrong, lineWidth: 1))
+        .shadow(color: .black.opacity(0.5), radius: 26, y: 12)
+        .accessibilityElement(children: .contain)
+        .accessibilityAddTraits(.isModal)
+    }
+}
+
+// MARK: - Composer: Draft with AI
+
+/// In the composer's title row (plain and rich alike), only for a reply while the helper is installed.
+struct MailDraftButton: View {
+    @ObservedObject var model: MailHelperDraftModel
+    @Environment(\.headlessRender) private var headless
+
+    var body: some View {
+        Button {
+            model.open.toggle()
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "sparkles").font(.system(size: 11.5, weight: .bold))
+                Text(model.isWorking ? "Drafting\u{2026}" : "Draft with AI")
+            }
+        }
+        .buttonStyle(AccountsKit.SecondaryButton(compact: true, tint: AppTheme.accent))
+        .help("Yaya\u{2019}s Mail Helper drafts a reply in your voice. It never sends.")
+        .popover(isPresented: Binding(get: { !headless && model.open }, set: { model.open = $0 }), arrowEdge: .bottom) {
+            MailDraftPopover(model: model)
+        }
+    }
+}
+
+/// Renders only: the pop-over as the system draws it, over the whole composer (ImageRenderer can't draw `.popover`).
+struct MailDraftHeadlessPopover: View {
+    @ObservedObject var model: MailHelperDraftModel
+
+    var body: some View {
+        if model.open {
+            MailDraftPopover(model: model)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(AppTheme.strokeStrong, lineWidth: 1))
+                .shadow(color: .black.opacity(0.5), radius: 18, y: 8)
+                .fixedSize()
+        }
+    }
+}
+
+/// "What should it say?", the model, the thinking level, then Draft (or the wait with Cancel, or why not).
+struct MailDraftPopover: View {
+    @ObservedObject var model: MailHelperDraftModel
+    @Environment(\.headlessRender) private var headless
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Draft a reply in your voice").font(AppTheme.font(14, .heavy)).foregroundStyle(AppTheme.text)
+            VStack(alignment: .leading, spacing: 5) {
+                AccountsKit.SectionLabel(text: "What should it say? (optional)")
+                Group {
+                    if headless {
+                        Text(verbatim: model.instruction.isEmpty ? "Say yes to Thursday, ask for the agenda" : model.instruction)
+                            .foregroundStyle(model.instruction.isEmpty ? AppTheme.text3 : AppTheme.text)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    } else {
+                        TextEditor(text: $model.instruction).scrollContentBackground(.hidden).foregroundStyle(AppTheme.text)
+                    }
+                }
+                .font(AppTheme.font(12.5))
+                .padding(8).frame(height: 62)
+                .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Color.white.opacity(0.06)))
+                .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(AppTheme.stroke))
+                .disabled(model.isWorking)
+            }
+            row("Model") {
+                pickerButton(model.model.title, MailDraftModel.allCases.map { m in
+                    AccountsKit.PopUpMenuButton.Item(title: m.title) { model.model = m }
+                })
+            }
+            row("Thinking") {
+                pickerButton(model.effort.title, MailDraftEffort.allCases.map { e in
+                    AccountsKit.PopUpMenuButton.Item(title: e.title) { model.effort = e }
+                })
+            }
+            if let note = model.note, !model.isFailed {
+                Text(verbatim: note).font(AppTheme.font(11.5)).foregroundStyle(AppTheme.warn)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            footer
+        }
+        .padding(16)
+        .frame(width: 330, alignment: .leading)
+        .background(AppTheme.background)
+        .environment(\.colorScheme, .dark)
+    }
+
+    private func row<Content: View>(_ title: String, @ViewBuilder _ content: () -> Content) -> some View {
+        HStack(spacing: 10) {
+            Text(title).font(AppTheme.font(12, .semibold)).foregroundStyle(AppTheme.text2).frame(width: 64, alignment: .leading)
+            content()
+            Spacer(minLength: 0)
+        }
+    }
+
+    private func pickerButton(_ title: String, _ items: [AccountsKit.PopUpMenuButton.Item]) -> some View {
+        Button {
+            AccountsKit.MenuPresenter.show(items)
+        } label: {
+            HStack(spacing: 5) {
+                Text(title).lineLimit(1)
+                Image(systemName: "chevron.up.chevron.down").font(.system(size: 8.5, weight: .heavy))
+            }
+        }
+        .buttonStyle(AccountsKit.SecondaryButton(compact: true))
+        .disabled(model.isWorking)
+    }
+
+    @ViewBuilder
+    private var footer: some View {
+        switch model.phase {
+        case .idle:
+            HStack {
+                Text("It never sends. You read it, then Send.").font(AppTheme.font(11)).foregroundStyle(AppTheme.text3)
+                Spacer()
+                Button("Draft") { model.draft() }.buttonStyle(AccountsKit.PrimaryButton(compact: true))
+                    .keyboardShortcut(.defaultAction)
+            }
+        case .working:
+            TimelineView(.periodic(from: .now, by: 1)) { _ in
+                HStack(spacing: 8) {
+                    if !headless { ProgressView().controlSize(.small) }
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Writing\u{2026} \(model.elapsed(model.now))").font(AppTheme.font(12, .semibold)).foregroundStyle(AppTheme.text)
+                        Text("This can take a few minutes.").font(AppTheme.font(11)).foregroundStyle(AppTheme.text3)
+                    }
+                    Spacer()
+                    Button("Cancel") { model.cancel() }.buttonStyle(AccountsKit.SecondaryButton(compact: true))
+                }
+            }
+        case .failed(let message):
+            VStack(alignment: .leading, spacing: 8) {
+                Label {
+                    Text(verbatim: message)
+                } icon: {
+                    Image(systemName: "exclamationmark.circle.fill")
+                }
+                .font(AppTheme.font(12, .semibold)).foregroundStyle(AppTheme.warn)
+                .fixedSize(horizontal: false, vertical: true)
+                HStack {
+                    Spacer()
+                    Button("Try again") { model.draft() }.buttonStyle(AccountsKit.PrimaryButton(compact: true))
+                }
+            }
+        }
+    }
+}

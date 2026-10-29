@@ -34,6 +34,10 @@ struct InboxSectionView: View {
         .onReceive(AccountsModel.shared.$accounts.dropFirst()) { _ in
             if !headless { DispatchQueue.main.async { model.load() } }
         }
+        // Yaya's Mail Helper's labels changed (D-050): Priority first again.
+        .onReceive(NotificationCenter.default.publisher(for: MailHelperInbox.changed)) { _ in
+            if !headless { model.load() }
+        }
     }
 
     private var header: some View {
@@ -207,7 +211,7 @@ private struct ThreadList: View {
     private func items(_ directory: AccountDirectory) -> some View {
         ForEach(model.threads) { thread in
             ThreadRow(thread: thread, account: directory.account(thread.accountId), now: model.now,
-                      selected: model.selection == thread.r) {
+                      selected: model.selection == thread.r, chips: model.chips(thread)) {
                 Task { await model.select(r: thread.r) }
             }
             .id(thread.r)
@@ -221,6 +225,8 @@ struct ThreadRow: View {
     let account: DirectoryAccount?
     let now: Date
     let selected: Bool
+    /// Yaya's Mail Helper's chips (D-050): the Inbox section passes them; the popover never does.
+    var chips: [MailHelperChip] = []
     var hint = "Opens the conversation"
     let action: () -> Void
     @Local private var hover = false
@@ -250,6 +256,7 @@ struct ThreadRow: View {
                         .font(AppTheme.font(12.5, thread.unread ? .semibold : .regular))
                         .foregroundStyle(AppTheme.text).lineLimit(1)
                     Spacer(minLength: 4)
+                    ForEach(chips, id: \.rawValue) { MailHelperChipView(chip: $0) }
                     if thread.starred {
                         Image(systemName: "star.fill").font(.system(size: 10.5, weight: .bold)).foregroundStyle(AppTheme.warn)
                     }
@@ -271,7 +278,8 @@ struct ThreadRow: View {
         .onTapGesture(perform: action)
         .onHover { hover = $0 }
         .ycAccessibleButton(A11yText.thread(thread, account: account, now: now).label,
-                            value: A11yText.thread(thread, account: account, now: now).value,
+                            value: A11yText.thread(thread, account: account, now: now).value
+                                + (chips.isEmpty ? "" : ", " + chips.map(\.title).joined(separator: ", ")),
                             hint: hint, selected: selected, action: action)
     }
 }

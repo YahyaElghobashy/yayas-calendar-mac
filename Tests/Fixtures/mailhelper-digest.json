@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "updated_at": 1792389700,
+  "digest": {
+    "version": 1, "id": 42, "day": "2026-10-19", "window": [1792303200, 1792389600], "built_at": 1792389600, "total": 13,
+    "read": {"security": true},
+    "sections": [
+      {"key": "newsletters", "title": "Newsletters", "count": 3, "items": [
+        {"account": "00000000-0000-4000-8000-0000000000A0", "account_email": "avery@home.example", "thread_id": "18f2a0c4d1e5d001",
+         "sender": "letters@orbitweekly.example", "subject": "This week in orbital robotics", "topic": "AI & Tech",
+         "headline": "A pickle-sized satellite arm passes its first vacuum test",
+         "bullets": ["The arm held a jar lid steady for 40 minutes in the test chamber.", "Launch window moves to March; the team is hiring two engineers.", "Next issue covers the docking clamp."],
+         "worth_opening": true},
+        {"account": "00000000-0000-4000-8000-0000000000A0", "account_email": "avery@home.example", "thread_id": "18f2a0c4d1e5d002",
+         "sender": "hello@picklescience.example", "subject": "Brine, explained", "topic": null,
+         "headline": "Why brine temperature matters more than salt",
+         "bullets": ["Cooler brine kept the crunch in 9 of 10 batches.", "A reader recipe for quick fennel pickles."],
+         "worth_opening": false},
+        {"account": "00000000-0000-4000-8000-0000000000A2", "account_email": "avery@quietcomets.example", "thread_id": "18f2a0c4d1e5d003",
+         "sender": "news@cometchords.example", "subject": "Comet Chords, issue 31", "topic": null,
+         "headline": "Three practice drills for tighter harmonies",
+         "bullets": ["Record a drone note and sing thirds over it.", "Free workshop on Saturday, sign-up closes Thursday."],
+         "worth_opening": false}
+      ]},
+      {"key": "updates", "title": "Updates", "count": 5, "items": [
+        {"service": "moonforge.example", "subjects": ["Build 412 passed", "Build 411 passed", "Deploy to staging finished"],
+         "threads": [{"account": "00000000-0000-4000-8000-0000000000A0", "thread_id": "18f2a0c4d1e5d004"},
+                     {"account": "00000000-0000-4000-8000-0000000000A0", "thread_id": "18f2a0c4d1e5d005"},
+                     {"account": "00000000-0000-4000-8000-0000000000A0", "thread_id": "18f2a0c4d1e5d006"}],
+         "account": "00000000-0000-4000-8000-0000000000A0", "thread_id": "18f2a0c4d1e5d004"},
+        {"service": "cloudlocker.example", "subjects": ["Your storage is 80% full", "New sign-in from a known device"],
+         "threads": [{"account": "00000000-0000-4000-8000-0000000000A0", "thread_id": "18f2a0c4d1e5d007"},
+                     {"account": "00000000-0000-4000-8000-0000000000A0", "thread_id": "18f2a0c4d1e5d008"}],
+         "account": "00000000-0000-4000-8000-0000000000A0", "thread_id": "18f2a0c4d1e5d007"}
+      ]},
+      {"key": "promotions", "title": "Deals and promotions", "count": 2, "items": [
+        {"account": "00000000-0000-4000-8000-0000000000A0", "account_email": "avery@home.example", "thread_id": "18f2a0c4d1e5d009",
+         "sender": "offers@moonbase-outfitters.example", "subject": "Autumn layers, 30% off until Sunday", "topic": null,
+         "headline": "30% off coats and knitwear until Sunday",
+         "bullets": ["Code at checkout, ends Sunday at midnight.", "Free returns for 60 days."], "worth_opening": false},
+        {"account": "00000000-0000-4000-8000-0000000000A2", "account_email": "avery@quietcomets.example", "thread_id": "18f2a0c4d1e5d00a",
+         "sender": "deals@lanternhall.example", "subject": "Members' preview: Friday night", "topic": null,
+         "headline": "Members get the Friday show at half price",
+         "bullets": ["Booking opens Wednesday at 10:00.", "Two tickets per member."], "worth_opening": true}
+      ]},
+      {"key": "orders", "title": "Orders and deliveries", "count": 2, "items": [
+        {"account": "00000000-0000-4000-8000-0000000000A0", "account_email": "avery@home.example", "thread_id": "18f2a0c4d1e5d00b",
+         "sender": "track@parcelwing.example", "subject": "Your parcel is on its way", "topic": null, "headline": null, "bullets": [], "worth_opening": false},
+        {"account": "00000000-0000-4000-8000-0000000000A0", "account_email": "avery@home.example", "thread_id": "18f2a0c4d1e5d00c",
+         "sender": "receipts@parcelwing.example", "subject": "Receipt for order 2210", "topic": null, "headline": null, "bullets": [], "worth_opening": false}
+      ]},
+      {"key": "security", "title": "Codes and security", "count": 1, "items": [
+        {"account": "00000000-0000-4000-8000-0000000000A0", "account_email": "avery@home.example", "thread_id": "18f2a0c4d1e5d00d",
+         "sender": "no-reply@cloudlocker.example", "subject": "Your sign-in code", "topic": null, "headline": null, "bullets": [], "worth_opening": false}
+      ]}
+    ]
+  }
+}

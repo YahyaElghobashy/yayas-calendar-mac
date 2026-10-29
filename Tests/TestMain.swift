@@ -12,7 +12,8 @@ enum TestMain {
             .appendingPathComponent("trace", isDirectory: true)
         let args = CommandLine.arguments
         if let i = args.firstIndex(of: "--write-fixtures"), i + 1 < args.count {
-            exit(SnapshotTests.write(to: args[i + 1]))
+            let rc = SnapshotTests.write(to: args[i + 1])
+            exit(rc == 0 ? MailHelperTests.write(to: args[i + 1]) : rc)
         }
         RouteTests.run()
         SuiteTests.run()
@@ -45,6 +46,8 @@ enum TestMain {
         // Yaya's Murmur and recording per account (D-046).
         MurmurTests.run()
         await MurmurTests.runAsync()
+        // Yaya's Mail Helper link (D-050).
+        await MailHelperTests.run()
         // First-run UX.
         StrangerUXTests.run()
         // Mail defaults (D-029).
