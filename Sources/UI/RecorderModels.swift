@@ -110,12 +110,17 @@ enum RecorderRouting {
 // MARK: - The Join menu
 
 /// The "▾" beside Join (shown only while Murmur is on this Mac): every way to join this meeting, whatever its account
-/// chose. Join with Fathom per linked account, Join with Yaya's Murmur ▸ Home lab / MacBook, and Just join.
+/// chose. Join with Fathom per linked account, Join with Yaya's Murmur ▸ Home lab / MacBook, and Just join. The
+/// popover's adds Live Helper (D-049): "✦ Join with Live Helper" for a meeting Murmur marked, else "Set up Live Helper…".
 enum JoinMenu {
     enum Entry: Equatable {
         case fathom(FathomTarget)
         /// Join with Yaya's Murmur in that mode.
         case murmur(MurmurMode?)
+        /// Join with Live Helper (D-048, D-049): Murmur's join link for a meeting it marked Live Helper, then the call.
+        case liveHelper
+        /// "Set up Live Helper…" (D-049): Murmur's helper setup for the event; Murmur owns the mark.
+        case liveHelperSetUp
         case justJoin
     }
 
@@ -128,7 +133,8 @@ enum JoinMenu {
         static let separator = Item(title: "-", entry: nil)
     }
 
-    static func items(fathomTargets: [FathomTarget], murmurInstalled: Bool) -> [Item] {
+    /// `liveHelper`: the popover card's offer (D-049); nil (the Event Peek, which has its own Live Helper row) adds none.
+    static func items(fathomTargets: [FathomTarget], murmurInstalled: Bool, liveHelper: LiveHelperOffer? = nil) -> [Item] {
         var out: [Item] = []
         for t in fathomTargets {
             out.append(Item(title: fathomTargets.count > 1 ? "Join with Fathom \u{00B7} \(t.tag)" : "Join with Fathom",
@@ -137,10 +143,34 @@ enum JoinMenu {
         if murmurInstalled {
             out.append(Item(title: "Join with Yaya\u{2019}s Murmur", entry: nil,
                             children: MurmurMode.allCases.map { Item(title: $0.title, entry: .murmur($0)) }))
+            if liveHelper == .join { out.append(Item(title: RecorderText.liveHelperMenuJoin, entry: .liveHelper)) }
         }
         if !out.isEmpty { out.append(.separator) }
         out.append(Item(title: "Just join", entry: .justJoin))
+        if murmurInstalled && liveHelper == .setUp {
+            // Not a way to join: after Just join, apart.
+            out.append(.separator)
+            out.append(Item(title: RecorderText.liveHelperMenuSetUp, entry: .liveHelperSetUp))
+        }
         return out
+    }
+}
+
+// MARK: - Live Helper on the popover card (D-049)
+
+/// What the popover card offers for Yaya's Murmur's Live Helper. Only while Murmur is on this Mac and the meeting has an
+/// allowlisted join link (Live Helper rides a call); nil keeps the card exactly as D-046 drew it.
+enum LiveHelperOffer: Equatable {
+    /// Murmur marked the meeting Live Helper: "✦ Join with Live Helper" takes the recorder's button's place.
+    case join
+    /// Not marked: a compact "✦ Live Helper" beside the recorder's button opens Murmur's helper setup for it.
+    case setUp
+
+    static func offer(murmurInstalled: Bool, mark: MurmurMark?, canJoin: Bool, allDay: Bool) -> LiveHelperOffer? {
+        guard murmurInstalled, canJoin else { return nil }
+        if mark?.helper != nil { return .join }
+        // As the Event Peek's Live Helper row: timed meetings only.
+        return allDay ? nil : .setUp
     }
 }
 
@@ -172,6 +202,20 @@ enum RecorderText {
             }
             return "Join only joins. The \u{25BE} beside Join still offers every recorder for one meeting."
         }
+    }
+
+    /// Live Helper's words (D-049): the card's button (the Up Next widget's label, D-048), its compact setup button and
+    /// the Join menu's two items (an NSMenu title can't draw the badge's symbol, so the menu uses ✦).
+    static let liveHelperJoin = "Join with Live Helper"
+    static let liveHelperSetUp = "Live Helper"
+    static let liveHelperMenuJoin = "\u{2726} Join with Live Helper"
+    static let liveHelperMenuSetUp = "Set up Live Helper\u{2026}"
+
+    /// The line under Join with Live Helper: the mark's kind and what Murmur does (its BND-21 brings the marked chat to
+    /// a call its join link armed). No place: Live Helper records on the MacBook whatever the mark's mode says.
+    static func liveHelperStatus(_ mark: MurmurMark?) -> String {
+        guard let kind = mark?.helper, kind != .other else { return "Its Live Helper chat opens with the call" }
+        return "\(kind.title) \u{00B7} its chat opens with the call"
     }
 
     static func joinTitle(_ recorder: Recorder) -> String {

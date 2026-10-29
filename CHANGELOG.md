@@ -5,6 +5,11 @@ All notable changes to Yaya’s Calendar. Versions follow the app’s `CFBundleS
 
 ## Unreleased
 
+- **Live Helper in the menu-bar popover.** With Yaya’s Murmur on your Mac, the next-meeting card shows ✦ Join with
+  Live Helper for a meeting Yaya’s Murmur marked Live Helper, in place of the recorder’s button: the call opens with
+  Yaya’s Murmur listening and that meeting’s chat beside it. The ▾ beside Join offers it too, and still every recorder.
+  A meeting without one gets a small ✦ Live Helper button that sets it up in Yaya’s Murmur. The card follows as soon
+  as Yaya’s Murmur changes a mark. Without Yaya’s Murmur, nothing changes (D-049).
 - **Join with Live Helper on the widget.** When Yaya’s Murmur has a meeting marked Live Helper, Up Next (Medium)
   swaps its round recorder button for a ✦ Join with Live Helper button: it opens the call with Yaya’s Murmur recording
   and that meeting’s Live Helper chat attached, whichever recorder the account normally uses (D-048).

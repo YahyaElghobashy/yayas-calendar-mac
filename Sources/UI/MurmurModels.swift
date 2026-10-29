@@ -331,6 +331,20 @@ final class MurmurSession: ObservableObject {
         return armed ? .started : .joinedOnly
     }
 
+    /// Join with Live Helper (D-048 on Up Next, D-049 on the popover card): for a meeting Murmur marked Live Helper, its
+    /// join link with no mode (Live Helper records on the MacBook whatever the mark's mode; Murmur's BND-21 brings the
+    /// marked chat to the call the link armed), then the meeting, whatever the account's recorder. The marks are read
+    /// again first. nil: not marked (any more) or Murmur isn't here, and nothing opened; the caller takes its
+    /// recorder's path.
+    func joinLiveHelper(_ event: CalendarEvent, via: String) -> Outcome? {
+        refresh()
+        guard mark(event.r)?.helper != nil else {
+            trace("livehelper", via, installed ? "unmarked" : "not-installed")
+            return nil
+        }
+        return join(event, mode: nil, via: via)
+    }
+
     /// "Live Helper for this meeting" and "Set up…": Murmur's helper setup for the event (Murmur owns the choice and
     /// writes the mark; the Peek redraws on its ping).
     @discardableResult

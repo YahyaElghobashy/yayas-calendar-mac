@@ -160,8 +160,44 @@ final class MenuPopoverController {
             case .started, .joinedOnly: close(reason: "join")
             case .blocked, .notInstalled: break
             }
+        case .liveHelper:
+            joinWithLiveHelper(event)
+        case .liveHelperSetUp:
+            // Murmur comes forward with its setup (the popover closes as another app activates); its ping redraws the card.
+            MurmurSession.shared.openHelper(event, via: "popover")
         case .justJoin:
             join(event)
+        }
+    }
+
+    /// The card's (and its menu's) Join with Live Helper (D-049): the Up Next widget's `livehelper` path (D-048),
+    /// Murmur's join link then the meeting, whatever the account's recorder. A meeting no longer marked (or Murmur gone)
+    /// since the card drew takes the recorder's path, as the widget's route does; a Fathom wait or "Ask each time"
+    /// shows on the redrawn card.
+    private func joinWithLiveHelper(_ event: CalendarEvent) {
+        if let outcome = MurmurSession.shared.joinLiveHelper(event, via: "popover") {
+            switch outcome {
+            case .started, .joinedOnly: close(reason: "join")
+            case .blocked: break
+            case .notInstalled: recorderFallback(event)
+            }
+            return
+        }
+        recorderFallback(event)
+    }
+
+    private func recorderFallback(_ event: CalendarEvent) {
+        let result = RecorderDispatch.join(event, via: "popover-livehelper")
+        Trace.app("popover-livehelper", ["result": "fallback-\(result)"])
+        switch result {
+        case .recorded, .joined: close(reason: "join")
+        case .waiting, .ask, .blocked: model?.load()
+        case .inactive:
+            switch FathomSession.shared.join(event, directory: AccountDirectory.current(), via: "popover-livehelper") {
+            case .started: close(reason: "join")
+            case .notLinked: join(event)
+            case .waiting, .blocked: model?.load()
+            }
         }
     }
 

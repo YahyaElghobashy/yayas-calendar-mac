@@ -225,6 +225,11 @@ final class EventPeekModel: ObservableObject {
             joinWithFathom()
         case .murmur(let mode):
             joinWithMurmur(mode)
+        case .liveHelper:
+            // The popover's menu item (D-049); the Peek's own menu has none, and Murmur's join link is the same.
+            joinWithMurmur(nil)
+        case .liveHelperSetUp:
+            openHelper()
         case .justJoin:
             join()
         }

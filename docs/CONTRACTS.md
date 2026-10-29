@@ -159,6 +159,14 @@ missing or invalid one as "no data". Murmur's side: its own docs/CONTRACTS.md, "
 - **Snapshot, Live Helper** (D-048): `Meeting.lh` (`true` or left out) when Murmur's mark for `r` has a Live Helper kind
   and the meeting has a join link; Up Next Medium then shows Join with Live Helper (`livehelper?r&k`) in place of the
   recorder button. The route re-reads the marks and opens Murmur's `join?event=<r>`, then the meeting 0.6 s later.
+- **Popover, Live Helper** (D-049): only with Murmur installed and an allowlisted join link. A meeting Murmur marked Live
+  Helper shows Join with Live Helper in place of the recorder's button and "✦ Join with Live Helper" in the ▾
+  (`JoinMenu.Entry.liveHelper`); an unmarked timed meeting shows a compact "✦ Live Helper" beside the recorder's
+  button and "Set up Live Helper…" last in the ▾ (`.liveHelperSetUp`), both opening `helper?event=<r>`. Join with Live
+  Helper and the `livehelper` route both call `MurmurSession.joinLiveHelper(_:via:)`: marks re-read, `join?event=<r>`
+  (no mode), then the meeting 0.6 s later; nil (not marked, or Murmur gone, nothing opened) leaves the caller its
+  recorder's path. The card redraws when the session's `installed` or `marks` change (Murmur's ping). The Event
+  Peek's ▾ takes no Live Helper item.
 - **Notifications:** categories `yc.meeting.murmur` (actions `yc.join`, `yc.join.murmur`, `yc.snooze`) and
   `yc.meeting.ask` (`yc.join`, `yc.join.ask`, `yc.snooze`; Join and record… opens the Event Peek).
 - **Meeting export:** Murmur reads the Deck export (below) unchanged; the switch starts on when Deck or Murmur is installed.

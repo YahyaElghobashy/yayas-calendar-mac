@@ -305,17 +305,71 @@ private struct NextMeetingCard: View {
     }
 
     /// The account's recorder under Join: Join with Fathom (as D-045 drew it), Join with Yaya's Murmur, or
-    /// "Join and record…". A Fathom wait started from the menu shows here whatever the recorder.
+    /// "Join and record…". A Fathom wait started from the menu shows here whatever the recorder. Live Helper (D-049):
+    /// a meeting Murmur marked gets Join with Live Helper in the recorder's place (as Up Next's button, D-048; every
+    /// recorder stays in the ▾); an unmarked one gets a compact "✦ Live Helper" beside the recorder's button.
     @ViewBuilder
     private func recorderControls(_ card: PopoverModel.Card, _ recorder: Recorder) -> some View {
         let e = card.event
-        if (recorder == .fathom || fathom.isPending(e.r)), let target = card.fathom.first {
+        if fathom.isPending(e.r), let target = card.fathom.first {
+            FathomControls(session: fathom, event: e, target: target, directory: model.accountDirectory,
+                           height: 34, join: { actions.joinWithFathom(e) })
+        } else if card.liveHelper == .join {
+            LiveHelperJoinControls(mark: card.murmurMark, height: 34) { actions.joinWith(e, .liveHelper) }
+        } else if card.liveHelper == .setUp {
+            liveHelperBeside(card, recorder)
+        } else {
+            recorderButton(card, recorder)
+        }
+    }
+
+    @ViewBuilder
+    private func recorderButton(_ card: PopoverModel.Card, _ recorder: Recorder) -> some View {
+        let e = card.event
+        if recorder == .fathom, let target = card.fathom.first {
             FathomControls(session: fathom, event: e, target: target, directory: model.accountDirectory,
                            height: 34, join: { actions.joinWithFathom(e) })
         } else if card.canJoin && recorder == .murmur {
             MurmurJoinControls(mark: card.murmurMark, height: 34) { actions.joinWith(e, .murmur(nil)) }
         } else if card.canJoin && recorder == .ask {
             AskRecorderButton(height: 34) { showMenu(card) }
+        }
+    }
+
+    /// The recorder's button and "✦ Live Helper" share one row (the card stays as tall as before); the recorder's
+    /// line goes under both. With Off there's no recorder button: "✦ Live Helper" sits alone, under the ▾.
+    @ViewBuilder
+    private func liveHelperBeside(_ card: PopoverModel.Card, _ recorder: Recorder) -> some View {
+        let e = card.event
+        let setUp = LiveHelperSetUpButton(height: 34) { actions.joinWith(e, .liveHelperSetUp) }
+        if recorder == .fathom, let target = card.fathom.first {
+            let status = FathomText.status(target, fathom.check(target)) { fathom.label($0, directory: model.accountDirectory) }
+            VStack(spacing: 5) {
+                HStack(spacing: 8) {
+                    FathomControls(session: fathom, event: e, target: target, directory: model.accountDirectory,
+                                   height: 34, showStatus: false, join: { actions.joinWithFathom(e) })
+                    setUp
+                }
+                FathomStatusLine(text: status.text, tone: status.tone)
+            }
+        } else if recorder == .murmur {
+            VStack(spacing: 5) {
+                HStack(spacing: 8) {
+                    MurmurJoinControls(mark: card.murmurMark, height: 34, showsStatus: false) { actions.joinWith(e, .murmur(nil)) }
+                    setUp
+                }
+                RecorderStatusLine(symbol: "waveform", text: RecorderText.murmurStatus(card.murmurMark))
+            }
+        } else if recorder == .ask {
+            HStack(spacing: 8) {
+                AskRecorderButton(height: 34) { showMenu(card) }
+                setUp
+            }
+        } else {
+            HStack(spacing: 0) {
+                Spacer(minLength: 0)
+                setUp
+            }
         }
     }
 

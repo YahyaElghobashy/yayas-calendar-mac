@@ -44,6 +44,7 @@ enum TestMain {
         FathomTests.run()
         // Yaya's Murmur and recording per account (D-046).
         MurmurTests.run()
+        await MurmurTests.runAsync()
         // First-run UX.
         StrangerUXTests.run()
         // Mail defaults (D-029).

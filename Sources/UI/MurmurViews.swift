@@ -70,6 +70,8 @@ struct JoinSplitButton: View {
 struct MurmurJoinControls: View {
     let mark: MurmurMark?
     var height: CGFloat = 36
+    /// The popover card draws the line itself when the button shares its row with "✦ Live Helper" (D-049).
+    var showsStatus = true
     let join: () -> Void
 
     var body: some View {
@@ -77,20 +79,74 @@ struct MurmurJoinControls: View {
             RecorderJoinButton(title: RecorderText.joinTitle(.murmur), height: height, glyph: .murmur, action: join)
                 .help("Opens the call and asks Yaya\u{2019}s Murmur on this Mac to listen")
                 .accessibilityHint(Text("Opens the video call and arms Yaya\u{2019}s Murmur for it"))
-            HStack(spacing: 5) {
-                Image(systemName: "waveform").font(.system(size: 10, weight: .bold))
-                Text(RecorderText.murmurStatus(mark)).lineLimit(1).truncationMode(.middle)
-            }
-            .font(AppTheme.font(11.5, .medium)).foregroundStyle(AppTheme.text2)
-            .frame(maxWidth: .infinity)
-            .accessibilityElement(children: .combine)
+            if showsStatus { RecorderStatusLine(symbol: "waveform", text: RecorderText.murmurStatus(mark)) }
         }
+    }
+}
+
+/// The line under a recorder's button (Join with Yaya's Murmur, Join with Live Helper).
+struct RecorderStatusLine: View {
+    let symbol: String
+    let text: String
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Image(systemName: symbol).font(.system(size: 10, weight: .bold))
+            Text(text).lineLimit(1).truncationMode(.middle)
+        }
+        .font(AppTheme.font(11.5, .medium)).foregroundStyle(AppTheme.text2)
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// "✦ Join with Live Helper" and the line under it (D-049): the popover card's recorder button for a meeting Yaya's
+/// Murmur marked Live Helper, in Join with Fathom's quiet capsule with the badge's lime symbol.
+struct LiveHelperJoinControls: View {
+    let mark: MurmurMark?
+    var height: CGFloat = 36
+    let join: () -> Void
+
+    var body: some View {
+        VStack(spacing: 5) {
+            RecorderJoinButton(title: RecorderText.liveHelperJoin, height: height, glyph: .liveHelper, action: join)
+                .help("Opens the call; Yaya\u{2019}s Murmur listens on this MacBook and brings this meeting\u{2019}s Live Helper chat")
+                .accessibilityHint(Text("Opens the video call with Yaya\u{2019}s Murmur and this meeting\u{2019}s Live Helper chat"))
+            RecorderStatusLine(symbol: "waveform", text: RecorderText.liveHelperStatus(mark))
+        }
+    }
+}
+
+/// The compact "✦ Live Helper" (D-049) beside the popover card's recorder button for a meeting Murmur hasn't marked:
+/// opens Murmur's helper setup for it. Murmur owns the mark; the card turns into Join with Live Helper on its ping.
+struct LiveHelperSetUpButton: View {
+    var height: CGFloat = 36
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Image(systemName: MurmurBadge.liveHelper.symbol).font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Color(hex: MurmurBadge.lime))
+                Text(RecorderText.liveHelperSetUp).font(AppTheme.font(12.5, .bold)).lineLimit(1)
+            }
+            .foregroundStyle(AppTheme.text)
+            .padding(.horizontal, 12).frame(height: height)
+            .background(Capsule().fill(Color.white.opacity(0.06)))
+            .overlay(Capsule().strokeBorder(AppTheme.stroke, lineWidth: 1))
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .fixedSize()
+        .help("Set up a Live Helper for this meeting in Yaya\u{2019}s Murmur")
+        .accessibilityLabel(Text("Set up Live Helper"))
+        .accessibilityHint(Text("Opens this meeting\u{2019}s Live Helper in Yaya\u{2019}s Murmur"))
     }
 }
 
 /// The second button's shape (as Join with Fathom's): a quiet capsule with the recorder's glyph.
 struct RecorderJoinButton: View {
-    enum Glyph { case murmur, ask }
+    enum Glyph { case murmur, ask, liveHelper }
     let title: String
     var height: CGFloat = 36
     let glyph: Glyph
@@ -102,8 +158,12 @@ struct RecorderJoinButton: View {
                 switch glyph {
                 case .murmur: RingedPlanet(color: AppTheme.accent).frame(width: 16, height: 12)
                 case .ask: Image(systemName: "record.circle").font(.system(size: 12.5, weight: .bold)).foregroundStyle(AppTheme.accent)
+                case .liveHelper:
+                    Image(systemName: MurmurBadge.liveHelper.symbol).font(.system(size: 12.5, weight: .bold))
+                        .foregroundStyle(Color(hex: MurmurBadge.lime))
                 }
-                Text(title).font(AppTheme.font(14, .heavy))
+                // Beside "✦ Live Helper" (D-049) the row is narrower: a long title shrinks a little rather than cut.
+                Text(title).font(AppTheme.font(14, .heavy)).lineLimit(1).minimumScaleFactor(0.82)
                 if glyph == .ask {
                     Image(systemName: "chevron.down").font(.system(size: 9.5, weight: .heavy)).foregroundStyle(AppTheme.text2)
                 }

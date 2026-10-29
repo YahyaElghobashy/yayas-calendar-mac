@@ -34,6 +34,9 @@ final class PopoverModel: ObservableObject {
         /// Murmur's mark for this meeting (its badges, and where it records).
         var murmurMark: MurmurMark? = nil
         var badges: [MurmurBadge] { murmurMark?.badges ?? [] }
+        /// Live Helper (D-049): Join with Live Helper for a marked meeting, else the compact setup button; nil while
+        /// Murmur isn't on this Mac or the meeting has no join link.
+        var liveHelper: LiveHelperOffer? = nil
     }
 
     /// The agenda reaches a week ahead (today + 6): enough to scroll, light on the store.
@@ -92,8 +95,9 @@ final class PopoverModel: ObservableObject {
         self.murmur = murmur ?? .shared
         self.recorderChoice = recorderChoice
         now = clock()
-        // Murmur's marks changed (its ping): the card's badges and every row's follow.
-        murmurWatch = self.murmur.$marks.dropFirst().sink { [weak self] _ in
+        // Murmur's marks changed (its ping) or Murmur came or went (it pings on its uninstall too): the card's badges,
+        // recorder and Live Helper (D-049) and every row's badges follow.
+        murmurWatch = Publishers.CombineLatest(self.murmur.$installed, self.murmur.$marks).dropFirst().sink { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self else { return }
                 DispatchQueue.main.async { MainActor.assumeIsolated { self.remark() } }
@@ -110,9 +114,9 @@ final class PopoverModel: ObservableObject {
     /// The meeting's badges from Murmur's marks (none without Murmur).
     func badges(_ r: String) -> [MurmurBadge] { murmur.badges(r) }
 
-    /// The "▾" beside Join (only while Murmur is on this Mac).
+    /// The "▾" beside Join (only while Murmur is on this Mac), with the card's Live Helper item (D-049).
     func joinMenu(_ card: Card) -> [JoinMenu.Item] {
-        JoinMenu.items(fathomTargets: card.fathom, murmurInstalled: murmur.installed)
+        JoinMenu.items(fathomTargets: card.fathom, murmurInstalled: murmur.installed, liveHelper: card.liveHelper)
     }
 
     var showsInbox: Bool { mailEnabled() }
@@ -199,6 +203,7 @@ final class PopoverModel: ObservableObject {
     func makeCard(_ e: CalendarEvent) -> Card {
         let live = MeetingFocus.isLive(e, now: now)
         let canJoin = JoinPolicy.isAllowed(e.joinURL)
+        let mark = murmur.mark(e.r)
         return Card(event: e, live: live, soon: MeetingFocus.isSoon(e, now: now), canJoin: canJoin,
                     joinTitle: JoinPolicy.providerName(e.joinURL).map { "Join \($0)" } ?? "Join meeting",
                     when: Self.when(e, now: now, use24Hour: use24Hour),
@@ -207,7 +212,9 @@ final class PopoverModel: ObservableObject {
                     recorder: RecorderRouting.meeting(accountIds: e.accountIds, murmurInstalled: murmur.installed,
                                                       fathomInstalled: fathom.installed, link: fathom.env.link,
                                                       choice: recorderChoice),
-                    murmurMark: murmur.mark(e.r))
+                    murmurMark: mark,
+                    liveHelper: LiveHelperOffer.offer(murmurInstalled: murmur.installed, mark: mark, canJoin: canJoin,
+                                                      allDay: e.allDay))
     }
 
     // MARK: Filter

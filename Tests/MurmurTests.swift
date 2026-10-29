@@ -32,6 +32,17 @@ enum MurmurTests {
         peekWithoutMurmur()
         peekWithMurmur()
         snapshot()
+        liveHelperOffer()
+        liveHelperMenu()
+        sessionJoinLiveHelper()
+        popoverLiveHelper()
+        popoverLiveHelperWithoutMurmur()
+        rowJoinKeepsLiveHelper()
+    }
+
+    /// The parts that wait for the main queue (the popover redraws on Murmur's ping a turn later).
+    static func runAsync() async {
+        await popoverLiveHelperPing()
     }
 
     // MARK: Helpers
@@ -495,7 +506,9 @@ enum MurmurTests {
         T.equal(model.card?.murmurMark?.mode, .homelab, "the mark's mode for the line")
         T.equal(model.badges("gMurmurWeekly01"), [.liveHelper, .meOnly], "and on its row")
         if let card = model.card {
-            T.equal(model.joinMenu(card).map(\.title), ["Join with Yaya\u{2019}s Murmur", "-", "Just join"], "the menu without Fathom")
+            // Marked Live Helper, so the popover's menu offers it too (D-049).
+            T.equal(model.joinMenu(card).map(\.title), ["Join with Yaya\u{2019}s Murmur", "\u{2726} Join with Live Helper", "-", "Just join"],
+                    "the menu without Fathom")
         }
         ff.installed = true
         model.load()
@@ -591,6 +604,207 @@ enum MurmurTests {
         m.k = k
         T.equal(WidgetLinkContext(kind: "upnext", family: .medium).liveHelper(m), YayaLink.liveHelper(r: r, k: k), "Up Next's Live Helper button")
         T.equal(RecordButtonLabel.text("helper"), "Join with Live Helper", "the button says what it does")
+    }
+
+    // MARK: Live Helper on the popover (D-049)
+
+    static let markedJSON = #"{"v":1,"marks":{"gMurmurWeekly01":{"liveHelperKind":"clientMeeting","mode":"homelab"}}}"#
+    /// A mark without a Live Helper (consent and status only).
+    static let unmarkedJSON = #"{"v":1,"marks":{"gMurmurWeekly01":{"consentTier":"explicit","status":"meOnly"}}}"#
+
+    static func liveHelperOffer() {
+        T.section("live helper: what the popover card offers (D-049)")
+        let marked = MurmurMark(helper: .interview), plain = MurmurMark(consent: .explicit)
+        func o(_ installed: Bool, _ mark: MurmurMark?, join: Bool = true, allDay: Bool = false) -> LiveHelperOffer? {
+            LiveHelperOffer.offer(murmurInstalled: installed, mark: mark, canJoin: join, allDay: allDay)
+        }
+        T.equal(o(true, marked), .join, "marked, with a join link: Join with Live Helper")
+        T.equal(o(true, plain), .setUp, "a mark without a Live Helper: the setup button")
+        T.equal(o(true, nil), .setUp, "no mark: the setup button")
+        T.equal(o(true, marked, join: false), nil, "marked, no join link: nothing (Live Helper rides a call)")
+        T.equal(o(true, nil, join: false), nil, "no join link: nothing")
+        T.equal(o(true, nil, allDay: true), nil, "all day, unmarked: no setup (as the Event Peek's row)")
+        T.equal(o(true, marked, allDay: true), .join, "all day but marked with a link: Murmur's mark decides")
+        T.equal(o(false, marked), nil, "Murmur not on this Mac: nothing, even with a mark")
+        T.equal(o(false, nil), nil, "Murmur not on this Mac: nothing")
+        T.equal(RecorderText.liveHelperJoin, RecordButtonLabel.text("helper"), "the card says what Up Next's button says")
+        T.equal(RecorderText.liveHelperSetUp, "Live Helper", "the compact button")
+        T.equal(RecorderText.liveHelperStatus(MurmurMark(helper: .clientMeeting, mode: .homelab)),
+                "Client meeting \u{00B7} its chat opens with the call", "the line names the kind, never the home lab")
+        T.equal(RecorderText.liveHelperStatus(MurmurMark(helper: .other)), "Its Live Helper chat opens with the call", "a newer kind")
+    }
+
+    static func liveHelperMenu() {
+        T.section("live helper: the Join menu (D-049)")
+        let orbT = FathomTarget(accountId: orb, tag: "ORB", email: "avery@orbitalpickle.example")
+        let marked = JoinMenu.items(fathomTargets: [orbT], murmurInstalled: true, liveHelper: .join)
+        T.equal(marked.map(\.title), ["Join with Fathom", "Join with Yaya\u{2019}s Murmur", "\u{2726} Join with Live Helper", "-", "Just join"],
+                "marked: ✦ Join with Live Helper after Murmur's modes")
+        T.equal(marked[2].entry, .liveHelper, "it joins with Live Helper")
+        let unmarked = JoinMenu.items(fathomTargets: [orbT], murmurInstalled: true, liveHelper: .setUp)
+        T.equal(unmarked.map(\.title), ["Join with Fathom", "Join with Yaya\u{2019}s Murmur", "-", "Just join", "-", "Set up Live Helper\u{2026}"],
+                "unmarked: Set up Live Helper… last, apart from the joins")
+        T.equal(unmarked.last?.entry, .liveHelperSetUp, "it opens the setup")
+        T.equal(JoinMenu.items(fathomTargets: [], murmurInstalled: true, liveHelper: .join).map(\.title),
+                ["Join with Yaya\u{2019}s Murmur", "\u{2726} Join with Live Helper", "-", "Just join"], "without Fathom")
+        T.equal(JoinMenu.items(fathomTargets: [orbT], murmurInstalled: true),
+                JoinMenu.items(fathomTargets: [orbT], murmurInstalled: true, liveHelper: nil), "no offer: D-046's menu (the Event Peek's)")
+        T.equal(JoinMenu.items(fathomTargets: [orbT], murmurInstalled: false, liveHelper: .join).map(\.title),
+                ["Join with Fathom", "-", "Just join"], "no Murmur: no Live Helper item whatever is asked")
+        T.equal(JoinMenu.items(fathomTargets: [], murmurInstalled: false, liveHelper: .setUp).map(\.title), ["Just join"],
+                "no Murmur: no setup item")
+    }
+
+    static func sessionJoinLiveHelper() {
+        T.section("live helper: the shared join (Up Next's route and the popover)")
+        let f = Fake()
+        f.marks = MurmurMarks.parse(json(markedJSON))
+        let s = session(f)
+        let e = event()
+        T.equal(s.joinLiveHelper(e, via: "test"), .started, "marked: started (the marks are read first)")
+        T.equal(f.opened.map(\.absoluteString), ["\(Profile.murmurScheme)://join?event=\(e.r)"],
+                "Murmur's join link with no mode, though the mark says home lab (Live Helper records on the MacBook)")
+        T.equal(f.later.count, 1, "the meeting waits a moment")
+        f.later.forEach { $0() }
+        T.equal(f.opened.last, meet, "then the meeting")
+        f.opened = []; f.later = []
+        T.equal(s.joinLiveHelper(event(r: "gNotMarked0002"), via: "test"), nil, "not marked: nil, the caller's recorder path")
+        T.check(f.opened.isEmpty && f.later.isEmpty, "and nothing opened")
+        T.equal(s.joinLiveHelper(event(join: nil), via: "test"), .blocked, "marked, no join link: blocked")
+        T.equal(s.joinLiveHelper(event(join: URL(string: "https://evil.example/meet")), via: "test"), .blocked, "a link off the allowlist")
+        T.check(f.opened.isEmpty, "nothing opened when blocked")
+        f.openOK = false
+        T.equal(s.joinLiveHelper(e, via: "test"), .joinedOnly, "Murmur's link failed: the meeting only")
+        f.openOK = true
+        f.opened = []; f.later = []
+        f.installed = false
+        T.equal(s.joinLiveHelper(e, via: "test"), nil, "Murmur gone: nil")
+        T.check(f.opened.isEmpty && f.later.isEmpty, "and nothing opened")
+    }
+
+    static func popoverLiveHelper() {
+        T.section("live helper: the popover card with Murmur (D-049)")
+        let mf = Fake()
+        mf.marks = MurmurMarks.parse(json(markedJSON))
+        let ms = session(mf)
+        let ff = FathomFake()
+        ff.installed = true
+        var choices: [UUID: RecorderChoice] = [:]
+        let model = popover(murmur: ms, fathom: fathom(ff), events: [event()], choice: { choices[$0] ?? .automatic })
+        T.equal(model.card?.liveHelper, .join, "marked, with a link: Join with Live Helper")
+        T.equal(model.card?.recorder, .fathom, "the account's recorder is unchanged (Fathom)")
+        T.equal(model.card?.badges.first, .liveHelper, "the Live Helper badge stays on the card")
+        if let card = model.card {
+            T.equal(model.joinMenu(card).map(\.title),
+                    ["Join with Fathom", "Join with Yaya\u{2019}s Murmur", "\u{2726} Join with Live Helper", "-", "Just join"],
+                    "the ▾ offers Join with Live Helper, and still every recorder")
+        }
+        for choice in [RecorderChoice.murmur, .ask, .off] {
+            choices[orb] = choice
+            model.load()
+            T.equal(model.card?.liveHelper, .join, "marked: Join with Live Helper whatever the recorder (\(choice))")
+        }
+        choices[orb] = nil
+        mf.marks = MurmurMarks.parse(json(unmarkedJSON))
+        model.load()
+        T.equal(model.card?.liveHelper, .setUp, "not marked: the compact setup button")
+        if let card = model.card {
+            T.equal(model.joinMenu(card).map(\.title),
+                    ["Join with Fathom", "Join with Yaya\u{2019}s Murmur", "-", "Just join", "-", "Set up Live Helper\u{2026}"],
+                    "the ▾ ends with Set up Live Helper…")
+        }
+        mf.marks = MurmurMarks.parse(json(markedJSON))
+        let noLink = popover(murmur: ms, fathom: fathom(ff), events: [event(join: nil)])
+        T.equal(noLink.card?.liveHelper, nil, "marked but no join link: no Live Helper button")
+        T.equal(noLink.card?.badges.first, .liveHelper, "the badge still says it")
+        let offList = popover(murmur: ms, fathom: fathom(ff), events: [event(join: URL(string: "https://evil.example/meet"))])
+        T.equal(offList.card?.liveHelper, nil, "a link off the allowlist: none")
+    }
+
+    static func popoverLiveHelperWithoutMurmur() {
+        T.section("live helper: hidden without Murmur (the popover as before)")
+        let mf = Fake()
+        mf.installed = false
+        mf.marks = MurmurMarks.parse(json(markedJSON))
+        let ff = FathomFake()
+        ff.installed = true
+        let model = popover(murmur: session(mf), fathom: fathom(ff), events: [event()])
+        T.equal(model.card?.liveHelper, nil, "no Live Helper, even with a marks file on disk")
+        T.equal(model.card?.recorder, nil, "no recorder: Join + Join with Fathom, as D-045")
+        if let card = model.card {
+            T.equal(model.joinMenu(card).map(\.title), ["Join with Fathom", "-", "Just join"], "the menu (never shown) has no Murmur item")
+            var expected = card
+            expected.liveHelper = nil
+            expected.recorder = nil
+            expected.murmurMark = nil
+            T.equal(card, expected, "the card carries nothing of Murmur's")
+        }
+        let shared = PopoverModel(store: { FakeCalendarStore(events: [event()]) }, actions: { FakeCalendarStore() },
+                                  mail: { FakeMailStore() }, directory: { directory }, clock: { now }, syncedAt: { nil },
+                                  use24Hour: { false })
+        shared.load()
+        T.equal(shared.card?.liveHelper, nil, "the shared session (no Murmur in tests): nothing")
+    }
+
+    /// The popover's rows open the Event Peek (their Join chip is drawn, not a link). There, a Murmur account's
+    /// Join with Yaya's Murmur sends the very link Join with Live Helper sends, so a marked meeting keeps its chat
+    /// (Murmur's BND-21 takes the event's mark on every armed join).
+    static func rowJoinKeepsLiveHelper() {
+        T.section("live helper: a row's Join on a marked meeting keeps it")
+        let mf = Fake()
+        mf.marks = MurmurMarks.parse(json(markedJSON))
+        let ms = session(mf)
+        let peek = EventPeekModel(event: event(), directory: directory, actions: FakeCalendarStore(), open: { _ in true },
+                                  fathom: fathom(FathomFake()), murmur: ms, recorderChoice: { _ in .murmur })
+        T.equal(peek.recorder, .murmur, "the account records with Yaya's Murmur")
+        T.equal(peek.badges.first, .liveHelper, "the Peek shows the Live Helper badge")
+        T.check(peek.showsLiveHelper, "and its Live Helper row")
+        peek.joinWithMurmur(nil)
+        let viaPeek = mf.opened.first
+        mf.opened = []; mf.later = []
+        _ = ms.joinLiveHelper(event(), via: "test")
+        T.equal(viaPeek, mf.opened.first, "Join with Yaya's Murmur sends Join with Live Helper's link")
+        T.equal(viaPeek?.query, "event=gMurmurWeekly01", "no mode: Murmur's mark decides, and Live Helper keeps the MacBook")
+        mf.opened = []
+        peek.perform(.liveHelper)
+        T.equal(mf.opened.first, viaPeek, "the menu's Join with Live Helper item, should the Peek ever show it")
+        mf.opened = []
+        peek.perform(.liveHelperSetUp)
+        T.equal(mf.opened.first?.host, "helper", "and Set up Live Helper… opens Murmur's setup")
+    }
+
+    /// Murmur's ping (MurmurLive re-reads, then the session publishes): the open popover's card follows on the next
+    /// turn of the main queue, without a reload.
+    static func popoverLiveHelperPing() async {
+        T.section("live helper: the popover follows Murmur's marks ping")
+        let mf = Fake()
+        mf.marks = MurmurMarks.parse(json(unmarkedJSON))
+        let ms = session(mf)
+        let model = popover(murmur: ms, fathom: fathom(FathomFake()), events: [event()])
+        await mainQueue()
+        T.equal(model.card?.liveHelper, .setUp, "unmarked: the setup button")
+        mf.marks = MurmurMarks.parse(json(markedJSON))
+        ms.refresh()
+        await mainQueue()
+        T.equal(model.card?.liveHelper, .join, "marked on the ping: Join with Live Helper")
+        T.equal(model.card?.badges.first, .liveHelper, "and the badge")
+        mf.marks = MurmurMarks.parse(json(unmarkedJSON))
+        ms.refresh()
+        await mainQueue()
+        T.equal(model.card?.liveHelper, .setUp, "unmarked again")
+        mf.marks = .missing
+        ms.refresh()
+        await mainQueue()
+        mf.installed = false
+        ms.refresh()
+        await mainQueue()
+        T.equal(model.card?.liveHelper, nil, "Murmur removed with no marks file (only presence changed): no Live Helper")
+        T.equal(model.card?.recorder, nil, "and the card is D-045's")
+    }
+
+    /// One turn of the main queue: blocks queued before it (the popover's redraw) have run.
+    static func mainQueue() async {
+        await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in DispatchQueue.main.async { c.resume() } }
     }
 }
 

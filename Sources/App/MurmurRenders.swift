@@ -7,7 +7,8 @@ import SwiftUI
 
 /// Yaya's Murmur and recording per account renders (D-046), each with and without Murmur on the Mac: the popover
 /// (the card per recorder, badges on the card and the rows), the Event Peek (Join with its "▾", the recorder, badges,
-/// Live Helper), the account card's recording rows, Settings → Yaya's Murmur and Up Next Medium's record button. The
+/// Live Helper), the account card's recording rows, Settings → Yaya's Murmur, Up Next Medium's record button and Join
+/// with Live Helper on Up Next (D-048) and the popover card (D-049). The
 /// Moonfield cast only: fake Murmur and Fathom sessions (no files read, nothing opened), memory bags, a pinned clock.
 @MainActor
 enum MurmurRenders {
@@ -44,11 +45,15 @@ enum MurmurRenders {
             marks[e.r] = MurmurMark(mode: .macbook, status: .meOnly)
         }
 
-        // 1. The popover: the card per recorder (CMT's choice), with and without Murmur.
-        func popover(_ name: String, murmurInstalled: Bool, fathomInstalled: Bool, cmt choice: RecorderChoice) {
+        // 1. The popover: the card per recorder (CMT's choice), with and without Murmur. The card's meeting has a mark
+        // without a Live Helper here, so each recorder's button shows with "✦ Live Helper" beside it (D-049).
+        var unmarked = marks
+        unmarked[card.r] = MurmurMark(mode: .homelab, consent: .explicit)
+        func popover(_ name: String, murmurInstalled: Bool, fathomInstalled: Bool, cmt choice: RecorderChoice,
+                     marks shown: [String: MurmurMark]? = nil, light: Bool = false) {
             let bag = MemoryBag()
             RecorderPrefs.setChoice(choice, for: Cast.cmt.id, bag)
-            let ms = murmur(installed: murmurInstalled, marks: marks)
+            let ms = murmur(installed: murmurInstalled, marks: shown ?? marks)
             let fs = fathom(installed: fathomInstalled, signIn: .signedIn(cmtMail), bag: bag)
             let store = FakeCalendarStore(events: events)
             let model = PopoverModel(store: { store }, actions: { store }, mail: { FakeMailStore() }, directory: { directory },
@@ -56,17 +61,30 @@ enum MurmurRenders {
                                      fathom: fs, murmur: ms, recorderChoice: { RecorderPrefs.choice($0, bag) })
             model.load()
             let view = PopoverView(model: model).environment(\.headlessRender, true)
-            save(AnyView(view.padding(24).background(backdrop)), "\(name).png",
-                 ["window": "popover", "feature": "murmur", "state": name, "murmur": murmurInstalled, "fathom": fathomInstalled,
-                  "recorder": model.card?.recorder?.rawValue ?? "none", "badges": model.card?.badges.map(\.rawValue) ?? [],
-                  "width": Int(PopoverView.size.width), "height": Int(PopoverView.size.height)])
+            var info: [String: Any] = ["window": "popover", "feature": "murmur", "state": name, "murmur": murmurInstalled,
+                                       "fathom": fathomInstalled, "recorder": model.card?.recorder?.rawValue ?? "none",
+                                       "badges": model.card?.badges.map(\.rawValue) ?? [],
+                                       "width": Int(PopoverView.size.width), "height": Int(PopoverView.size.height)]
+            if let offer = model.card?.liveHelper { info["liveHelper"] = offer == .join ? "join" : "setUp" }
+            if light {
+                // The popover keeps the app's dark look (D-008) under a light menu bar: a light desktop behind it.
+                info["appearance"] = "light"
+                save(AnyView(view.padding(24).background(Color(hex: 0xDCE3E8)).environment(\.colorScheme, .light)), "\(name).png", info)
+            } else {
+                save(AnyView(view.padding(24).background(backdrop)), "\(name).png", info)
+            }
             count += 1
         }
-        popover("murmur-popover-murmur", murmurInstalled: true, fathomInstalled: false, cmt: .automatic)
-        popover("murmur-popover-fathom", murmurInstalled: true, fathomInstalled: true, cmt: .automatic)
-        popover("murmur-popover-ask", murmurInstalled: true, fathomInstalled: true, cmt: .ask)
-        popover("murmur-popover-off", murmurInstalled: true, fathomInstalled: true, cmt: .off)
+        popover("murmur-popover-murmur", murmurInstalled: true, fathomInstalled: false, cmt: .automatic, marks: unmarked)
+        popover("murmur-popover-fathom", murmurInstalled: true, fathomInstalled: true, cmt: .automatic, marks: unmarked)
+        popover("murmur-popover-ask", murmurInstalled: true, fathomInstalled: true, cmt: .ask, marks: unmarked)
+        popover("murmur-popover-off", murmurInstalled: true, fathomInstalled: true, cmt: .off, marks: unmarked)
         popover("murmur-popover-without-murmur", murmurInstalled: false, fathomInstalled: true, cmt: .murmur)
+        // Join with Live Helper on the card (D-049): the meeting marked Live Helper, its account on Fathom (light and
+        // dark desktops) and on Yaya's Murmur; Live Helper takes the recorder's button's place.
+        popover("murmur-popover-livehelper-light", murmurInstalled: true, fathomInstalled: true, cmt: .automatic, light: true)
+        popover("murmur-popover-livehelper-dark", murmurInstalled: true, fathomInstalled: true, cmt: .automatic)
+        popover("murmur-popover-livehelper-murmur", murmurInstalled: true, fathomInstalled: false, cmt: .automatic)
 
         // 2. The Event Peek: Join with "▾", the recorder, badges and Live Helper; with and without Murmur.
         func peek(_ name: String, event: CalendarEvent, murmurInstalled: Bool, fathomInstalled: Bool,

@@ -327,12 +327,11 @@ final class LinkRouter {
             Trace.app("recv livehelper", ["result": "missing", "at": ms])
             return .quiet
         }
-        MurmurSession.shared.refresh()
-        guard MurmurSession.shared.mark(r)?.helper != nil else {
+        // The popover card's Join with Live Helper takes the same path (D-049).
+        guard let outcome = MurmurSession.shared.joinLiveHelper(event, via: "widget") else {
             Trace.app("recv livehelper", ["result": "unmarked", "at": ms])
             return record(r: r, at: ms)
         }
-        let outcome = MurmurSession.shared.join(event, mode: nil, via: "widget")
         Trace.app("recv livehelper", ["result": "\(outcome)", "at": ms])
         switch outcome {
         case .started, .joinedOnly: return .handedOff
