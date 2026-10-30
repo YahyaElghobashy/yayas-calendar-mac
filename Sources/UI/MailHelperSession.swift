@@ -770,6 +770,20 @@ final class MailHelperDraftModel: ObservableObject {
 
     /// Row id → Gmail thread id (the app installs the data layer's lookup at launch; renders and tests pass their own).
     nonisolated(unsafe) static var threadIdLookup: (String) -> String? = { _ in nil }
+    /// The voice note's recorder and files (the app installs the AVFoundation one at launch; nil = no voice note).
+    nonisolated(unsafe) static var makeVoice: (@MainActor (MailHelperSession) -> MailVoiceNoteModel)?
+
+    /// The voice note: its transcript joins "What should it say?" and the draft starts.
+    lazy var voice: MailVoiceNoteModel? = {
+        guard let v = Self.makeVoice?(session) else { return nil }
+        v.onText = { [weak self] text in
+            guard let self else { return }
+            let mine = self.instruction.trimmingCharacters(in: .whitespacesAndNewlines)
+            self.instruction = String((mine.isEmpty ? text : mine + "\n" + text).prefix(MailHelperCommand.instructionLimit))
+            self.draft()
+        }
+        return v
+    }()
 
     /// The composer's button: only for a reply, only while the helper is installed.
     static func make(for request: ComposerRequest, composer: ComposerModel, session: MailHelperSession? = nil) -> MailHelperDraftModel? {

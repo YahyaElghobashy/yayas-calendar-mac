@@ -20,6 +20,12 @@ enum MailHelperFiles {
     static let resultsFolder = "results"
     /// The calendar's own command folder, inside its data root's `share/` (0700; files 0600).
     static let commandFolder = "mailhelper"
+    /// Voice notes handed to the helper (v1.3): `voice-<lowercase uuid>.wav`, deleted by the helper once read.
+    static func clipName(_ id: UUID) -> String { "voice-" + id.uuidString.lowercased() + ".wav" }
+    static func isClip(_ name: String) -> Bool {
+        guard name.hasPrefix("voice-"), name.hasSuffix(".wav"), let id = UUID(uuidString: String(name.dropFirst(6).dropLast(4))) else { return false }
+        return clipName(id) == name
+    }
     /// The helper's files are refused past 4 MiB before they are read.
     static let fileLimit = 4 * 1024 * 1024
     /// A command file never exceeds 64 KiB.
@@ -794,6 +800,12 @@ struct MailHelperCommand: Equatable {
 
     /// Ask Claude and Codex for their current models and thinking levels (v1.2).
     static func modelsRefresh() -> MailHelperCommand { MailHelperCommand(kind: "models_refresh") }
+
+    /// A voice note to transcribe on this Mac (v1.3): `voice-<uuid>.wav` in the share folder, 16 kHz mono WAV.
+    static func transcribe(clip: String) -> MailHelperCommand? {
+        guard MailHelperFiles.isClip(clip) else { return nil }
+        return MailHelperCommand(kind: "transcribe", args: ["clip": .string(clip)])
+    }
 
     static func setKind(_ kind: String, account: UUID) -> MailHelperCommand? {
         guard kind == "personal" || kind == "work" else { return nil }

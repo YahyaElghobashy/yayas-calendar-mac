@@ -200,6 +200,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 	<key>NSHighResolutionCapable</key><true/>
 	<key>NSPrincipalClass</key><string>NSApplication</string>
 	<key>NSHumanReadableCopyright</key><string>© 2026 Yahya Elghobashy · MIT License</string>
+	<key>NSMicrophoneUsageDescription</key><string>Only for Draft with AI's voice note: you say what the reply should say, and Yaya's Mail Helper writes it out on this Mac.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -330,7 +331,9 @@ fi
 
 xattr -cr "$APP"
 "${SIGN[@]}" --options runtime --identifier "$WIDGET_ID" --entitlements "$WIDGET_ENTITLEMENTS" "$APPEX"
-"${SIGN[@]}" --options runtime --identifier "$APP_ID" "$APP"
+APP_ENTITLEMENTS="$ROOT/Resources/App.entitlements"
+[[ -f "$APP_ENTITLEMENTS" ]] || yc_fail "missing Resources/App.entitlements"
+"${SIGN[@]}" --options runtime --identifier "$APP_ID" --entitlements "$APP_ENTITLEMENTS" "$APP"
 codesign --verify --deep --strict "$APP" || yc_fail "codesign --verify --deep --strict failed"
 
 if [[ "$SIGN_MODE" == adhoc ]]; then
@@ -352,6 +355,9 @@ entitlements="$(codesign -d --entitlements - --xml "$APPEX" 2>/dev/null)"
 [[ "$entitlements" == *"$WIDGET_FOLDER"* && "$entitlements" == *app-sandbox* ]] \
   || yc_fail "widget entitlements missing the sandbox or the widget-folder exception ($WIDGET_FOLDER)"
 [[ "$entitlements" != *network* ]] || yc_fail "the widget must not have a network entitlement"
+app_entitlements="$(codesign -d --entitlements - --xml "$APP" 2>/dev/null)"
+[[ "$app_entitlements" == *device.audio-input* && "$app_entitlements" != *network* && "$app_entitlements" != *camera* ]] \
+  || yc_fail "the app's entitlements must be the microphone (voice note) and nothing else"
 DR="$(codesign -d -r- "$APP" 2>&1 | sed -nE 's/^(# )?designated => //p')"
 [[ "$DR" == "$EXPECTED_DR" ]] || yc_fail "designated requirement mismatch:
     built:    $DR

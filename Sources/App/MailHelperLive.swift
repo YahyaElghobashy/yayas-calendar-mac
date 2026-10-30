@@ -32,6 +32,7 @@ enum MailHelperLive {
             openThread: { account, thread in openThread(account, thread) },
             reply: { account, thread in reply(account, thread) })
         removeStaleCommands()
+        installVoice()
         MailHelperSession.shared.refresh()
         afterRefresh()
         guard pingTarget == nil else { return }
@@ -209,9 +210,15 @@ enum MailHelperLive {
 
     /// `cmd-<uuid>.json`, written to a temporary name (O_EXCL, O_NOFOLLOW, 0600), synced, then renamed into place.
     static func writeCommand(_ id: UUID, _ data: Data) -> Bool {
-        guard data.count <= MailHelperFiles.commandLimit, ensureFolder() else { return false }
-        let final = commandFolder.appendingPathComponent(MailHelperFiles.commandName(id)).path
-        let temp = commandFolder.appendingPathComponent("." + MailHelperFiles.commandName(id) + ".tmp").path
+        guard data.count <= MailHelperFiles.commandLimit else { return false }
+        return writeShared(data, final: MailHelperFiles.commandName(id), temp: "." + MailHelperFiles.commandName(id) + ".tmp")
+    }
+
+    /// A file in the share folder the way commands are written: temporary name, O_EXCL, O_NOFOLLOW, 0600, fsync, rename.
+    static func writeShared(_ data: Data, final finalName: String, temp tempName: String) -> Bool {
+        guard ensureFolder() else { return false }
+        let final = commandFolder.appendingPathComponent(finalName).path
+        let temp = commandFolder.appendingPathComponent(tempName).path
         let fd = Darwin.open(temp, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0o600)
         guard fd >= 0 else { return false }
         var ok = fchmod(fd, 0o600) == 0
@@ -235,13 +242,18 @@ enum MailHelperLive {
         return true
     }
 
-    /// Commands the helper never picked up (it deletes each one it reads) go after an hour.
+    /// Commands and voice notes the helper never picked up (it deletes each one it reads) go after an hour.
     private static func removeStaleCommands() {
+        removeStale(in: commandFolder, suffix: nil)
+    }
+
+    /// Regular files older than an hour in `folder` (`suffix` nil: commands, temporaries and voice notes).
+    static func removeStale(in folder: URL, suffix: String?) {
         let fm = FileManager.default
-        guard let names = try? fm.contentsOfDirectory(atPath: commandFolder.path) else { return }
+        guard let names = try? fm.contentsOfDirectory(atPath: folder.path) else { return }
         let cutoff = Date().addingTimeInterval(-3600)
-        for name in names where name.hasSuffix(".json") || name.hasSuffix(".tmp") {
-            let path = commandFolder.appendingPathComponent(name).path
+        for name in names where suffix.map({ name.hasSuffix($0) }) ?? (name.hasSuffix(".json") || name.hasSuffix(".tmp") || name.hasSuffix(".wav")) {
+            let path = folder.appendingPathComponent(name).path
             var info = stat()
             guard lstat(path, &info) == 0, (info.st_mode & S_IFMT) == S_IFREG,
                   Date(timeIntervalSince1970: TimeInterval(info.st_mtimespec.tv_sec)) < cutoff else { continue }

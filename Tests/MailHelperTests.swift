@@ -1,3 +1,4 @@
+import Combine
 import CryptoKit
 import Foundation
 
@@ -36,6 +37,7 @@ enum MailHelperTests {
         needsReplyAndVoice()
         digestReadIsDone()
         drafts()
+        voiceNotes()
         composerInsert()
         fixtureFiles()
         routes()
@@ -714,6 +716,97 @@ enum MailHelperTests {
     }
 
     // MARK: Draft with AI
+
+    static func voiceNotes() {
+        T.section("mail helper: the Draft pop-over's voice note (D-052)")
+        let f = Fake()
+        let s = session(f)
+        let rec = MailVoiceScriptedRecorder(permission: nil)
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("yc-voice-\(getpid())", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        var published: [String] = [], removed: [URL] = [], ticks = 0, privacy = 0
+        let env = MailVoiceNoteModel.Environment(
+            newClip: { dir.appendingPathComponent(UUID().uuidString.lowercased() + ".wav") },
+            publish: { _ in let n = MailHelperFiles.clipName(UUID()); published.append(n); return n },
+            remove: { removed.append($0); try? FileManager.default.removeItem(at: $0) },
+            openPrivacy: { privacy += 1 },
+            ticker: { _ in ticks += 1; return AnyCancellable {} })
+        var texts: [String] = []
+        let v = MailVoiceNoteModel(session: s, recorder: rec, env: env, onText: { texts.append($0) })
+        T.equal(v.phase, .idle, "idle until asked")
+        v.record()
+        T.equal(rec.calls.prefix(2).map { $0 }, ["ask", "start"], "asks for the microphone once, then records")
+        T.equal(v.phase, .recording, "recording")
+        T.equal(ticks, 1, "the clock and bars run while recording")
+        rec.recorded = 3.4; rec.nextLevel = 0.8
+        v.tickNow()
+        T.equal(MailVoiceNoteModel.clock(v.elapsed), "0:03", "the time")
+        T.equal(v.levels.last, 0.8, "the newest bar")
+        T.equal(v.levels.count, MailVoiceNoteModel.barCount, "a fixed number of bars")
+        v.pause()
+        T.equal(v.phase, .paused, "paused")
+        v.resume()
+        T.equal(v.phase, .recording, "resumed")
+        rec.recorded = 7.2
+        v.stop()
+        T.equal(v.phase, .stopped, "stopped with a clip")
+        T.equal(MailVoiceNoteModel.clock(v.elapsed), "0:07", "its length")
+        v.togglePlay()
+        T.check(v.playing && rec.playingURL != nil, "listen back")
+        rec.endPlayback()
+        T.check(!v.playing, "playback ends on its own")
+        v.send()
+        T.equal(v.phase, .sending, "sending")
+        T.equal(f.last?["kind"]?.string, "transcribe", "the transcribe command")
+        T.equal(f.last?["args"]?["clip"]?.string, published.last, "with the share copy's name")
+        f.answer(ok: false, error: "transcription isn't set up on this Mac (whisper-cli is missing)")
+        s.collect()
+        T.equal(v.phase, .failed("transcription isn't set up on this Mac (whisper-cli is missing)"), "the helper's error")
+        T.check(v.isFailedWithClip && v.canSend, "the recording is kept, so it can be sent again")
+        v.send()
+        f.answer(data: .object(["text": .string("  It\u{2019}s fine, I\u{2019}ll wait for your call.\u{0007} ")]))
+        s.collect()
+        T.equal(texts, ["It\u{2019}s fine, I\u{2019}ll wait for your call."], "the text, cleaned, goes on")
+        T.equal(v.phase, .idle, "and the bar is ready again")
+        T.check(removed.count == 1 && !FileManager.default.fileExists(atPath: removed[0].path), "the private recording is deleted")
+
+        // A short tap is no voice note; discard mid-recording; refused microphone; the five-minute stop.
+        v.record(); rec.recorded = 0.2; v.stop()
+        T.equal(v.phase, .idle, "under half a second: nothing kept")
+        v.record(); v.discard()
+        T.equal(v.phase, .idle, "discard while recording")
+        T.check(rec.calls.last == "stop", "…stops the microphone")
+        v.record(); rec.recorded = MailVoiceNoteModel.maxDuration; v.tickNow()
+        T.equal(v.phase, .stopped, "stops itself at five minutes")
+        v.discard()
+        v.record(); rec.recorded = 4; v.stop(); v.send()
+        v.discard()
+        f.answer(data: .object(["text": .string("late")]))
+        s.collect()
+        T.equal(texts.count, 1, "an answer after Discard is dropped")
+        let denied = MailVoiceNoteModel(session: s, recorder: MailVoiceScriptedRecorder(permission: false), env: env)
+        denied.record()
+        T.equal(denied.phase, .denied, "refused in System Settings: said, with a way there")
+        denied.openPrivacy()
+        T.equal(privacy, 1, "Open Settings")
+        let stuck = MailVoiceScriptedRecorder(permission: true); stuck.startOK = false
+        let busy = MailVoiceNoteModel(session: s, recorder: stuck, env: env)
+        busy.record()
+        if case .failed = busy.phase {} else { T.check(false, "a microphone that won't start says so") }
+
+        // In the pop-over: the transcript joins "What should it say?" and the draft starts.
+        MailHelperDraftModel.makeVoice = { sess in MailVoiceNoteModel(session: sess, recorder: MailVoiceScriptedRecorder(), env: env) }
+        let d = MailHelperDraftModel(account: home, threadR: "mRowId", session: s, threadId: { _ in "18f2a0c4d1e5e001" }, bag: MemoryBag())
+        d.instruction = "Keep it short."
+        d.voice?.onText("Say yes to Wednesday")
+        T.equal(d.instruction, "Keep it short.\nSay yes to Wednesday", "added to what was typed")
+        T.check(d.isWorking && f.last?["kind"]?.string == "draft", "and the draft starts")
+        MailHelperDraftModel.makeVoice = nil
+        T.check(MailHelperFiles.isClip(MailHelperFiles.clipName(UUID())) && !MailHelperFiles.isClip("voice-../x.wav")
+                && !MailHelperFiles.isClip("voice-0A1B2C3D-0000-4000-8000-00000000ABCD.wav"), "clip names: lowercase uuid only")
+        T.equal(MailHelperCommand.transcribe(clip: "x.wav"), nil, "transcribe takes only clip names")
+        try? FileManager.default.removeItem(at: dir)
+    }
 
     static func drafts() {
         T.section("mail helper: Draft with AI")
