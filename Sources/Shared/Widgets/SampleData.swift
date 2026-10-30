@@ -73,6 +73,10 @@ enum WidgetCardState: Equatable {
     case setup
     /// Mail-backed content while mail is off: "Mail is off" (MailOffCopy).
     case mailComingSoon
+    /// Daily Digest while Yaya's Mail Helper isn't on this Mac (DigestCopy, D-053).
+    case mailHelperOff
+    /// Daily Digest with the helper installed and no digest yet (DigestCopy).
+    case noDigest
 }
 
 /// Sync health as the widget renders it. Everything time-relative is computed from the entry date.
@@ -159,6 +163,8 @@ struct WidgetData {
     /// What to draw; nil = the kind's own content (custom slots: the type chosen in Widget Studio).
     var content: WidgetContent? = nil
     var state: WidgetCardState = .content
+    /// Daily Digest (D-053), resolved for this entry.
+    var digest: WidgetDigest? = nil
 
     /// Meetings inside the agenda range (Agenda, Agenda & Inbox lists).
     var agendaMeetings: [WidgetMeeting] {
@@ -264,7 +270,37 @@ enum WidgetSample {
 
         // Only the meetings still ahead matter to a real widget, but the sample passes the whole week
         // (the Month grid dots and "x of y meetings left" use the past ones too).
-        return WidgetData(now: now, meetings: meetings, mail: mail, selectedDay: anchor)
+        var data = WidgetData(now: now, meetings: meetings, mail: mail, selectedDay: anchor)
+        data.digest = digest(now: now, accounts: a, calendar: calendar)
+        return data
+    }
+
+    /// The Daily Digest's gallery preview (D-053): the Moonfield desk's morning digest, one box per mailbox.
+    static func digest(now: Date, accounts a: [String: WidgetAccount], calendar: Calendar = WidgetCalendar.current) -> WidgetDigest {
+        typealias D = WidgetSnapshot.Digest
+        let day = DayName.linkDay(calendar.startOfDay(for: now))
+        let d = D(id: 1, day: day, total: 13, sections: [
+            D.Section(key: "newsletters", title: "Newsletters", count: 3, read: false),
+            D.Section(key: "updates", title: "Updates", count: 5, read: false),
+            D.Section(key: "promotions", title: "Deals and promotions", count: 2, read: false),
+            D.Section(key: "orders", title: "Orders and deliveries", count: 2, read: true),
+            D.Section(key: "security", title: "Codes and security", count: 1, read: true),
+        ], boxes: [
+            D.Box(account: "ORB", counts: ["updates": 3], top: [
+                D.Line(text: "moonforge.example: 3 updates \u{00B7} Build 412 passed", section: "updates")]),
+            D.Box(account: "CMT", counts: ["newsletters": 1, "promotions": 1], top: [
+                D.Line(text: "Members get the Friday show at half price", section: "promotions", pick: true),
+                D.Line(text: "Three practice drills for tighter harmonies", section: "newsletters")]),
+            D.Box(account: "FAM", counts: [:], top: []),
+            D.Box(account: "ME", counts: ["newsletters": 2, "updates": 2, "promotions": 1, "orders": 2, "security": 1], top: [
+                D.Line(text: "A pickle-sized satellite arm passes its first vacuum test", section: "newsletters", pick: true),
+                D.Line(text: "30% off coats and knitwear until Sunday", section: "promotions"),
+                D.Line(text: "Why brine temperature matters more than salt", section: "newsletters")]),
+        ])
+        // No Model Atlas box (D-054): it shows only where its file exists, never in the public preview.
+        var digest = WidgetDigest(d) { key in a[key] ?? WidgetAccount(id: key, short: key, name: key, logo: nil) }
+        digest.now = now
+        return digest
     }
 
     /// D-013 fixture: a quiet week where most days have one or two meetings (slim day banners).

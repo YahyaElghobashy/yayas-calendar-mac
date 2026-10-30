@@ -43,6 +43,11 @@ enum Profile {
     static let mailHelperScheme = "yayamail-dev"
     /// Relative to the user's real home. Read only: the calendar never writes there (it deletes the answers it read).
     static let mailHelperDataRoot = "Library/Application Support/YayasMailHelperDev"
+    /// Model Atlas, the owner's weekly AI-model report (D-054): its ping's namespace and its data folder. A dev calendar
+    /// only ever reads a dev feed.
+    static let modelAtlasId = "com.yahyaelghobashy.modelatlas.dev"
+    /// Relative to the user's real home. Read only: the calendar never writes there.
+    static let modelAtlasDataRoot = "Library/Application Support/ModelAtlasDev"
     #else
     static let name = "release"
     static let bundleId = "com.yahyaelghobashy.yayascalendar"
@@ -70,6 +75,11 @@ enum Profile {
     static let mailHelperScheme = "yayamail"
     /// Relative to the user's real home. Read only: the calendar never writes there (it deletes the answers it read).
     static let mailHelperDataRoot = "Library/Application Support/YayasMailHelper"
+    /// Model Atlas, the owner's weekly AI-model report (D-054): its ping's namespace and its data folder (its
+    /// docs/DIGEST-CONTRACT.md).
+    static let modelAtlasId = "com.yahyaelghobashy.modelatlas"
+    /// Relative to the user's real home. Read only: the calendar never writes there.
+    static let modelAtlasDataRoot = "Library/Application Support/ModelAtlas"
     #endif
 
     static var isDev: Bool { name == "dev" }

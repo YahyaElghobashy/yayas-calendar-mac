@@ -83,6 +83,15 @@ enum DataServices {
         }
     }
 
+    /// The Daily Digest's feed changed (D-053): that one kind is rebuilt, off the main thread. `interactive` while the
+    /// app is in front (a section marked read here): the reload goes out now; otherwise through the background budget.
+    static func republishDigest(interactive: Bool) {
+        guard let engine else { return }
+        Task.detached {
+            engine.publisher.publish(kind: WidgetKinds.digest.kind, reason: interactive ? .interaction : .background)
+        }
+    }
+
     // MARK: - Mail helpers for the surfaces (beyond the frozen seam)
 
     /// `yayacal://mail/read|archive|star|undo?r&k`, after the router verified `k`. `mail/undo` reverses

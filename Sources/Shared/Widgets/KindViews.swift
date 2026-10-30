@@ -69,6 +69,12 @@ struct KindView: View {
         case .design(.day):
             DayTimelineWidget(family: family, meetings: data.meetings, now: data.now, style: style, day: data.selectedDay,
                               reserve: reserve)
+        case .design(.digest):
+            if let digest = data.digest {
+                DigestWidget(family: family, digest: digest, now: data.now, style: style)
+            } else {
+                WidgetStateCard(state: .noDigest, family: family, style: style)
+            }
         case .card(.setup), .design(.custom):
             if let letter = Self.letter(spec) {
                 CustomSetupWidget(family: family, letter: letter, style: style)
@@ -199,6 +205,12 @@ struct KindView: View {
                           columns: InboxWidget.columns(family), showBanners: family != .medium)
     }
 
+    /// Mailboxes the Daily Digest draws (D-053), nil where it draws none.
+    static func digestBoxes(spec: WidgetKindSpec, family: Family, data: WidgetData, style: WidgetStyle) -> Int? {
+        guard resolve(spec: spec, family: family, data: data) == .design(.digest), let digest = data.digest else { return nil }
+        return DigestWidget.shownBoxes(family: family, digest: digest, style: style)
+    }
+
     /// Mail rows shown by inbox kinds on the page shown.
     static func mailRows(spec: WidgetKindSpec, family: Family, data: WidgetData, style: WidgetStyle, page: Int = 1) -> Int? {
         guard resolve(spec: spec, family: family, data: data) == .design(.inbox) else { return nil }
@@ -235,6 +247,17 @@ struct WidgetStateCard: View {
                               title: MailOffCopy.widgetTitle,
                               line: small ? MailOffCopy.widgetLineSmall : MailOffCopy.widgetLine,
                               destination: YayaLink.openApp(.accounts))
+        case .mailHelperOff:
+            WidgetMessageCard(family: family, style: style, symbol: "envelope.badge",
+                              title: small ? DigestCopy.offTitleSmall : DigestCopy.offTitle,
+                              line: small ? DigestCopy.offLineSmall : DigestCopy.offLine,
+                              destination: YayaLink.openApp(.widgets))
+        case .noDigest:
+            WidgetMessageCard(family: family, style: style, symbol: "newspaper",
+                              title: DigestCopy.noneTitle,
+                              line: small ? DigestCopy.noneLineSmall : DigestCopy.noneLine,
+                              button: small ? nil : DigestCopy.noneButton,
+                              destination: YayaLink.openDigest())
         case .setup, .content:
             WidgetMessageCard(family: family, style: style, symbol: "square.grid.2x2",
                               title: "Not set up yet", line: "Pick its calendars and look in Yaya's Calendar.",

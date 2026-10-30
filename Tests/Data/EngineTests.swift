@@ -113,7 +113,7 @@ enum EngineTests {
                && accounts?.first?["selected"] as? Int == 1 && accounts?.first?["feedTokens"] as? Int == 1, "per-account counts")
         expect(accounts?.first?["lastSync"] is String && accounts?.first?["lastError"] is NSNull, "last sync + error")
         let snapshots = json?["snapshots"] as? [String: Any]
-        expect((snapshots?["agenda.all"] as? [String: Any])?["meetings"] as? Int == 1 && snapshots?.count == 12, "snapshot summary per kind")
+        expect((snapshots?["agenda.all"] as? [String: Any])?["meetings"] as? Int == 1 && snapshots?.count == 13, "snapshot summary per kind")
         expect(!line.contains("secret.person") && !line.contains("Top secret") && !line.contains("access-"),
                "no emails, titles or tokens")
         expect((json?["window"] as? [String]) == ["2026-09-28", "2026-12-31"], "window in the report")

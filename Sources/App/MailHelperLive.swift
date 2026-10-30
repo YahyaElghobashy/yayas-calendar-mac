@@ -33,6 +33,7 @@ enum MailHelperLive {
             reply: { account, thread in reply(account, thread) })
         removeStaleCommands()
         installVoice()
+        SnapshotPublisher.digestFeed = { digestFeed.get() }
         MailHelperSession.shared.refresh()
         afterRefresh()
         guard pingTarget == nil else { return }
@@ -73,7 +74,41 @@ enum MailHelperLive {
             meetingsSent = [:]
             Trace.app("mailhelper", ["action": "presence", "result": now ? "installed" : "gone"])
         }
+        syncDigestFeed()
         syncMeetingPeople()
+    }
+
+    // MARK: The Daily Digest widget (D-053)
+
+    nonisolated static let digestFeed = LockedValue<SnapshotPublisher.DigestFeed>(.off)
+
+    /// The widget's digest from what the session read; a change republishes that one kind.
+    static func syncDigestFeed() {
+        let session = MailHelperSession.shared
+        let next: SnapshotPublisher.DigestFeed
+        if !session.installed {
+            next = .off
+        } else if let digest = session.digest {
+            let known = AccountDirectory.current().accounts.map(\.id)
+            next = .ready(MailHelperDigestWidget.snapshot(digest, mailboxes: MailHelperDigestWidget.mailboxes(session.state),
+                                                          known: known))
+        } else {
+            next = .none
+        }
+        guard next != digestFeed.get() else { return }
+        digestFeed.set(next)
+        Trace.app("mailhelper", ["action": "digest-widget", "result": {
+            switch next { case .off: return "off"; case .none: return "none"; case .ready: return "ready" }
+        }()])
+        DataServices.republishDigest(interactive: NSApp.isActive)
+    }
+
+    /// The Daily Digest's ↻ (`sync?w=digest`): read the helper's files now and ask it for fresh numbers.
+    static func refreshForWidget() {
+        checkedAt = .distantPast
+        MailHelperSession.shared.refresh()
+        afterRefresh()
+        if MailHelperSession.shared.installed { MailHelperSession.shared.send(.refresh()) }
     }
 
     // MARK: Presence

@@ -48,6 +48,8 @@ enum TestMain {
         await MurmurTests.runAsync()
         // Yaya's Mail Helper link (D-050).
         await MailHelperTests.run()
+        // The Daily Digest widget (D-053).
+        DigestWidgetTests.run()
         // First-run UX.
         StrangerUXTests.run()
         // Mail defaults (D-029).

@@ -143,7 +143,7 @@ macOS hands these over without asking only to an app with this app’s signature
 | `Mail Downloads/` | The copy another app gets when you Open an attachment; deleted after 24 hours |
 | `compose/` | Copies of files attached to a draft; deleted when the composer closes |
 | `outbox/` | Large messages, or messages with files, waiting for Gmail; deleted once sent or cancelled, kept 7 days if sending failed |
-| `widget/` | What the widgets draw (meeting titles and times, inbox senders and subjects), account logos and the widget’s log |
+| `widget/` | What the widgets draw (meeting titles and times, inbox senders and subjects, with Yaya’s Mail Helper the Daily Digest’s headlines and counts), account logos and the widget’s log |
 | `share/` | The Deck file, only while that setting is on; `share/mailhelper/`, the requests for Yaya’s Mail Helper (each deleted by the helper, a leftover after an hour), only while it’s installed |
 | `logs/` | The app’s log |
 
@@ -271,6 +271,13 @@ talks to that server; the helper does.
 - **Draft with AI** sends the helper only which conversation you are answering (its account and Gmail thread id), the
   model and thinking level you picked and what you typed in “What should it say?”. The draft comes back as plain text
   into the composer; nothing is sent until you press Send, with the usual approval card.
+- **The Daily Digest widget** draws the digest’s headlines, its counts per section and per mailbox and which sections
+  you’ve read. The app copies just that (at most three short lines a mailbox) into the widget’s own file,
+  `widget/digest.json`, as it does for the other widgets; the widget reads nothing else of the helper’s.
+- **Model Atlas.** If your own Model Atlas report is on this Mac, the Daily Digest widget adds its weekly box. The
+  app reads one small file of Model Atlas’s (`~/Library/Application Support/ModelAtlas/share/digest.json`, read-only,
+  never logged), copies its few lines into the widget’s file, and on a tap opens that week’s report (a Markdown file in
+  your Model Atlas folder) in your usual app. It remembers only which report you last opened.
 - **What leaves your Mac from Yaya’s Calendar.** Nothing. There is no helper or server host on the app’s list. When the
   helper isn’t installed, nothing is read, written or changed.
 

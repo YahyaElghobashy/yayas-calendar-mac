@@ -5,6 +5,12 @@ All notable changes to Yaya’s Calendar. Versions follow the app’s `CFBundleS
 
 ## Unreleased
 
+- **Daily Digest widget.** With Yaya’s Mail Helper, a new widget shows the morning digest at a glance in every size:
+  how much is still unread, the day, the top headlines and the count per section, and one box per mailbox, however
+  many you have, each with its own count. Reading a section in the app clears it on the widget; tapping a mailbox, a
+  section or a headline opens the Digest tab right there. Without the helper it says so plainly (D-053).
+  With Model Atlas’s weekly report on your Mac, the widget also gets a Model Atlas box: what’s new this week, marked
+  New until you open the report with a tap (D-054).
 - **Live Helper in the menu-bar popover.** With Yaya’s Murmur on your Mac, the next-meeting card shows ✦ Join with
   Live Helper for a meeting Yaya’s Murmur marked Live Helper, in place of the recorder’s button: the call opens with
   Yaya’s Murmur listening and that meeting’s chat beside it. The ▾ beside Join offers it too, and still every recorder.

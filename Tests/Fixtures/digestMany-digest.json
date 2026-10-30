@@ -1,0 +1,198 @@
+{
+  "accounts" : [
+    {
+      "color" : 9288308,
+      "hasLogo" : true,
+      "id" : "00000000-0000-4000-8000-0000000000A1",
+      "name" : "Orbital Pickle Co.",
+      "tag" : "ORB"
+    },
+    {
+      "color" : 8361704,
+      "hasLogo" : true,
+      "id" : "00000000-0000-4000-8000-0000000000A2",
+      "name" : "The Quiet Comets",
+      "tag" : "CMT"
+    },
+    {
+      "color" : 13805254,
+      "hasLogo" : false,
+      "id" : "00000000-0000-4000-8000-0000000000A0",
+      "name" : "Personal",
+      "tag" : "Personal"
+    }
+  ],
+  "busyDays" : [
+
+  ],
+  "content" : "digest",
+  "digest" : {
+    "boxes" : [
+      {
+        "account" : "00000000-0000-4000-8000-0000000000A1",
+        "counts" : {
+
+        },
+        "top" : [
+
+        ]
+      },
+      {
+        "account" : "00000000-0000-4000-8000-0000000000A2",
+        "counts" : {
+          "newsletters" : 1,
+          "promotions" : 1
+        },
+        "top" : [
+          {
+            "pick" : true,
+            "section" : "promotions",
+            "text" : "Members get the Friday show at half price"
+          },
+          {
+            "section" : "newsletters",
+            "text" : "Three practice drills for tighter harmonies"
+          }
+        ]
+      },
+      {
+        "account" : "00000000-0000-4000-8000-0000000000A0",
+        "counts" : {
+          "newsletters" : 2,
+          "orders" : 2,
+          "promotions" : 1,
+          "security" : 1,
+          "updates" : 5
+        },
+        "top" : [
+          {
+            "pick" : true,
+            "section" : "newsletters",
+            "text" : "A pickle-sized satellite arm passes its first vacuum test"
+          },
+          {
+            "section" : "newsletters",
+            "text" : "Why brine temperature matters more than salt"
+          },
+          {
+            "section" : "promotions",
+            "text" : "30% off coats and knitwear until Sunday"
+          }
+        ]
+      },
+      {
+        "account" : "00000000-0000-4000-8000-0000000000B1",
+        "counts" : {
+          "newsletters" : 1
+        },
+        "label" : "avery@lanternhall.example",
+        "top" : [
+          {
+            "pick" : true,
+            "section" : "newsletters",
+            "text" : "Members get early booking for the winter season"
+          }
+        ]
+      },
+      {
+        "account" : "00000000-0000-4000-8000-0000000000B2",
+        "counts" : {
+          "newsletters" : 1
+        },
+        "label" : "avery@moonbase-outfitters.example",
+        "top" : [
+          {
+            "section" : "newsletters",
+            "text" : "Your saved boots are back in stock"
+          }
+        ]
+      },
+      {
+        "account" : "00000000-0000-4000-8000-0000000000B3",
+        "counts" : {
+          "newsletters" : 1
+        },
+        "label" : "avery@cometchords.example",
+        "top" : [
+          {
+            "section" : "newsletters",
+            "text" : "Rehearsal room moves to Studio 2"
+          }
+        ]
+      },
+      {
+        "account" : "00000000-0000-4000-8000-0000000000B4",
+        "counts" : {
+          "newsletters" : 1
+        },
+        "label" : "avery@parcelwing.example",
+        "top" : [
+          {
+            "section" : "newsletters",
+            "text" : "Two parcels arrive on Wednesday"
+          }
+        ]
+      }
+    ],
+    "day" : "2026-10-19",
+    "id" : 42,
+    "sections" : [
+      {
+        "count" : 7,
+        "key" : "newsletters",
+        "read" : false,
+        "title" : "Newsletters"
+      },
+      {
+        "count" : 5,
+        "key" : "updates",
+        "read" : false,
+        "title" : "Updates"
+      },
+      {
+        "count" : 2,
+        "key" : "promotions",
+        "read" : false,
+        "title" : "Deals and promotions"
+      },
+      {
+        "count" : 2,
+        "key" : "orders",
+        "read" : false,
+        "title" : "Orders and deliveries"
+      },
+      {
+        "count" : 1,
+        "key" : "security",
+        "read" : true,
+        "title" : "Codes and security"
+      }
+    ],
+    "total" : 17
+  },
+  "generatedAt" : "2026-10-19T08:47:00Z",
+  "health" : {
+    "state" : "ok"
+  },
+  "kind" : "digest",
+  "mail" : [
+
+  ],
+  "meetings" : [
+
+  ],
+  "pages" : {
+
+  },
+  "rangeDays" : 7,
+  "style" : {
+    "look" : "auto",
+    "showLogos" : true,
+    "textSize" : "standard",
+    "typeface" : "system",
+    "use24Hour" : false
+  },
+  "v" : 1,
+  "windowEnd" : "2026-12-31",
+  "windowStart" : "2026-09-28"
+}

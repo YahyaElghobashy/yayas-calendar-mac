@@ -21,6 +21,8 @@ struct SnapshotModel {
     let snapshotDay: Date
     let title: String?
     let health: WidgetHealthInfo
+    /// Daily Digest (D-053), mapped once per snapshot.
+    let digest: WidgetDigest?
 
     /// `logo(id)` loads an account's badge; the widget passes `SnapshotModel.logoFile(in: Paths.logos)`.
     init(_ snapshot: WidgetSnapshot, logo: (String) -> NSImage? = SnapshotModel.logoFile(in: Paths.logos)) {
@@ -70,6 +72,7 @@ struct SnapshotModel {
         snapshotDay = WidgetCalendar.current.startOfDay(for: snapshot.generatedAt)
         title = snapshot.title.flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 }
         health = Self.health(snapshot, accounts: byId)
+        digest = snapshot.digest.map { WidgetDigest($0, atlas: snapshot.atlas, account: account) }
     }
 
     static func reply(_ r: WidgetSnapshot.Meeting.Reply) -> WidgetMeeting.Reply {
@@ -102,7 +105,8 @@ struct SnapshotModel {
         case .inbox: return .inbox
         case .combo: return .combo
         case .day: return .day
-        case .setup, .mailComingSoon: return nil
+        case .digest: return .digest
+        case .setup, .mailComingSoon, .mailHelperOff: return nil
         }
     }
 
@@ -112,6 +116,9 @@ struct SnapshotModel {
         switch snapshot.content {
         case .setup: return .setup
         case .mailComingSoon: return .mailComingSoon
+        // The digest comes from the helper, not the calendar's accounts: it never shows "no accounts".
+        case .mailHelperOff: return .mailHelperOff
+        case .digest: return snapshot.digest == nil ? .noDigest : .content
         default: return snapshot.health.state == .noAccounts ? .noAccounts : .content
         }
     }
@@ -175,6 +182,7 @@ struct SnapshotModel {
         data.unreadCount = snapshot.unreadCount
         data.content = content
         data.state = cardState
+        data.digest = digest.map { var d = $0; d.now = now; return d }
         return data
     }
 }

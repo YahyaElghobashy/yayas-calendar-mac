@@ -51,7 +51,7 @@ enum WidgetSettingsCodec {
     }
 }
 
-/// Builds `widget/<kind>.json` for the 12 kinds (D-014) and writes it atomically, only when the
+/// Builds `widget/<kind>.json` for the 13 kinds (D-014; the Daily Digest, D-053) and writes it atomically, only when the
 /// content hash changed; then lets the `ReloadGovernor` decide about the timeline reload.
 ///
 /// Content rules: no time-relative text; meetings capped at 120 (agenda kinds: today's start for the
@@ -173,6 +173,16 @@ final class SnapshotPublisher: @unchecked Sendable {
     /// Whether Yaya's Murmur marked the meeting `r` Live Helper (D-048). The app installs it while Murmur is on this
     /// Mac; tests and renders keep the default (never).
     nonisolated(unsafe) static var liveHelperMarked: @Sendable (String) -> Bool = { _ in false }
+    /// The Daily Digest (D-053): what the app distilled from Yaya's Mail Helper's files. `MailHelperLive` installs it;
+    /// tests and renders keep the default (the helper isn't on this Mac).
+    enum DigestFeed: Equatable, Sendable {
+        case off
+        case none
+        case ready(WidgetSnapshot.Digest)
+    }
+    nonisolated(unsafe) static var digestFeed: @Sendable () -> DigestFeed = { .off }
+    /// Model Atlas's weekly box on the Daily Digest (D-054); `ModelAtlasLive` installs it, the default is none.
+    nonisolated(unsafe) static var atlasFeed: @Sendable () -> WidgetSnapshot.Atlas? = { nil }
 
     private let lock = NSRecursiveLock()
     private var written: [String: UInt64] = [:]
@@ -327,6 +337,7 @@ final class SnapshotPublisher: @unchecked Sendable {
         let repo = WidgetRepo(db: db)
         let settings = WidgetSettingsCodec.settings(from: try? repo.settings(kind: kind), kind: kind)
         let base = baseContent(spec, settings)
+        if base == .digest { return digestSnapshot(kind: kind, settings: settings, context: ctx) }
         let shown: WidgetSnapshot.Content = {
             guard let base else { return .setup }
             if (base == .inbox || base == .combo) && !ctx.labsMail { return .mailComingSoon }
@@ -418,6 +429,27 @@ final class SnapshotPublisher: @unchecked Sendable {
             busyDays: busyDays, windowStart: keys.first, windowEnd: keys.last, rangeDays: rangeDays)
     }
 
+    /// The Daily Digest (D-053): no meetings or mail of its own; the feed's digest and the logos of its mailboxes. Its
+    /// health is always ok: the digest comes from the helper, so the calendar's sync strip never shows on it.
+    func digestSnapshot(kind: String, settings: WidgetSettings, context ctx: Context) -> WidgetSnapshot {
+        var content = WidgetSnapshot.Content.mailHelperOff
+        var digest: WidgetSnapshot.Digest?
+        switch Self.digestFeed() {
+        case .off: break
+        case .none: content = .digest
+        case .ready(let d): content = .digest; digest = d
+        }
+        let ids = Set(digest?.boxes.map(\.account) ?? [])
+        let keys = ctx.window.dayKeys(ctx.cal)
+        return WidgetSnapshot(
+            kind: kind, generatedAt: ctx.now, content: content, title: nil, style: settings.style,
+            accounts: ctx.accounts.filter { ids.contains($0.id.uuidString) }.map(snapshotAccount),
+            health: WidgetSnapshot.Health(), meetings: [], mail: [], unreadCount: nil, pages: [:], pageResetAt: nil,
+            selectedDay: nil, monthShown: nil, busyDays: [], windowStart: keys.first, windowEnd: keys.last,
+            rangeDays: WidgetSettingsCodec.coerceRange(settings.rangeDays), digest: digest,
+            atlas: digest == nil ? nil : Self.atlasFeed())
+    }
+
     /// What the kind shows, before the mail switch; nil = a custom slot not set up yet.
     func baseContent(_ spec: WidgetKindSpec, _ settings: WidgetSettings) -> WidgetSnapshot.Content? {
         switch spec.content {
@@ -427,6 +459,7 @@ final class SnapshotPublisher: @unchecked Sendable {
         case .inbox: return .inbox
         case .combo: return .combo
         case .day: return .day
+        case .digest: return .digest
         case .custom: return settings.customContent
         }
     }

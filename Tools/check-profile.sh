@@ -38,6 +38,9 @@ export YCP_MURMUR_ID="${REL[murmurBundleId]}" YCP_MURMUR_SCHEME="${REL[murmurSch
 [[ "${DEV[mailHelperBundleId]}" == "${REL[mailHelperBundleId]}.dev" ]] || yc_fail "the dev Mail helper bundle id must be the release one + .dev"
 [[ "${DEV[mailHelperDataRoot]}" == "${REL[mailHelperDataRoot]}Dev" ]] || yc_fail "the dev Mail helper data root must be the release one + Dev"
 export YCP_HELPER_ID="${REL[mailHelperBundleId]}" YCP_HELPER_SCHEME="${REL[mailHelperScheme]}" YCP_HELPER_ROOT="${REL[mailHelperDataRoot]#Library/}"
+[[ "${DEV[modelAtlasId]}" == "${REL[modelAtlasId]}.dev" ]] || yc_fail "the dev Model Atlas id must be the release one + .dev"
+[[ "${DEV[modelAtlasDataRoot]}" == "${REL[modelAtlasDataRoot]}Dev" ]] || yc_fail "the dev Model Atlas data root must be the release one + Dev"
+export YCP_ATLAS_ID="${REL[modelAtlasId]}" YCP_ATLAS_ROOT="${REL[modelAtlasDataRoot]#Library/}"
 
 # What the app carries: strings of every Mach-O, every plist and entitlements file, the signing identifiers.
 SCRATCH="$YC_ROOT/.work/check-profile"; rm -rf "$SCRATCH"; mkdir -p "$SCRATCH"
@@ -70,11 +73,14 @@ hits="$(/usr/bin/perl -ne '
     $hid = qr/\Q$ENV{YCP_HELPER_ID}\E(?!\.dev(?![A-Za-z0-9]))/;
     $hscheme = qr/(?<![A-Za-z0-9.-])\Q$ENV{YCP_HELPER_SCHEME}\E(?![A-Za-z0-9.-])/;
     $hroot = qr/\Q$ENV{YCP_HELPER_ROOT}\E(?!Dev)/;
+    $aid = qr/\Q$ENV{YCP_ATLAS_ID}\E(?!\.dev(?![A-Za-z0-9]))/;
+    $aroot = qr/\Q$ENV{YCP_ATLAS_ROOT}\E(?!Dev)/;
   }
   my ($where, $text) = /\A(.*?): (.*)\z/s or next;
   for my $p (["bundle id", $id], ["URL scheme", $scheme], ["data folder", $root], ["handoff folder", $handoff],
              ["Murmur bundle id", $mid], ["Murmur scheme", $mscheme], ["Murmur data folder", $mroot],
-             ["Mail helper bundle id", $hid], ["Mail helper scheme", $hscheme], ["Mail helper data folder", $hroot]) {
+             ["Mail helper bundle id", $hid], ["Mail helper scheme", $hscheme], ["Mail helper data folder", $hroot],
+             ["Model Atlas id", $aid], ["Model Atlas data folder", $aroot]) {
     if ($text =~ $p->[1]) { chomp $text; print "$p->[0]\t$where\t$text\n"; last }
   }' "$SCRATCH/strings.txt" | sort -u)"
 
@@ -84,4 +90,4 @@ if [[ -n "$hits" ]]; then
   print -r -- "$hits" | awk -F'\t' '{ printf "    %-13s %s: %s\n", $1, $2, $3 }' >&2
   exit 1
 fi
-print -r -- "✓ check-profile: ${APP:t} ($n files) reaches no release identifier (bundle id, scheme, data folder, handoff folder; Murmur's and the Mail helper's bundle id, scheme, data folder)"
+print -r -- "✓ check-profile: ${APP:t} ($n files) reaches no release identifier (bundle id, scheme, data folder, handoff folder; Murmur's and the Mail helper's bundle id, scheme, data folder; Model Atlas's id and data folder)"

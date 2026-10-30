@@ -23,7 +23,7 @@ enum RouteTable {
     /// Exactly the CONTRACTS table. Tests compare against it; add routes there first.
     static let all: [RouteSpec] = [
         RouteSpec(name: "ping", params: ["probe"], quiet: true),
-        RouteSpec(name: "open/app", params: ["section"], quiet: false),
+        RouteSpec(name: "open/app", params: ["section", "tab", "part"], quiet: false),
         RouteSpec(name: "page", params: ["w", "fam", "to"], quiet: true),
         RouteSpec(name: "day", params: ["w", "d"], quiet: true),
         RouteSpec(name: "month", params: ["w", "to"], quiet: true),
@@ -41,6 +41,7 @@ enum RouteTable {
         RouteSpec(name: "open/message", params: ["r", "k"], quiet: false),
         RouteSpec(name: "open/day", params: ["w", "d"], quiet: false),
         RouteSpec(name: "reauth", params: ["a", "k"], quiet: false),
+        RouteSpec(name: "open/atlas", params: [], quiet: true),
     ]
 
     private static let byName: [String: RouteSpec] = Dictionary(uniqueKeysWithValues: all.map { ($0.name, $0) })

@@ -8,6 +8,10 @@ import Foundation
 enum RouteAction: Equatable {
     case ping(String)
     case openApp(AppSection?)
+    /// `open/app?section=mailhelper&tab=digest[&part=<section>]` (D-053): the Mail helper's Digest tab, at that section.
+    case openDigest(part: String?)
+    /// `open/atlas` (D-054): Model Atlas's weekly report in the person's Markdown app.
+    case openAtlas
     case reauth(account: String)
     case page(kind: String, family: String, to: Int)
     case selectDay(kind: String, day: String)
@@ -39,7 +43,8 @@ enum RouteAction: Equatable {
     var name: String {
         switch self {
         case .ping: return "ping"
-        case .openApp: return "open/app"
+        case .openApp, .openDigest: return "open/app"
+        case .openAtlas: return "open/atlas"
         case .reauth: return "reauth"
         case .page: return "page"
         case .selectDay: return "day"
@@ -92,8 +97,12 @@ enum RouteDecider {
         switch spec.name {
         case "ping":
             return .ping(p["probe"] ?? "-")
+        case "open/atlas":
+            return .openAtlas
         case "open/app":
-            return .openApp(p["section"].flatMap(AppSection.init(rawValue:)))
+            let section = p["section"].flatMap(AppSection.init(rawValue:))
+            if section == .mailHelper, p["tab"] == "digest" { return .openDigest(part: p["part"]) }
+            return .openApp(section)
         case "reauth":
             switch keyed("a") {
             case .ok(let a): return .reauth(account: a)

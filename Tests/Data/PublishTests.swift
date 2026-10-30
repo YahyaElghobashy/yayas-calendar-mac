@@ -39,10 +39,10 @@ enum PublishTests {
         let (h, accounts) = seeded("publish-kinds")
         let engine = h.engine
         let changed = engine.publisher.publishAll(reason: .background)
-        expect(changed.count == 12, "all 12 kinds written")
+        expect(changed.count == 13, "all 13 kinds written")
         let folder = h.dir.appendingPathComponent("widget")
         let files = (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []
-        expect(files.filter { $0.hasSuffix(".json") }.count == 12 && !files.contains { $0.hasSuffix(".tmp") }, "12 files, no temp files left")
+        expect(files.filter { $0.hasSuffix(".json") }.count == 13 && !files.contains { $0.hasSuffix(".tmp") }, "13 files, no temp files left")
         let mode = (try? FileManager.default.attributesOfItem(atPath: folder.appendingPathComponent("agenda.all.json").path)[.posixPermissions] as? NSNumber)?.intValue
         expect(mode == 0o600, "snapshot files are 0600")
         let content = Dictionary(uniqueKeysWithValues: WidgetKinds.all.map { ($0.kind, h.snapshot($0.kind)?.content) })

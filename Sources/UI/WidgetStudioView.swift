@@ -30,7 +30,8 @@ struct WidgetStudioView: View {
         VStack(alignment: .leading, spacing: 2) {
             Text("YOUR WIDGETS").font(AppTheme.font(10.5, .bold)).tracking(0.6).foregroundStyle(AppTheme.text3)
                 .padding(.horizontal, 10).padding(.bottom, 6)
-            ForEach(WidgetKinds.all) { spec in
+            // The Daily Digest (D-053) only while Yaya's Mail Helper is on this Mac.
+            ForEach(WidgetKinds.all.filter { $0.content != .digest || MailHelperSession.shared.installed }) { spec in
                 StudioKindRow(title: model.listName(spec), symbol: Self.symbol(spec), selected: spec.kind == model.selectedKind) {
                     model.select(spec.kind)
                 }
@@ -49,6 +50,7 @@ struct WidgetStudioView: View {
         case .inbox: return "tray"
         case .combo: return "rectangle.split.2x1"
         case .day: return "calendar.day.timeline.left"
+        case .digest: return "newspaper"
         case .custom(let letter): return "\(letter.lowercased()).square"
         }
     }

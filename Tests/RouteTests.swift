@@ -6,7 +6,7 @@ enum RouteTests {
         // name, params, quiet: copied from docs/CONTRACTS.md by hand, on purpose.
         let contracts: [(String, [String], Bool)] = [
             ("ping", ["probe"], true),
-            ("open/app", ["section"], false),
+            ("open/app", ["section", "tab", "part"], false),
             ("page", ["w", "fam", "to"], true),
             ("day", ["w", "d"], true),
             ("month", ["w", "to"], true),
@@ -24,6 +24,7 @@ enum RouteTests {
             ("open/message", ["r", "k"], false),
             ("open/day", ["w", "d"], false),
             ("reauth", ["a", "k"], false),
+            ("open/atlas", [], true),
         ]
         T.equal(RouteTable.all.count, contracts.count, "route count")
         for (name, params, quiet) in contracts {

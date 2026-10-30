@@ -27,6 +27,8 @@ struct KindEntry: TimelineEntry {
             case .noAccounts: return "noAccounts"
             case .setup: return "setup"
             case .mailComingSoon: return "mailComingSoon"
+            case .mailHelperOff: return "mailHelperOff"
+            case .noDigest: return "noDigest"
             }
         }
     }

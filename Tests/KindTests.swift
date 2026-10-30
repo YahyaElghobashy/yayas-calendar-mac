@@ -12,11 +12,12 @@ enum KindTests {
             ("month", "Month", all),
             ("inbox.all", "Inbox", [.medium, .large, .extraLarge, .extraLargePortrait]),
             ("combo.all", "Agenda & Inbox", [.large, .extraLarge, .extraLargePortrait]),
+            ("digest", "Daily Digest", all),
         ]
         for letter in ["a", "b", "c", "d", "e", "f"] {
             expected.append(("custom.\(letter)", "Custom Widget \(letter.uppercased())", all))
         }
-        T.equal(WidgetKinds.all.count, 12, "exactly 12 kinds")
+        T.equal(WidgetKinds.all.count, 13, "exactly 13 kinds")
         T.equal(WidgetKinds.all.map(\.kind), expected.map(\.0), "kind strings in gallery order")
         for (kind, name, families) in expected {
             guard let spec = WidgetKinds.spec(kind) else { T.check(false, "missing \(kind)"); continue }
@@ -33,6 +34,7 @@ enum KindTests {
             "combo.all": "Meetings on one side, mail on the other.",
             "month": "Tap a day on the calendar to see its meetings.",
             "day": "One day hour by hour, with overlapping meetings side by side. Flip days with the arrows.",
+            "digest": "Today's mail digest from Yaya's Mail Helper, one box per mailbox. Tap to read it.",
             "custom.a": "Pick its calendars and look in Yaya's Calendar → Widgets.",
         ]
         for (kind, text) in copy { T.equal(WidgetKinds.spec(kind)?.description, text, "\(kind) description") }

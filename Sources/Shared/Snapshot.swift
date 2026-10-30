@@ -50,6 +50,12 @@ struct WidgetSnapshot: Codable, Equatable {
     var windowEnd: String
     /// Agenda range in days (1, 2 or 7).
     var rangeDays: Int
+    /// Daily Digest (D-053): Yaya's Mail Helper's latest digest, one box per mailbox. Nil on every other kind, and on
+    /// the digest kind while the helper has none; optional and left out when nil, so older files decode and hash the same.
+    var digest: Digest? = nil
+    /// Daily Digest (D-054): Model Atlas's weekly report, one more box after the mailboxes. Nil when its file is missing
+    /// (and on every other kind); optional and left out when nil, like `digest`.
+    var atlas: Atlas? = nil
 
     enum Content: String, Codable {
         case agenda, upNext, month, inbox, combo
@@ -60,6 +66,78 @@ struct WidgetSnapshot: Codable, Equatable {
         /// Mail-backed content while mail is off ("Mail is off", MailOffCopy). The app keeps mail on (D-029);
         /// only the data tests' mail-off seam publishes it.
         case mailComingSoon
+        /// Daily Digest (D-053): `digest` carries it; nil = the helper is installed but has no digest yet.
+        case digest
+        /// Daily Digest while Yaya's Mail Helper isn't on this Mac (DigestCopy).
+        case mailHelperOff
+    }
+
+    /// Model Atlas's weekly report on the Daily Digest (D-054): not mail, so it never adds to the unread badge. "Week of
+    /// …" and the dimming after eight days come from `report` and the entry date.
+    struct Atlas: Codable, Equatable {
+        static let maxLines = 5
+        static let maxAlerts = 3
+
+        /// `YYYY-MM-DD` of the report the lines come from; nil = none yet.
+        var report: String?
+        var lines: [Line]
+        /// What the scan found on its own (a node not reached, backups growing); shown first.
+        var alerts: [String]
+        /// Models across the owner's machines; nil when the feed has none.
+        var models: Int? = nil
+        /// Not opened since this report arrived: the box's "New" mark. `true` or left out.
+        var fresh: Bool? = nil
+
+        struct Line: Codable, Equatable {
+            /// Plain text, already led by its word ("New:", "Try:", "Waiting on you:"…).
+            var text: String
+            /// That word in lower case, or "" (a display hint only).
+            var kind: String
+        }
+    }
+
+    /// The Daily Digest (D-053), as the app distils it from the helper's `digest.json` and its accounts. No
+    /// time-relative text: "Today" and "Yesterday" come from `day` and the entry date. Unread counts come from `read`.
+    struct Digest: Codable, Equatable {
+        static let maxBoxes = 12
+        static let maxSections = 8
+        static let maxLines = 3
+        static let maxText = 140
+
+        var id: Int
+        /// `YYYY-MM-DD`, the day the digest covers.
+        var day: String
+        /// Emails in the digest (the helper's count).
+        var total: Int
+        var sections: [Section]
+        /// One per mailbox the helper has, in the calendar's account order (empty boxes included).
+        var boxes: [Box]
+
+        struct Section: Codable, Equatable {
+            /// The helper's key (`[A-Za-z0-9_-]{1,64}`), also the `part` of the tap.
+            var key: String
+            var title: String
+            var count: Int
+            var read: Bool
+        }
+
+        struct Box: Codable, Equatable {
+            /// The account's UUID string: `accounts` carries its tag, name and logo when the calendar has it.
+            var account: String
+            /// What to call a mailbox the calendar doesn't know (the helper's address for it); nil otherwise.
+            var label: String? = nil
+            /// Section key → this mailbox's items in it.
+            var counts: [String: Int]
+            /// Up to 3 lines: summaries' headlines (worth opening first), then subjects, unread sections first.
+            var top: [Line]
+        }
+
+        struct Line: Codable, Equatable {
+            var text: String
+            var section: String
+            /// The helper marked it worth opening; `true` or left out.
+            var pick: Bool? = nil
+        }
     }
 
     struct Style: Codable, Equatable {

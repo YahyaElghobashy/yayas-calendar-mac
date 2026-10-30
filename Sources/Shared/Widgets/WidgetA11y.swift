@@ -74,6 +74,39 @@ enum WidgetA11y {
         return (label, parts.filter { !$0.isEmpty }.joined(separator: ", "))
     }
 
+    // MARK: Daily Digest (D-053)
+
+    /// "8 unread in the digest" / "Digest, all read".
+    static func digestBadge(unread: Int) -> String {
+        unread == 0 ? "Digest, all read" : (unread == 1 ? "1 unread in the digest" : "\(unread) unread in the digest")
+    }
+
+    /// A mailbox: label "Orbital Pickle Co., 3 unread, A pickle-sized satellite arm…".
+    static func digestBox(_ name: String, unread: Int, total: Int, line: String?) -> String {
+        var parts = [name.isEmpty ? "Mailbox" : name]
+        if total == 0 { parts.append("nothing in today\u{2019}s digest") }
+        else if unread == 0 { parts.append("all read") }
+        else { parts.append(unread == 1 ? "1 unread" : "\(unread) unread") }
+        if let line, !line.isEmpty { parts.append(line) }
+        return parts.joined(separator: ", ")
+    }
+
+    /// Model Atlas's box (D-054): "Model Atlas, week of 30 Oct, new, New: …".
+    static func digestAtlas(_ week: String, fresh: Bool, line: String?) -> String {
+        var parts = ["Model Atlas", week.prefix(1).lowercased() + week.dropFirst()]
+        if fresh { parts.append("new") }
+        if let line, !line.isEmpty { parts.append(line) }
+        return parts.joined(separator: ", ")
+    }
+
+    /// A section chip or row: "Social, 5, not read yet" / "Updates, read".
+    static func digestSection(_ title: String, count: Int, read: Bool) -> String {
+        read ? "\(title), read" : "\(title), \(count), not read yet"
+    }
+
+    /// A summary line: "Worth opening: …" for the helper's picks.
+    static func digestLine(_ text: String, pick: Bool) -> String { pick ? "Worth opening: \(text)" : text }
+
     private static func spokenSubject(_ subject: String) -> String {
         let trimmed = subject.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? "No subject" : trimmed

@@ -27,6 +27,9 @@ enum ProfileMain {
         "mailHelperBundleId": "com.yahyaelghobashy.yayasmailhelper",
         "mailHelperScheme": "yayamail",
         "mailHelperDataRoot": "Library/Application Support/YayasMailHelper",
+        // Model Atlas's release names (D-054): its own contract, so pinned here as well.
+        "modelAtlasId": "com.yahyaelghobashy.modelatlas",
+        "modelAtlasDataRoot": "Library/Application Support/ModelAtlas",
     ]
 
     static var table: [(String, String)] {
@@ -37,7 +40,8 @@ enum ProfileMain {
          ("widgetEntitlements", Profile.widgetEntitlements), ("murmurBundleId", Profile.murmurBundleId),
          ("murmurScheme", Profile.murmurScheme), ("murmurDataRoot", Profile.murmurDataRoot),
          ("mailHelperBundleId", Profile.mailHelperBundleId), ("mailHelperScheme", Profile.mailHelperScheme),
-         ("mailHelperDataRoot", Profile.mailHelperDataRoot)]
+         ("mailHelperDataRoot", Profile.mailHelperDataRoot), ("modelAtlasId", Profile.modelAtlasId),
+         ("modelAtlasDataRoot", Profile.modelAtlasDataRoot)]
     }
 
     /// Every string the uninstaller would act on.
@@ -74,6 +78,13 @@ enum ProfileMain {
         let helperRoot = release["mailHelperDataRoot"]!
         if value.replacingOccurrences(of: helperRoot + "Dev", with: "§").contains(helperRoot) { return true }
         if value == release["mailHelperScheme"]! || value.contains(release["mailHelperScheme"]! + "://") { return true }
+        // Model Atlas's release names (D-054): a dev calendar reads a dev feed only.
+        let atlas = release["modelAtlasId"]!
+        var atlasRest = value
+        for devName in [atlas + ".dev.", atlas + ".dev"] { atlasRest = atlasRest.replacingOccurrences(of: devName, with: "§") }
+        if atlasRest.contains(atlas) { return true }
+        let atlasRoot = release["modelAtlasDataRoot"]!
+        if value.replacingOccurrences(of: atlasRoot + "Dev", with: "§").contains(atlasRoot) { return true }
         return false
     }
 
@@ -132,6 +143,8 @@ enum ProfileMain {
         check(Profile.mailHelperBundleId == release["mailHelperBundleId"]! + ".dev", "dev Mail helper bundle id = release + .dev")
         check(Profile.mailHelperScheme == release["mailHelperScheme"]! + "-dev", "dev Mail helper scheme = release + -dev")
         check(Profile.mailHelperDataRoot == release["mailHelperDataRoot"]! + "Dev", "dev Mail helper data root = release + Dev")
+        check(Profile.modelAtlasId == release["modelAtlasId"]! + ".dev", "dev Model Atlas id = release + .dev")
+        check(Profile.modelAtlasDataRoot == release["modelAtlasDataRoot"]! + "Dev", "dev Model Atlas data root = release + Dev")
         // The test's own guard must catch the release values.
         for (key, value) in release where key != "name" && key != "displayName" && key != "widgetEntitlements" {
             check(reachesRelease(value), "the guard recognises release \(key)")
