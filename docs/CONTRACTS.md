@@ -55,7 +55,8 @@ accountIds, title, start, end, allDay, place, hasJoin, reply, clashes, rec: opti
 subject, at, unread, starred), unreadCount, pages per family + pageResetAt, selectedDay, monthShown,
 busyDays, windowStart/End, rangeDays, digest (optional, D-053: the Daily Digest's `{id, day, total,
 sections[{key, title, count, read}], boxes[{account, label?, counts{section: n}, top[{text, section, pick?}]}]}`, at most
-12 boxes, 8 sections and 3 lines a box, text ≤ 140 characters; left out on every other kind). Day reuses `selectedDay` (nil = today; ‹ › send `day?w&d`). **No time-relative text**; atomic write only when `contentHash`
+12 boxes, 8 sections and 3 lines a box, text ≤ 140 characters; left out on every other kind), atlas (optional, D-054:
+Model Atlas's weekly box `{report?, lines[{text, kind}] ≤ 5, alerts ≤ 3, models?, fresh?}`, only with a digest). Day reuses `selectedDay` (nil = today; ‹ › send `day?w&d`). **No time-relative text**; atomic write only when `contentHash`
 (FNV-1a over sorted JSON, `generatedAt` excluded) changes; caps 120 meetings / 96 mail / 192 KB.
 
 ## Link keys
@@ -91,6 +92,7 @@ with a DECISIONS entry. `MailThread.labels` (D-050): the thread's Gmail label id
 | `open/event`, `open/message` | `r`, `k` | no |
 | `open/day` | `w`, `d` (YYYY-MM-DD); Small Month → Day Peek | no |
 | `reauth` | `a`, `k` | no |
+| `open/atlas` | — (Model Atlas's weekly report, D-054; the app opens the file the feed names after checking it) | yes |
 `r` = stable local row id, `k` = HMAC-SHA256(linkkey, route|r|…) first 12 bytes base64url. No PII or
 URLs in links. `sync` alone syncs every account; `sync?w=<kind>` is a widget's ↻ (D-021): a forced
 full window re-list of that widget's calendar accounts plus an incremental mail pass for Inbox kinds,
@@ -242,6 +244,26 @@ the two share no code, Keychain item or network. The helper's side: its docs/CON
   `open/app?section=mailhelper&tab=digest` (`&part=<section>` from a section chip, or a mailbox's first unread section)
   scrolls the Digest tab to that section; that scroll never counts as reading it (read = done stays the person's own
   scroll, D-050).
+
+## Model Atlas on the Daily Digest (D-054)
+Model Atlas is the owner's weekly inventory of the AI models on their machines; its side: its docs/DIGEST-CONTRACT.md
+(v1). The calendar only reads one file and opens one Markdown file on a tap; nothing is written to it or sent.
+
+| | Release profile | Dev profile |
+|---|---|---|
+| Its file (read only) | `~/Library/Application Support/ModelAtlas/share/digest.json` | `…/ModelAtlasDev/share/digest.json` |
+| Ping (observed) | `com.yahyaelghobashy.modelatlas.changed` | `….modelatlas.dev.changed` |
+
+- **Reading** (`ModelAtlasParse`, `ModelAtlasLive`): `open(O_NOFOLLOW)`, `fstat` on that descriptor (a regular file of this
+  user, at most **64 KiB**), read through it; `version` 1 only; fields used `report` (`YYYY-MM-DD` or absent), `scan`,
+  `lines[{text, kind}]` (≤ 5), `alerts` (≤ 3), `counts.models`, `open.atlas`, `open.report`; text cleaned and capped at
+  140. Read at launch, on the ping (`.deliverImmediately`; pings within 0.3 s read once) and when the day changes.
+  Missing or unreadable: no box. Never logged (traces carry outcomes only).
+- **Snapshot:** `atlas` on the `digest` kind, only beside a digest. `fresh` until the person opens that report from the
+  widget (UserDefaults `modelatlas.seen` = the report's date, else the scan). Not mail: no unread count, no section.
+- **`open/atlas`:** re-reads the file, then opens `open.report`, else `open.atlas`, only when the path lies in the
+  person's home, has Model Atlas's own shape (`…/Model Atlas/ATLAS.md` or `…/Model Atlas/landscape/YYYY-MM-DD.md`) and
+  is a regular file of theirs, not a link (`ModelAtlasOpen`); with `NSWorkspace` in the person's Markdown app.
 
 ## Accounts interface (shell ↔ accounts)
 `AccountsModel.shared: ObservableObject` with `start()`; `AccountsScreen(model:)` view.

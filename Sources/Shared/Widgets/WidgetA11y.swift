@@ -91,6 +91,14 @@ enum WidgetA11y {
         return parts.joined(separator: ", ")
     }
 
+    /// Model Atlas's box (D-054): "Model Atlas, week of 30 Oct, new, New: …".
+    static func digestAtlas(_ week: String, fresh: Bool, line: String?) -> String {
+        var parts = ["Model Atlas", week.prefix(1).lowercased() + week.dropFirst()]
+        if fresh { parts.append("new") }
+        if let line, !line.isEmpty { parts.append(line) }
+        return parts.joined(separator: ", ")
+    }
+
     /// A section chip or row: "Social, 5, not read yet" / "Updates, read".
     static func digestSection(_ title: String, count: Int, read: Bool) -> String {
         read ? "\(title), read" : "\(title), \(count), not read yet"

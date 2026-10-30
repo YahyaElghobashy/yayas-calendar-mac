@@ -16,6 +16,74 @@ enum DigestWidgetTests {
         taps()
         words()
         timeline()
+        atlas()
+    }
+
+    static func atlas() {
+        T.section("Model Atlas box (D-054): the feed")
+        let file = #"""
+        {"version": 1, "updated_at": 1793392915, "source": "model-atlas", "title": "Model Atlas", "report": "2026-10-17",
+         "scan": "2026-10-17_1008", "lines": [{"text": "New: Pickle-7B\u0007 runs on a 16 GB Mac.", "kind": "New"},
+         {"text": "", "kind": "try"}, {"text": 5}], "alerts": ["Backups growing", 7],
+         "counts": {"models": 24}, "open": {"atlas": "/Users/a/Notes/Model Atlas/ATLAS.md",
+         "report": "/Users/a/Notes/Model Atlas/landscape/2026-10-17.md"}}
+        """#
+        guard let d = ModelAtlasParse.digest(Data(file.utf8)).value else { return T.check(false, "the feed parses") }
+        T.equal(d.report, "2026-10-17", "report day")
+        T.equal(d.lines.map(\.text), ["New: Pickle-7B runs on a 16 GB Mac."], "lines: cleaned, empty and wrong-typed ones skipped")
+        T.equal(d.lines.first?.kind, "new", "kind lower-cased")
+        T.equal(d.alerts, ["Backups growing"], "alerts: strings only")
+        T.equal(d.models, 24, "models")
+        T.equal(d.seenKey, "2026-10-17", "opened-once key = the report")
+        T.check(ModelAtlasParse.digest(nil) == .missing, "no file = no box")
+        T.check(ModelAtlasParse.digest(Data(#"{"version": 2}"#.utf8)) == .newer, "a newer version is ignored")
+        T.check(ModelAtlasParse.digest(Data(#"{"version": "1"}"#.utf8)) == .unreadable, "version must be the integer 1")
+        T.check(ModelAtlasParse.digest(Data(repeating: 32, count: ModelAtlasFiles.fileLimit + 1)) == .unreadable, "over 64 KiB is refused")
+        var bad = d; bad.report = nil
+        T.equal(bad.seenKey, "2026-10-17_1008", "no report: the scan is the key")
+        T.equal(ModelAtlasParse.snapshot(d, seen: nil).fresh, true, "new until opened")
+        T.equal(ModelAtlasParse.snapshot(d, seen: "2026-10-17").fresh, nil, "opened: not new")
+        T.equal(ModelAtlasParse.snapshot(d, seen: "2026-10-10").fresh, true, "a newer report is new again")
+        T.equal(ModelAtlasFiles.changedNotification, Profile.modelAtlasId + ".changed", "ping name")
+
+        T.section("Model Atlas box (D-054): what a tap may open")
+        let home = "/Users/a"
+        T.equal(ModelAtlasOpen.target(d, home: home), "/Users/a/Notes/Model Atlas/landscape/2026-10-17.md", "the week's report first")
+        var noReport = d; noReport.reportPath = nil
+        T.equal(ModelAtlasOpen.target(noReport, home: home), "/Users/a/Notes/Model Atlas/ATLAS.md", "else the atlas")
+        for path in ["/Users/b/Model Atlas/ATLAS.md", "/Users/a/Model Atlas/../.ssh/ATLAS.md", "/Users/a/Model Atlas/run.sh",
+                     "/Users/a/Elsewhere/ATLAS.md", "/Users/a/Model Atlas/landscape/notes.md", "relative/Model Atlas/ATLAS.md",
+                     "/Users/a/Model Atlas/landscape/2026-02-30.md", "/Users/a/Model Atlas//ATLAS.md"] {
+            T.equal(ModelAtlasOpen.allowed(path, home: home), nil, "refused: \(path)")
+        }
+
+        T.section("Model Atlas box (D-054): on the widget")
+        guard let m = model("digestAtlas"), var digest = m.digest else { return T.check(false, "digestAtlas model") }
+        T.equal(digest.unread, 12, "not mail: the badge is unchanged")
+        T.equal(digest.items.count, digest.boxes.count + 1, "one box after the mailboxes")
+        T.equal(digest.items.last?.atlas?.fresh, true, "new")
+        T.check(!digest.headlines(3).contains { $0.section == WidgetDigest.atlasSection }, "not in the mail summary")
+        T.equal(digest.atlasWeek, "Week of 17 Oct", "week label")
+        T.check(!digest.atlasStale, "two days old: not dim")
+        digest.now = SnapshotFixtures.now.addingTimeInterval(6 * 86_400)
+        T.check(digest.atlasStale, "eight days on: dim")
+        T.check(digest.isRead(WidgetDigest.atlasSection), "its lines dim with it")
+        T.equal(YayaLink.openAtlas().absoluteString, "\(RouteTable.scheme)://open/atlas", "tap link")
+        T.equal(RouteDecider.decide(Route.parse(YayaLink.openAtlas())!) { _, _ in true }, .openAtlas, "route decides")
+        guard let old = model("digestAtlasOld")?.digest else { return T.check(false, "digestAtlasOld model") }
+        T.equal(old.items.last?.top.first?.section, WidgetDigest.atlasAlert, "alerts first")
+        T.equal(old.items.last?.atlas?.fresh, false, "opened already")
+        let style = WidgetStyle()
+        for family in Family.allCases where family != .small {
+            let shown = DigestWidget.shownBoxes(family: family, digest: old, style: style)
+            let vis = old.visible(shown)
+            T.check(vis.items.last?.atlas != nil, "\(family.short): the atlas keeps its place when mailboxes spill")
+            T.equal(vis.items.count + vis.hidden, old.items.count, "\(family.short): shown + more = all")
+        }
+        T.check(model("busy")?.digest?.atlas == nil, "no file: no box")
+        T.check(WidgetSample.digest(now: SnapshotFixtures.now, accounts: WidgetSample.accounts(logos: nil)).atlas == nil,
+                "never in the public preview")
+        T.equal(WidgetA11y.digestAtlas("Week of 17 Oct", fresh: true, line: "New: x"), "Model Atlas, week of 17 Oct, new, New: x", "words")
     }
 
     static func model(_ name: String) -> SnapshotModel? {

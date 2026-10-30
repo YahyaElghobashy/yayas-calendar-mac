@@ -297,7 +297,10 @@ enum WidgetSample {
                 D.Line(text: "30% off coats and knitwear until Sunday", section: "promotions"),
                 D.Line(text: "Why brine temperature matters more than salt", section: "newsletters")]),
         ])
-        return WidgetDigest(d) { key in a[key] ?? WidgetAccount(id: key, short: key, name: key, logo: nil) }
+        // No Model Atlas box (D-054): it shows only where its file exists, never in the public preview.
+        var digest = WidgetDigest(d) { key in a[key] ?? WidgetAccount(id: key, short: key, name: key, logo: nil) }
+        digest.now = now
+        return digest
     }
 
     /// D-013 fixture: a quiet week where most days have one or two meetings (slim day banners).

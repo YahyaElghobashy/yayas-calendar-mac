@@ -110,6 +110,10 @@ what doesn't fit folds into "+N more mailboxes"). Views `Sources/Shared/Widgets/
 - **States.** Unread, all read (lines and chips dim), no digest yet, Yaya's Mail Helper not on this Mac: the
   last two as whole cards in the widgets' own voice (`DigestCopy`).
 
+- **Model Atlas** (D-054). With its weekly report on the Mac, one more box after the mailboxes: a chip glyph on the
+  soft accent, "Model Atlas · Week of 31 Oct", alerts first with ⚠, then its lines; "New" until opened once; dimmed
+  after eight days. Never counted as mail; it keeps its place when mailboxes spill into "+N more".
+
 **Wiring.** Kind `digest` (after Agenda & Inbox; all five families), `widget/digest.json` with
 `Content.digest` and the `digest` value (or `Content.mailHelperOff`). Taps: header → the Digest tab
 (`open/app?section=mailhelper&tab=digest`); badge → its first unread section (`&part=<key>`); a chip, a

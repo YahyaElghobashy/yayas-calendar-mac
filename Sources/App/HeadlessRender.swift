@@ -183,6 +183,9 @@ enum HeadlessRender {
             ("digestNone", [(WidgetKinds.digest, all)]),
             ("mailHelperOff", [(WidgetKinds.digest, all)]),
             ("digestLargeText", [(WidgetKinds.digest, all)]),
+            // Model Atlas's weekly box (D-054): new this week; nine days old with an alert, behind seven mailboxes.
+            ("digestAtlas", [(WidgetKinds.digest, all)]),
+            ("digestAtlasOld", [(WidgetKinds.digest, all)]),
         ]
         var stateCount = 0
         for (fixture, targets) in states {
@@ -223,6 +226,7 @@ enum HeadlessRender {
             ("busyDay", [(day, [.large, .extraLargePortrait])]),
             ("digestAllRead", [(WidgetKinds.digest, [.small, .large])]),
             ("mailHelperOff", [(WidgetKinds.digest, [.medium])]),
+            ("digestAtlas", [(WidgetKinds.digest, [.small, .large])]),
         ]
         for (fixture, targets) in glassStates {
             for (spec, families) in targets {

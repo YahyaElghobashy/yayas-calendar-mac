@@ -72,7 +72,7 @@ struct SnapshotModel {
         snapshotDay = WidgetCalendar.current.startOfDay(for: snapshot.generatedAt)
         title = snapshot.title.flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 }
         health = Self.health(snapshot, accounts: byId)
-        digest = snapshot.digest.map { WidgetDigest($0, account: account) }
+        digest = snapshot.digest.map { WidgetDigest($0, atlas: snapshot.atlas, account: account) }
     }
 
     static func reply(_ r: WidgetSnapshot.Meeting.Reply) -> WidgetMeeting.Reply {
@@ -182,7 +182,7 @@ struct SnapshotModel {
         data.unreadCount = snapshot.unreadCount
         data.content = content
         data.state = cardState
-        data.digest = digest
+        data.digest = digest.map { var d = $0; d.now = now; return d }
         return data
     }
 }

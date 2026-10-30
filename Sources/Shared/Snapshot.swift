@@ -53,6 +53,9 @@ struct WidgetSnapshot: Codable, Equatable {
     /// Daily Digest (D-053): Yaya's Mail Helper's latest digest, one box per mailbox. Nil on every other kind, and on
     /// the digest kind while the helper has none; optional and left out when nil, so older files decode and hash the same.
     var digest: Digest? = nil
+    /// Daily Digest (D-054): Model Atlas's weekly report, one more box after the mailboxes. Nil when its file is missing
+    /// (and on every other kind); optional and left out when nil, like `digest`.
+    var atlas: Atlas? = nil
 
     enum Content: String, Codable {
         case agenda, upNext, month, inbox, combo
@@ -67,6 +70,30 @@ struct WidgetSnapshot: Codable, Equatable {
         case digest
         /// Daily Digest while Yaya's Mail Helper isn't on this Mac (DigestCopy).
         case mailHelperOff
+    }
+
+    /// Model Atlas's weekly report on the Daily Digest (D-054): not mail, so it never adds to the unread badge. "Week of
+    /// …" and the dimming after eight days come from `report` and the entry date.
+    struct Atlas: Codable, Equatable {
+        static let maxLines = 5
+        static let maxAlerts = 3
+
+        /// `YYYY-MM-DD` of the report the lines come from; nil = none yet.
+        var report: String?
+        var lines: [Line]
+        /// What the scan found on its own (a node not reached, backups growing); shown first.
+        var alerts: [String]
+        /// Models across the owner's machines; nil when the feed has none.
+        var models: Int? = nil
+        /// Not opened since this report arrived: the box's "New" mark. `true` or left out.
+        var fresh: Bool? = nil
+
+        struct Line: Codable, Equatable {
+            /// Plain text, already led by its word ("New:", "Try:", "Waiting on you:"…).
+            var text: String
+            /// That word in lower case, or "" (a display hint only).
+            var kind: String
+        }
     }
 
     /// The Daily Digest (D-053), as the app distils it from the helper's `digest.json` and its accounts. No

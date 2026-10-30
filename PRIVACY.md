@@ -274,6 +274,10 @@ talks to that server; the helper does.
 - **The Daily Digest widget** draws the digest’s headlines, its counts per section and per mailbox and which sections
   you’ve read. The app copies just that (at most three short lines a mailbox) into the widget’s own file,
   `widget/digest.json`, as it does for the other widgets; the widget reads nothing else of the helper’s.
+- **Model Atlas.** If your own Model Atlas report is on this Mac, the Daily Digest widget adds its weekly box. The
+  app reads one small file of Model Atlas’s (`~/Library/Application Support/ModelAtlas/share/digest.json`, read-only,
+  never logged), copies its few lines into the widget’s file, and on a tap opens that week’s report (a Markdown file in
+  your Model Atlas folder) in your usual app. It remembers only which report you last opened.
 - **What leaves your Mac from Yaya’s Calendar.** Nothing. There is no helper or server host on the app’s list. When the
   helper isn’t installed, nothing is read, written or changed.
 

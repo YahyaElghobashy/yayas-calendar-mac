@@ -41,6 +41,7 @@ enum RouteTable {
         RouteSpec(name: "open/message", params: ["r", "k"], quiet: false),
         RouteSpec(name: "open/day", params: ["w", "d"], quiet: false),
         RouteSpec(name: "reauth", params: ["a", "k"], quiet: false),
+        RouteSpec(name: "open/atlas", params: [], quiet: true),
     ]
 
     private static let byName: [String: RouteSpec] = Dictionary(uniqueKeysWithValues: all.map { ($0.name, $0) })

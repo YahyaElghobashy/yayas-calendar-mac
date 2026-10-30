@@ -181,6 +181,8 @@ final class SnapshotPublisher: @unchecked Sendable {
         case ready(WidgetSnapshot.Digest)
     }
     nonisolated(unsafe) static var digestFeed: @Sendable () -> DigestFeed = { .off }
+    /// Model Atlas's weekly box on the Daily Digest (D-054); `ModelAtlasLive` installs it, the default is none.
+    nonisolated(unsafe) static var atlasFeed: @Sendable () -> WidgetSnapshot.Atlas? = { nil }
 
     private let lock = NSRecursiveLock()
     private var written: [String: UInt64] = [:]
@@ -444,7 +446,8 @@ final class SnapshotPublisher: @unchecked Sendable {
             accounts: ctx.accounts.filter { ids.contains($0.id.uuidString) }.map(snapshotAccount),
             health: WidgetSnapshot.Health(), meetings: [], mail: [], unreadCount: nil, pages: [:], pageResetAt: nil,
             selectedDay: nil, monthShown: nil, busyDays: [], windowStart: keys.first, windowEnd: keys.last,
-            rangeDays: WidgetSettingsCodec.coerceRange(settings.rangeDays), digest: digest)
+            rangeDays: WidgetSettingsCodec.coerceRange(settings.rangeDays), digest: digest,
+            atlas: digest == nil ? nil : Self.atlasFeed())
     }
 
     /// What the kind shows, before the mail switch; nil = a custom slot not set up yet.

@@ -24,6 +24,7 @@ enum RouteTests {
             ("open/message", ["r", "k"], false),
             ("open/day", ["w", "d"], false),
             ("reauth", ["a", "k"], false),
+            ("open/atlas", [], true),
         ]
         T.equal(RouteTable.all.count, contracts.count, "route count")
         for (name, params, quiet) in contracts {

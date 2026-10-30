@@ -62,6 +62,8 @@ struct WidgetDigest {
         let total: Int
         /// Where its tap goes: its first section not read yet, else its first section; nil = the digest's top.
         let part: String?
+        /// Model Atlas's weekly box (D-054) rather than a mailbox: it opens the report and never counts as mail.
+        var atlas: AtlasInfo? = nil
 
         /// "ORB", "Personal", or for a mailbox the calendar doesn't know its address's domain ("Lanternhall").
         var name: String {
@@ -74,14 +76,34 @@ struct WidgetDigest {
         var longName: String { account.name.isEmpty ? (label ?? name) : account.name }
     }
 
+    /// The Model Atlas box's own facts (D-054).
+    struct AtlasInfo {
+        /// The report's day; nil = no report yet (the atlas alone).
+        let report: Date?
+        let models: Int?
+        /// Not opened since this report arrived.
+        let fresh: Bool
+    }
+
+    /// Line sections of the Model Atlas box: its lines and its alerts (never a digest section).
+    static let atlasSection = "~atlas"
+    static let atlasAlert = "~atlas-alert"
+    /// After this many days without a newer report the box dims.
+    static let atlasStaleDays = 8
+
     let id: Int
     let dayKey: String
     let day: Date?
     let total: Int
     let sections: [Section]
+    /// The mailboxes.
     let boxes: [Box]
+    /// Model Atlas's weekly report (D-054), after the mailboxes; nil when its file is missing.
+    let atlas: Box?
+    /// The entry date (`SnapshotModel.data(at:)` sets it): the Model Atlas box dims eight days after its report.
+    var now: Date? = nil
 
-    init(_ d: WidgetSnapshot.Digest, account: (String) -> WidgetAccount) {
+    init(_ d: WidgetSnapshot.Digest, atlas a: WidgetSnapshot.Atlas? = nil, account: (String) -> WidgetAccount) {
         id = d.id
         dayKey = d.day
         day = DayName.parseDay(d.day)
@@ -102,7 +124,39 @@ struct WidgetDigest {
             return Box(account: account(b.account), label: b.label, counts: counts, top: Array(lines), unread: unread,
                        total: counts.values.reduce(0, +), part: mine.first { !read.contains($0) } ?? mine.first)
         }
+        atlas = a.map { a in
+            let alerts = a.alerts.prefix(WidgetSnapshot.Atlas.maxAlerts).map { Line(text: $0, section: Self.atlasAlert, pick: false) }
+            let lines = a.lines.prefix(WidgetSnapshot.Atlas.maxLines).map { Line(text: $0.text, section: Self.atlasSection, pick: false) }
+            return Box(account: WidgetAccount(id: "model-atlas", short: "Model Atlas", name: "Model Atlas", logo: nil),
+                       label: nil, counts: [:], top: Array((alerts + lines).prefix(WidgetSnapshot.Digest.maxLines)), unread: 0,
+                       total: 0, part: nil,
+                       atlas: AtlasInfo(report: DayName.parseDay(a.report), models: a.models, fresh: a.fresh ?? false))
+        }
     }
+
+    /// The mailboxes, then the Model Atlas box.
+    var items: [Box] { boxes + (atlas.map { [$0] } ?? []) }
+
+    /// The first `shown` items, keeping the Model Atlas box when mailboxes spill into "+N more"; `hidden` counts the
+    /// mailboxes left out.
+    func visible(_ shown: Int) -> (items: [Box], hidden: Int) {
+        let all = items
+        guard shown < all.count else { return (all, 0) }
+        guard let atlas else { return (Array(boxes.prefix(shown)), all.count - shown) }
+        let mail = Array(boxes.prefix(max(0, shown - 1)))
+        return (mail + (shown > 0 ? [atlas] : []), boxes.count - mail.count)
+    }
+
+    /// The Model Atlas box dims once its report is eight days old (by the entry date).
+    var atlasStale: Bool {
+        guard let report = atlas?.atlas?.report, let now else { return false }
+        let cal = WidgetCalendar.current
+        let days = cal.dateComponents([.day], from: cal.startOfDay(for: report), to: cal.startOfDay(for: now)).day ?? 0
+        return days >= Self.atlasStaleDays
+    }
+
+    /// "Week of 30 Oct" (or "The atlas" before the first report).
+    var atlasWeek: String { atlas?.atlas?.report.map { "Week of " + DayName.format("d MMM", $0) } ?? "The atlas" }
 
     /// Items in sections not read yet: the badge.
     var unread: Int { sections.filter { !$0.read }.reduce(0) { $0 + $1.count } }
@@ -111,7 +165,11 @@ struct WidgetDigest {
     /// Where the badge and the header go: the first section not read yet (nil = the digest's top).
     var firstUnread: String? { sections.first { !$0.read && $0.count > 0 }?.key }
     func section(_ key: String) -> Section? { sections.first { $0.key == key } }
-    func isRead(_ key: String) -> Bool { section(key)?.read ?? false }
+    /// A section read (its lines dim); the Model Atlas box's lines dim once the report is old.
+    func isRead(_ key: String) -> Bool {
+        if key == Self.atlasSection || key == Self.atlasAlert { return atlasStale }
+        return section(key)?.read ?? false
+    }
 
     /// The summary of the summary: the top lines across mailboxes, unread sections first, picks first, one mailbox
     /// at a time so one busy inbox doesn't fill it.
@@ -262,7 +320,7 @@ struct DigestWidget: View {
 
     /// Mailboxes drawn (for the manifest and tests), the rest go into "+N more".
     static func shownBoxes(family: Family, digest: WidgetDigest, style: WidgetStyle) -> Int {
-        let n = digest.boxes.count
+        let n = digest.items.count
         let h = digest.headlines(headlineCount(family)).count
         switch family {
         case .small: return min(n, DigestSmall.maxMarks)
@@ -277,6 +335,10 @@ struct DigestWidget: View {
 /// The digest's links: the Digest tab, at a section when there is one.
 extension WidgetLinkContext {
     func digest(_ part: String? = nil) -> URL { YayaLink.openDigest(part: part) }
+    /// Model Atlas's box (D-054): its weekly report.
+    func atlas() -> URL { YayaLink.openAtlas() }
+    /// A box's tap: a mailbox's section, or Model Atlas's report.
+    func box(_ box: WidgetDigest.Box) -> URL { box.atlas != nil ? atlas() : digest(box.part) }
 }
 
 extension YayaLink {
@@ -286,6 +348,9 @@ extension YayaLink {
         if let part, Route.isSafeValue(part) { query.append(("part", part)) }
         return url("open/app", query)
     }
+
+    /// `open/atlas` (D-054): Model Atlas's weekly report, opened by the app in the person's Markdown app.
+    static func openAtlas() -> URL { url("open/atlas", []) }
 }
 
 // MARK: Pieces
@@ -334,12 +399,21 @@ struct MailboxMark: View {
     let name: String
     let style: WidgetStyle
     var size: CGFloat = 18
+    var atlas = false
 
     var body: some View {
         let p = style.palette
         let side = size * style.scale
         let radius = side * 0.3
-        if style.showLogos, account.logo != nil {
+        if atlas {
+            // Model Atlas (D-054): a chip glyph on the soft accent, never a mailbox's face.
+            Image(systemName: "cpu").font(.system(size: side * 0.56, weight: .semibold)).foregroundStyle(p.accent)
+                .frame(width: side, height: side)
+                .background(RoundedRectangle(cornerRadius: radius, style: .continuous).fill(p.accentSoft))
+                .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(p.rule, lineWidth: 0.5))
+                .widgetAccentable()
+                .accessibilityHidden(true)
+        } else if style.showLogos, account.logo != nil {
             AccountBadge(account: account, style: style, size: size)
         } else {
             let tint = account.color.map { Color(hex: UInt32($0 & 0xFFFFFF)) } ?? p.accent
@@ -363,7 +437,15 @@ struct DigestCountPill: View {
     var body: some View {
         let p = style.palette
         Group {
-            if box.unread > 0 {
+            if let atlas = box.atlas {
+                // Model Atlas (D-054): "New" until its report is opened once, nothing after.
+                if atlas.fresh {
+                    Text("New").font(style.font(9.5, .heavy)).foregroundStyle(p.onAccent)
+                        .padding(.horizontal, 6.5).frame(height: 17 * style.scale)
+                        .background(Capsule().fill(p.accentFill))
+                        .widgetAccentable()
+                }
+            } else if box.unread > 0 {
                 Text("\(box.unread)").font(style.font(10.5, .heavy)).monospacedDigit().foregroundStyle(p.accent)
                     .padding(.horizontal, 6.5).frame(minWidth: 20 * style.scale).frame(height: 17 * style.scale)
                     .background(Capsule().fill(p.accentSoft))
@@ -392,7 +474,10 @@ struct DigestLineView: View {
         let p = style.palette
         HStack(alignment: .firstTextBaseline, spacing: 5) {
             Group {
-                if line.pick {
+                if line.section == WidgetDigest.atlasAlert {
+                    Image(systemName: "exclamationmark.triangle.fill").font(.system(size: (size - 3) * style.scale, weight: .bold))
+                        .foregroundStyle(read ? p.text3 : p.warn)
+                } else if line.pick {
                     Image(systemName: "sparkle").font(.system(size: (size - 2.5) * style.scale, weight: .bold))
                         .foregroundStyle(read ? p.text3 : p.accent).widgetAccentable()
                 } else {
@@ -572,12 +657,18 @@ struct DigestBoxRow: View {
         let p = style.palette
         let line = box.top.first
         let shown = tall ? max(1, lines) : 1
-        WidgetLink(destination: links.digest(box.part)) {
+        WidgetLink(destination: links.box(box)) {
             HStack(alignment: .center, spacing: tall ? 9 : 8) {
-                MailboxMark(account: box.account, name: box.name, style: style, size: tall ? 22 : 18)
+                MailboxMark(account: box.account, name: box.name, style: style, size: tall ? 22 : 18, atlas: box.atlas != nil)
                 VStack(alignment: .leading, spacing: tall ? 2 : 1) {
-                    Text(verbatim: tall ? box.longName : box.name)
-                        .font(style.font(tall ? 12.5 : 11.5, tall ? .semibold : .bold)).foregroundStyle(p.text).lineLimit(1)
+                    HStack(spacing: 5) {
+                        Text(verbatim: tall ? box.longName : box.name)
+                            .font(style.font(tall ? 12.5 : 11.5, tall ? .semibold : .bold)).foregroundStyle(p.text).lineLimit(1)
+                        if tall, box.atlas != nil {
+                            Text(digest.atlasWeek).font(style.font(10.5, .medium)).lineLimit(1)
+                                .foregroundStyle(digest.atlasStale ? p.text3 : p.text2)
+                        }
+                    }
                     if box.top.isEmpty {
                         lineText(nil, size: tall ? 11 : 10.5)
                     } else {
@@ -590,8 +681,16 @@ struct DigestBoxRow: View {
             .frame(height: tall ? DigestLayout.largeRow(style, lines: lines) : DigestLayout.mediumRow(style))
             .contentShape(Rectangle())
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(WidgetA11y.digestBox(box.longName, unread: box.unread, total: box.total, line: line?.text))
+            .accessibilityLabel(Self.spoken(box, digest: digest))
         }
+    }
+
+    /// VoiceOver: a mailbox, or Model Atlas's week.
+    static func spoken(_ box: WidgetDigest.Box, digest: WidgetDigest) -> String {
+        if let atlas = box.atlas {
+            return WidgetA11y.digestAtlas(digest.atlasWeek, fresh: atlas.fresh, line: box.top.first?.text)
+        }
+        return WidgetA11y.digestBox(box.longName, unread: box.unread, total: box.total, line: box.top.first?.text)
     }
 
     @ViewBuilder
@@ -600,7 +699,10 @@ struct DigestBoxRow: View {
         if let line {
             HStack(spacing: 4) {
                 Group {
-                    if line.pick {
+                    if line.section == WidgetDigest.atlasAlert {
+                        Image(systemName: "exclamationmark.triangle.fill").font(.system(size: (size - 3) * style.scale, weight: .bold))
+                            .foregroundStyle(digest.isRead(line.section) ? p.text3 : p.warn)
+                    } else if line.pick {
                         Image(systemName: "sparkle").font(.system(size: (size - 2.5) * style.scale, weight: .bold))
                             .foregroundStyle(digest.isRead(line.section) ? p.text3 : p.accent).widgetAccentable()
                     } else {
@@ -629,10 +731,10 @@ struct DigestBoxCard: View {
 
     var body: some View {
         let p = style.palette
-        WidgetLink(destination: links.digest(box.part)) {
+        WidgetLink(destination: links.box(box)) {
             VStack(alignment: .leading, spacing: 4 * style.scale) {
                 HStack(spacing: 7) {
-                    MailboxMark(account: box.account, name: box.name, style: style, size: 20)
+                    MailboxMark(account: box.account, name: box.name, style: style, size: 20, atlas: box.atlas != nil)
                     VStack(alignment: .leading, spacing: 0) {
                         Text(verbatim: box.longName).font(style.font(12, .bold)).foregroundStyle(p.text).lineLimit(1)
                         Text(Self.subline(box, digest: digest)).font(style.font(9.5, .medium)).foregroundStyle(p.text3).lineLimit(1)
@@ -659,12 +761,16 @@ struct DigestBoxCard: View {
             .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(p.rule, lineWidth: 0.5))
             .contentShape(Rectangle())
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(WidgetA11y.digestBox(box.longName, unread: box.unread, total: box.total, line: box.top.first?.text))
+            .accessibilityLabel(DigestBoxRow.spoken(box, digest: digest))
         }
     }
 
     /// "ORB · Social 5 · Deals 1": its tag, then its sections.
     static func subline(_ box: WidgetDigest.Box, digest: WidgetDigest) -> String {
+        if let atlas = box.atlas {
+            return ([digest.atlasWeek] + (atlas.models.map { [$0 == 1 ? "1 model" : "\($0) models"] } ?? []))
+                .joined(separator: " \u{00B7} ")
+        }
         let parts = digest.sections.compactMap { s -> String? in
             guard let n = box.counts[s.key], n > 0 else { return nil }
             return "\(s.short) \(n)"
@@ -731,20 +837,20 @@ struct DigestSmall: View {
 
     private var marks: some View {
         let p = style.palette
-        let shown = digest.boxes.prefix(Self.maxMarks)
+        let shown = digest.visible(Self.maxMarks).items
         return HStack(spacing: 5) {
             ForEach(Array(shown.enumerated()), id: \.offset) { _, box in
-                MailboxMark(account: box.account, name: box.name, style: style, size: 18)
+                MailboxMark(account: box.account, name: box.name, style: style, size: 18, atlas: box.atlas != nil)
                     .overlay(alignment: .topTrailing) {
-                        if box.unread > 0 {
+                        if box.unread > 0 || box.atlas?.fresh == true {
                             Circle().fill(p.accentFill).frame(width: 7, height: 7)
                                 .overlay(Circle().strokeBorder(p.backgroundTop, lineWidth: style.mono ? 0 : 1.5))
                                 .offset(x: 2.5, y: -2.5).widgetAccentable()
                         }
                     }
             }
-            if digest.boxes.count > shown.count {
-                Text("+\(digest.boxes.count - shown.count)").font(style.font(10.5, .bold)).foregroundStyle(p.text3)
+            if digest.items.count > shown.count {
+                Text("+\(digest.items.count - shown.count)").font(style.font(10.5, .bold)).foregroundStyle(p.text3)
             }
         }
     }
@@ -758,7 +864,8 @@ struct DigestMedium: View {
 
     var body: some View {
         let p = style.palette
-        let fit = DigestLayout.medium(digest.boxes.count, style: style)
+        let fit = DigestLayout.medium(digest.items.count, style: style)
+        let vis = digest.visible(fit.shown)
         HStack(alignment: .top, spacing: 12) {
             ZStack(alignment: .topTrailing) {
                 WidgetLink(destination: links.digest(digest.firstUnread)) {
@@ -796,10 +903,10 @@ struct DigestMedium: View {
             .frame(width: 118 * min(style.scale, 1.06))
             Rectangle().fill(p.rule).frame(width: 1).padding(.vertical, 2)
             VStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(digest.boxes.prefix(fit.shown).enumerated()), id: \.offset) { _, box in
+                ForEach(Array(vis.items.enumerated()), id: \.offset) { _, box in
                     DigestBoxRow(box: box, digest: digest, style: style)
                 }
-                if fit.hidden > 0 { DigestMoreLine(hidden: fit.hidden, style: style) }
+                if vis.hidden > 0 { DigestMoreLine(hidden: vis.hidden, style: style) }
                 Spacer(minLength: 0)
             }
         }
@@ -815,17 +922,18 @@ struct DigestLarge: View {
 
     var body: some View {
         let lines = digest.headlines(DigestWidget.headlineCount(.large))
-        let fit = DigestLayout.large(digest.boxes.count, headlines: lines.count, style: style)
+        let fit = DigestLayout.large(digest.items.count, headlines: lines.count, style: style)
+        let vis = digest.visible(fit.shown)
         VStack(alignment: .leading, spacing: 10) {
             DigestHeader(digest: digest, now: now, style: style)
             if !lines.isEmpty { DigestSummaryCard(lines: lines, digest: digest, style: style) }
             DigestChips(digest: digest, style: style, width: Family.large.size.width - 28)
             VStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(digest.boxes.prefix(fit.shown).enumerated()), id: \.offset) { i, box in
+                ForEach(Array(vis.items.enumerated()), id: \.offset) { i, box in
                     if i > 0 { Rectangle().fill(style.palette.rule).frame(height: 1).padding(.leading, 30 * style.scale) }
                     DigestBoxRow(box: box, digest: digest, style: style, tall: true, lines: fit.lines)
                 }
-                if fit.hidden > 0 { DigestMoreLine(hidden: fit.hidden, style: style).padding(.top, 2) }
+                if vis.hidden > 0 { DigestMoreLine(hidden: vis.hidden, style: style).padding(.top, 2) }
             }
             Spacer(minLength: 0)
         }
@@ -843,8 +951,9 @@ struct DigestExtraLarge: View {
     var body: some View {
         let p = style.palette
         let lines = digest.headlines(DigestWidget.headlineCount(.extraLarge))
-        let grid = DigestLayout.extraLarge(digest.boxes.count, style: style)
-        let shown = Array(digest.boxes.prefix(grid.shown))
+        let grid = DigestLayout.extraLarge(digest.items.count, style: style)
+        let vis = digest.visible(grid.shown)
+        let shown = vis.items
         VStack(alignment: .leading, spacing: 10) {
             DigestHeader(digest: digest, now: now, style: style)
             HStack(alignment: .top, spacing: 14) {
@@ -865,10 +974,10 @@ struct DigestExtraLarge: View {
                 }
                 .frame(width: 290)
                 VStack(alignment: .leading, spacing: 8) {
-                    ForEach(0..<((shown.count + (grid.hidden > 0 ? 1 : 0) + 1) / 2), id: \.self) { row in
+                    ForEach(0..<((shown.count + (vis.hidden > 0 ? 1 : 0) + 1) / 2), id: \.self) { row in
                         HStack(spacing: 8) {
-                            cell(row * 2, shown: shown, hidden: grid.hidden, lines: grid.lines)
-                            cell(row * 2 + 1, shown: shown, hidden: grid.hidden, lines: grid.lines)
+                            cell(row * 2, shown: shown, hidden: vis.hidden, lines: grid.lines)
+                            cell(row * 2 + 1, shown: shown, hidden: vis.hidden, lines: grid.lines)
                         }
                     }
                     Spacer(minLength: 0)
@@ -924,17 +1033,18 @@ struct DigestPortrait: View {
 
     var body: some View {
         let lines = digest.headlines(DigestWidget.headlineCount(.extraLargePortrait))
-        let fit = DigestLayout.portrait(digest.boxes.count, headlines: lines.count, style: style)
+        let fit = DigestLayout.portrait(digest.items.count, headlines: lines.count, style: style)
+        let vis = digest.visible(fit.shown)
         VStack(alignment: .leading, spacing: 10) {
             DigestHeader(digest: digest, now: now, style: style)
             if !lines.isEmpty { DigestSummaryCard(lines: lines, digest: digest, style: style) }
             DigestChips(digest: digest, style: style, width: Family.extraLargePortrait.size.width - 28)
                 .padding(.bottom, 2)
             VStack(alignment: .leading, spacing: 8) {
-                ForEach(Array(digest.boxes.prefix(fit.shown).enumerated()), id: \.offset) { _, box in
+                ForEach(Array(vis.items.enumerated()), id: \.offset) { _, box in
                     DigestBoxCard(box: box, digest: digest, style: style, lines: fit.lines, fill: false)
                 }
-                if fit.hidden > 0 { DigestMoreLine(hidden: fit.hidden, style: style) }
+                if vis.hidden > 0 { DigestMoreLine(hidden: vis.hidden, style: style) }
             }
             Spacer(minLength: 0)
         }
