@@ -266,13 +266,24 @@ enum MailHelperTests {
         T.equal(MailHelperCommand.voiceBuild(account: home, useClaude: false).args["use_claude"], .bool(false), "voice_build")
         T.equal(MailHelperCommand.voicePut(account: home, card: String(repeating: "a", count: 4000)).args["card"]?.string?.count, 3000,
                 "a style card is capped at 3,000 characters")
-        let draft = MailHelperCommand.draft(account: home, thread: "18f2a0c4d1e5e001", model: .sonnet, effort: .xhigh, instruction: "  ")
+        let draft = MailHelperCommand.draft(account: home, thread: "18f2a0c4d1e5e001", model: .sonnet, effort: "xhigh", instruction: "  ")
         T.equal(draft?.args["model"], .string("claude-sonnet-5-5"), "draft model id")
         T.equal(draft?.args["effort"], .string("xhigh"), "effort")
         T.equal(draft?.args["instruction"], nil, "an empty instruction is left out")
-        T.equal(MailHelperCommand.draft(account: home, thread: "18f", model: .local, effort: .low, instruction: String(repeating: "x", count: 1500))?
+        T.equal(MailHelperCommand.draft(account: home, thread: "18f", model: .local, effort: "low", instruction: String(repeating: "x", count: 1500))?
                     .args["instruction"]?.string?.count, 1000, "instructions are capped at 1,000 characters")
-        T.equal(MailHelperCommand.draft(account: home, thread: "m123", model: .local, effort: .low, instruction: ""), nil, "a calendar row id is not a thread id")
+        T.equal(MailHelperCommand.draft(account: home, thread: "m123", model: .local, effort: "low", instruction: ""), nil, "a calendar row id is not a thread id")
+        T.equal(draft?.args["provider"], .string("claude"), "the provider goes along (v1.2)")
+        let codex = MailDraftModel(provider: "codex", id: "gpt-6.1-sol", title: "GPT-6.1-Sol", efforts: ["low", "ultra"], defaultEffort: "low")
+        T.equal(MailHelperCommand.draft(account: home, thread: "18f", model: codex, effort: "max", instruction: "")?.args["effort"],
+                .string("low"), "a level the model hasn't falls back to its default")
+        T.equal(MailHelperCommand.draft(account: home, thread: "18f", model: MailDraftModel(provider: "codex", id: "Bad Id", title: "x",
+                efforts: [], defaultEffort: nil), effort: "low", instruction: ""), nil, "a model id that isn't one is refused")
+        T.equal(MailHelperCommand.setCodexCredential("personal", account: home).flatMap { $0.args["codex_credential"] }, .string("personal"),
+                "Codex sign-in per account")
+        let on = MailHelperCommand.enableClaude("orbital", account: orb)
+        T.equal(on?.args["ai_policy"], .string("local+claude"), "Turn on: cloud AI")
+        T.equal(on?.args["claude_credential"], .string("orbital"), "…with that credential")
 
         T.section("mail helper: people lists")
         let people = MailHelperCommand.people(.vip, addresses: ["Ines@OrbitalPickle.example", "ines@orbitalpickle.example", "not an address", " theo@moonbase.example "],
@@ -713,10 +724,13 @@ enum MailHelperTests {
         let d = MailHelperDraftModel(account: home, threadR: "mRowId", session: s, threadId: { $0 == "mRowId" ? "18f2a0c4d1e5e001" : nil },
                                      bag: bag, clock: { f.clock }, insert: { inserted.append($0) })
         T.equal(d.model, .local, "Local by default")
-        T.equal(d.effort, .low, "Low by default")
+        T.equal(d.effort, "low", "Low by default")
+        T.equal(d.models.map(\.id), ["local", "claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5", "claude-fable-5-1", "gpt-6.1-sol"],
+                "the helper's live list, a bad id dropped")
+        T.equal(d.models.last?.efforts.last, "ultra", "each model with its own thinking levels")
         T.equal(d.note, nil, "Personal is handed over and Claude is on")
         d.model = .opus
-        d.effort = .high
+        d.effort = "high"
         d.instruction = "Say yes, ask about parking"
         d.draft()
         T.equal(f.last?["kind"]?.string, "draft", "the draft command")
@@ -734,22 +748,41 @@ enum MailHelperTests {
         T.equal(d.open, false, "the pop-over closes")
         let again = MailHelperDraftModel(account: home, threadR: "mRowId", session: s, threadId: { _ in "abc" }, bag: bag)
         T.equal(again.model, .opus, "the choice is remembered per account")
-        T.equal(again.effort, .high, "…thinking too")
+        T.equal(again.effort, "high", "…thinking too")
         T.equal(MailHelperDraftModel(account: orb, threadR: "x", session: s, threadId: { _ in "abc" }, bag: bag).model, .local, "another account keeps its own")
 
         d.draft()
         f.answer(ok: false, error: "Claude is off for this account")
         s.collect()
         T.equal(d.phase, .failed("Claude is off for this account"), "the helper's error, inline")
+        d.model = .local
+        T.equal(d.phase, .idle, "picking another model clears the old error")
+        T.equal(d.model.efforts, [], "Local has no thinking levels")
+        d.model = .opus
+        d.effort = "high"
+        d.draft()
+        f.answer(data: .object(["draft": .string("Hi,\n\nYes.\n\nAvery"), "provider": .string("codex"), "model": .string("gpt-6.1-sol"),
+                                "fallback": .string("Claude: claude failed: rate_limit 429")]))
+        s.collect()
+        T.equal(d.lastNote, "Written by Codex (GPT-6.1-Sol). Claude: claude failed: rate_limit 429", "who wrote it, when Codex stood in")
+        T.equal(d.open, true, "…and the pop-over stays to say so")
+        let insertedSoFar = inserted.count
         d.draft()
         d.cancel()
         T.equal(d.phase, .idle, "Cancel stops waiting")
         f.answer(data: .object(["draft": .string("late")]))
         s.collect()
-        T.equal(inserted.count, 1, "a late answer is dropped")
+        T.equal(inserted.count, insertedSoFar, "a late answer is dropped")
         let orbDraft = MailHelperDraftModel(account: orb, threadR: "x", session: s, threadId: { _ in "abc" }, bag: MemoryBag())
         orbDraft.model = .haiku
         T.check(orbDraft.note?.hasPrefix("Claude is off for this account") == true, "Claude off for ORB: said before asking")
+        T.equal(orbDraft.enableCredential, "orbital", "a work account is offered its own credential, never \"personal\"")
+        orbDraft.enableClaude()
+        T.equal(f.last?["kind"]?.string, "account", "Turn on Claude: one account command")
+        T.equal(f.last?["args"]?["claude_credential"]?.string, "orbital", "…with the work credential")
+        let homeDraft = MailHelperDraftModel(account: home, threadR: "x", session: s, threadId: { _ in "abc" }, bag: MemoryBag())
+        homeDraft.model = .haiku
+        T.equal(homeDraft.enableCredential, nil, "nothing to turn on where Claude is ready")
         let famDraft = MailHelperDraftModel(account: fam, threadR: "x", session: s, threadId: { _ in "abc" }, bag: MemoryBag())
         T.check(famDraft.note?.contains("isn\u{2019}t handed over") == true, "FAM isn't handed over: said")
         let lost = MailHelperDraftModel(account: home, threadR: "gone", session: s, threadId: { _ in nil }, bag: MemoryBag())

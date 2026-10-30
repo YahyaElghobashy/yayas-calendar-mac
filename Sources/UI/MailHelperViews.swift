@@ -368,6 +368,18 @@ private struct MailHelperAccountCard: View {
                 if lab.claudeCredential != nil, !lab.claudeReady {
                     Text("not ready").font(AppTheme.font(11.5, .semibold)).foregroundStyle(AppTheme.warn)
                 }
+                MenuLabelButton(title: lab.codexCredential.map { "Codex: \($0)" } ?? "Pick a Codex sign-in") {
+                    var items = (model.state?.codexCredentials ?? []).map { name in
+                        AccountsKit.PopUpMenuButton.Item(title: name) { model.setCodexCredential(name, id) }
+                    }
+                    if items.isEmpty {
+                        items.append(AccountsKit.PopUpMenuButton.Item(title: "No Codex sign-in on your mail server yet", enabled: false) {})
+                    }
+                    items.append(.separator)
+                    items.append(AccountsKit.PopUpMenuButton.Item(title: "None") { model.setCodexCredential(nil, id) })
+                    return items
+                }
+                .help("Codex writes when Claude can\u{2019}t, and Claude when Codex can\u{2019}t.")
             }
             Spacer(minLength: 0)
         }

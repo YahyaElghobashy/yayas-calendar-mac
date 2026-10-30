@@ -5,17 +5,28 @@
   "server": {"seal_key": "agxBS5neXZl+J2wFnss6T3IIpmxWZzVImQhR42I3PHI=", "seal_fingerprint": "N2MJ-PWCK-MGH4"},
   "status": {
     "version": 1, "now": 1792399500, "root_label": "Sorted", "digest_at": "07:00", "tz": "Europe/London",
-    "claude_credentials": ["orbital", "personal"], "local_model": true, "open_proposals": 3, "errors": [],
+    "claude_credentials": ["orbital", "personal"], "codex_credentials": ["personal"], "local_model": true,
+    "open_proposals": 3, "errors": [],
+    "models": {"fetched_at": 1792399000, "providers": [
+      {"id": "local", "title": "Local", "models": [{"id": "local", "title": "Local (on your mail server)", "efforts": []}]},
+      {"id": "claude", "title": "Claude", "live": true, "models": [
+        {"id": "claude-haiku-5-5", "title": "Claude Haiku 5.5", "efforts": ["low", "medium", "high", "xhigh", "max"], "default_effort": "low"},
+        {"id": "claude-sonnet-5-5", "title": "Claude Sonnet 5.5", "efforts": ["low", "medium", "high", "xhigh", "max"], "default_effort": "low"},
+        {"id": "claude-opus-5-5", "title": "Claude Opus 5.5", "efforts": ["low", "medium", "high", "xhigh", "max"], "default_effort": "low"},
+        {"id": "claude-fable-5-1", "title": "Claude Fable 5.1", "efforts": ["low", "medium", "high", "xhigh", "max"], "default_effort": "low"}]},
+      {"id": "codex", "title": "Codex", "live": true, "models": [
+        {"id": "gpt-6.1-sol", "title": "GPT-6.1-Sol", "efforts": ["low", "medium", "high", "xhigh", "max", "ultra"], "default_effort": "low"},
+        {"id": "BAD ID", "title": "dropped", "efforts": []}]}]},
     "accounts": [
       {"id": "00000000-0000-4000-8000-0000000000A0", "email": "avery@home.example", "kind": "personal", "enabled": true,
        "paused": false, "state": "ready", "detail": null, "ai_policy": "local+claude", "claude_credential": "personal",
-       "claude_ready": true, "last_sync_at": 1792399440,
+       "claude_ready": true, "codex_credential": "personal", "codex_ready": true, "last_sync_at": 1792399440,
        "today": {"priority": 3, "people": 5, "newsletters": 14, "updates": 9, "promotions": 11, "orders": 2, "security": 1},
        "review_waiting": 2, "backfill": {"id": "bf-5e1f0a2b3c4d", "state": "applied", "scanned": 1876, "applied": 1876},
        "has_sign_in": true},
       {"id": "00000000-0000-4000-8000-0000000000A1", "email": "avery@orbitalpickle.example", "kind": "work", "enabled": true,
        "paused": true, "state": "ready", "detail": null, "ai_policy": "local", "claude_credential": null,
-       "claude_ready": false, "last_sync_at": 1792399380, "today": {}, "review_waiting": 1,
+       "claude_ready": false, "claude_off_reason": "Claude is off for this account: its AI setting is Local only.", "last_sync_at": 1792399380, "today": {}, "review_waiting": 1,
        "backfill": {"id": "bf-0b1a2c3d4e5f", "state": "ready", "scanned": 1284, "applied": 0}, "has_sign_in": true},
       {"id": "00000000-0000-4000-8000-0000000000A2", "email": "avery@quietcomets.example", "kind": "work", "enabled": true,
        "paused": false, "state": "ready", "detail": null, "ai_policy": "off", "claude_credential": null,

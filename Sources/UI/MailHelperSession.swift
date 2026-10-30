@@ -391,6 +391,10 @@ final class MailHelperModel: ObservableObject {
         act("credential:\(id)", .setCredential(name, account: id), ok: name.map { "Claude credential: \($0)." } ?? "No Claude credential.")
     }
 
+    func setCodexCredential(_ name: String?, _ id: UUID) {
+        act("codex:\(id)", .setCodexCredential(name, account: id), ok: name.map { "Codex sign-in: \($0)." } ?? "No Codex sign-in.")
+    }
+
     // MARK: Hand-over (the approval card)
 
     /// "Hand over sign-in": the card names the account and the server's fingerprint. Nothing is read or sent yet.
@@ -748,9 +752,13 @@ final class MailHelperDraftModel: ObservableObject {
     let session: MailHelperSession
     @Published var open = false
     @Published var instruction = ""
-    @Published var model: MailDraftModel
-    @Published var effort: MailDraftEffort
+    /// Changing the model or the thinking level clears the last failure: it was about the old pick.
+    @Published var model: MailDraftModel { didSet { if model != oldValue { effort = model.effort(effort); clearFailure() } } }
+    @Published var effort: String { didSet { if effort != oldValue { clearFailure() } } }
     @Published private(set) var phase: Phase = .idle
+    /// Who wrote the last draft when it wasn't the model picked (Codex for Claude, or the other way), and why.
+    @Published private(set) var lastNote: String?
+    @Published private(set) var enabling = false
     /// The composer's insertion (the body setter, or at the cursor when there's text already).
     var insert: @MainActor (String) -> Void
     private let threadId: (String) -> String?
@@ -782,26 +790,66 @@ final class MailHelperDraftModel: ObservableObject {
         self.bag = bag
         self.clock = clock
         self.insert = insert
-        model = (bag.object(Self.modelKey(account)) as? String).flatMap(MailDraftModel.init) ?? .local
-        effort = (bag.object(Self.effortKey(account)) as? String).flatMap(MailDraftEffort.init) ?? .low
+        let models = session.state?.models ?? MailDraftModel.builtIn
+        let saved = bag.object(Self.modelKey(account)) as? String
+        let picked = models.first { $0.id == saved } ?? .local
+        model = picked
+        effort = picked.effort((bag.object(Self.effortKey(account)) as? String) ?? picked.defaultEffort ?? "low")
         changes = session.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
     }
+
+    /// What the Model menu offers: the helper's live list (Local, then Claude's and Codex's current models).
+    var models: [MailDraftModel] { session.state?.models ?? MailDraftModel.builtIn }
 
     var isWorking: Bool { if case .working = phase { return true } else { return false } }
     var isFailed: Bool { if case .failed = phase { return true } else { return false } }
     /// The model's clock (the pop-over's "Writing… 1 min 35 s" ticks against it).
     var now: Date { clock() }
 
-    /// A word before the person asks: the account isn't with the helper yet, or Claude is off for it.
+    private func clearFailure() {
+        if isFailed { phase = .idle }
+    }
+
+    /// A word before the person asks: the account isn't with the helper yet, or the picked cloud writer is off for it
+    /// (and whether the other one will stand in).
     var note: String? {
         guard let s = session.state else { return MailHelperSession.notInstalled }
         guard let a = s.account(account), a.hasSignIn else {
             return "This account isn\u{2019}t handed over to your mail server yet (Mail helper \u{2192} Hand over sign-in)."
         }
-        if model.usesClaude, a.aiPolicy != .localClaude || a.claudeCredential == nil {
-            return "Claude is off for this account, so the helper will say no. Pick Local, or turn Claude on in Mail helper."
+        guard model.usesCloud else { return nil }
+        let claude = model.usesClaude
+        let ready = claude ? a.claudeReady : a.codexReady
+        if ready { return nil }
+        let otherReady = claude ? a.codexReady : a.claudeReady
+        let other = claude ? "Codex" : "Claude"
+        if otherReady { return "\(model.providerTitle) is off for this account, so \(other) will write it instead." }
+        if a.aiPolicy != .localClaude || (claude ? a.claudeCredential : a.codexCredential) == nil {
+            return "\(model.providerTitle) is off for this account, so the helper will say no. Pick Local, or turn it on."
         }
-        return nil
+        return (claude ? a.claudeOffReason : a.codexOffReason) ?? "\(model.providerTitle) isn\u{2019}t ready for this account."
+    }
+
+    /// The Claude credential "Turn on Claude" would use: "personal" only for a personal account, never for work mail
+    /// (each work account takes its own credential, picked in Mail helper).
+    var enableCredential: String? {
+        guard model.usesClaude, let s = session.state, let a = s.account(account), a.hasSignIn, !a.claudeReady else { return nil }
+        if let c = a.claudeCredential, s.claudeCredentials.contains(c) { return c }
+        let usable = s.claudeCredentials.filter { a.kind == "personal" || $0 != "personal" }
+        return usable.contains("personal") && a.kind == "personal" ? "personal" : (usable.count == 1 ? usable[0] : nil)
+    }
+
+    /// "Turn on Claude for this account": cloud AI on, with that credential, then a fresh status.
+    func enableClaude() {
+        guard let name = enableCredential, !enabling else { return }
+        enabling = true
+        clearFailure()
+        session.send(.enableClaude(name, account: account)) { [weak self] r in
+            guard let self else { return }
+            self.enabling = false
+            if !r.ok { self.phase = .failed(r.error ?? "I couldn\u{2019}t turn Claude on for this account.") }
+            self.session.refresh()
+        }
     }
 
     func elapsed(_ now: Date) -> String {
@@ -812,8 +860,8 @@ final class MailHelperDraftModel: ObservableObject {
 
     func draft() {
         guard !isWorking else { return }
-        bag.set(model.rawValue, Self.modelKey(account))
-        bag.set(effort.rawValue, Self.effortKey(account))
+        bag.set(model.id, Self.modelKey(account))
+        bag.set(effort, Self.effortKey(account))
         guard let thread = threadId(threadR), let command = MailHelperCommand.draft(
             account: account, thread: thread, model: model, effort: effort, instruction: instruction) else {
             phase = .failed("I can\u{2019}t find this conversation in Gmail yet. Try again after the next sync.")
@@ -828,12 +876,22 @@ final class MailHelperDraftModel: ObservableObject {
             self.sent = nil
             if r.ok, let text = r.data["draft"]?.string, let clean = Self.clean(text) {
                 self.phase = .idle
-                self.open = false
+                self.lastNote = Self.fallbackNote(r.data, picked: self.model, models: self.models)
+                self.open = self.lastNote != nil
                 self.insert(clean)
             } else {
                 self.phase = .failed(r.ok ? "The helper sent back an empty draft." : (r.error ?? "No draft this time."))
             }
         }
+    }
+
+    /// "Written by Codex (GPT-6.1-Sol): Claude said …" when the helper used the other cloud writer; nil otherwise.
+    static func fallbackNote(_ data: MailHelperJSON, picked: MailDraftModel, models: [MailDraftModel]) -> String? {
+        guard let used = data["provider"]?.string, used != picked.provider, let why = data["fallback"]?.string else { return nil }
+        let id = data["model"]?.string ?? ""
+        let title = models.first { $0.id == id }?.title ?? id
+        let who = used == "codex" ? "Codex" : used == "claude" ? "Claude" : "Local"
+        return "Written by \(who)\(title.isEmpty ? "" : " (\(title))"). \(MailHelperPlain.clean(why, 300) ?? "")"
     }
 
     /// Cancel: stop waiting (the helper may still finish; its answer is dropped).
