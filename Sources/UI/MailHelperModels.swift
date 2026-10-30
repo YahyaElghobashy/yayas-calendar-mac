@@ -190,41 +190,59 @@ enum MailAIPolicy: String, CaseIterable, Identifiable {
         switch self {
         case .off: return "Off"
         case .local: return "Local"
-        case .localClaude: return "Local + Claude"
+        case .localClaude: return "Local + cloud"
         }
     }
 }
 
-/// The writer's models (contract v1.1) and thinking levels.
-enum MailDraftModel: String, CaseIterable, Identifiable {
-    case local
-    case haiku = "claude-haiku-5-5"
-    case sonnet = "claude-sonnet-5-5"
-    case opus = "claude-opus-5-5"
+/// A model the writer can use, from the helper's live list (`status.models`, contract v1.2): Local, then whatever Claude and
+/// Codex offer now, each with its own thinking levels. Before the first list arrives, the built-in Claude three stand in.
+struct MailDraftModel: Equatable, Hashable, Identifiable {
+    /// local, claude or codex
+    var provider: String
+    var id: String
+    var title: String
+    var efforts: [String]
+    var defaultEffort: String?
 
-    var id: String { rawValue }
-    var title: String {
-        switch self {
-        case .local: return "Local"
-        case .haiku: return "Claude Haiku 5.5"
-        case .sonnet: return "Claude Sonnet 5.5"
-        case .opus: return "Claude Opus 5.5"
-        }
+    var usesCloud: Bool { provider != "local" }
+    var usesClaude: Bool { provider == "claude" }
+    var providerTitle: String { provider == "codex" ? "Codex" : provider == "claude" ? "Claude" : "Local" }
+
+    static let providers: Set<String> = ["local", "claude", "codex"]
+    static let claudeLevels = ["low", "medium", "high", "xhigh", "max"]
+    static let local = MailDraftModel(provider: "local", id: "local", title: "Local", efforts: [], defaultEffort: nil)
+    static let builtIn: [MailDraftModel] = [local] + [("haiku", "Haiku"), ("sonnet", "Sonnet"), ("opus", "Opus")].map {
+        MailDraftModel(provider: "claude", id: "claude-\($0.0)-5-5", title: "Claude \($0.1) 5.5", efforts: claudeLevels, defaultEffort: "low")
     }
-    var usesClaude: Bool { self != .local }
+
+    static let haiku = builtIn[1], sonnet = builtIn[2], opus = builtIn[3]
+
+    /// Ids and levels the helper accepts (it checks them against the live list too).
+    static func isModelId(_ s: String) -> Bool {
+        guard let first = s.unicodeScalars.first, s.utf8.count <= 64 else { return false }
+        let ok = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyz0123456789._-")
+        return CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyz0123456789").contains(first)
+            && s.unicodeScalars.allSatisfy { ok.contains($0) }
+    }
+    static func isEffort(_ s: String) -> Bool {
+        (2...12).contains(s.utf8.count) && s.unicodeScalars.allSatisfy { CharacterSet.lowercaseLetters.contains($0) && $0.isASCII }
+    }
+
+    /// The level to use with this model: the one asked for if it has it, else its default, else its first.
+    func effort(_ wanted: String) -> String {
+        if efforts.isEmpty || efforts.contains(wanted) { return efforts.isEmpty ? "low" : wanted }
+        return defaultEffort.flatMap { efforts.contains($0) ? $0 : nil } ?? efforts[0]
+    }
 }
 
-enum MailDraftEffort: String, CaseIterable, Identifiable {
-    case low, medium, high, xhigh, max
-
-    var id: String { rawValue }
-    var title: String {
-        switch self {
-        case .low: return "Low"
-        case .medium: return "Medium"
-        case .high: return "High"
-        case .xhigh: return "Extra high"
-        case .max: return "Max"
+/// Thinking levels as people read them.
+enum MailDraftEffort {
+    static func title(_ raw: String) -> String {
+        switch raw {
+        case "xhigh": return "Extra high"
+        case "max": return "Max"
+        default: return raw.prefix(1).uppercased() + raw.dropFirst()
         }
     }
 }
@@ -283,6 +301,11 @@ struct MailHelperState: Equatable {
         var aiPolicy: MailAIPolicy?
         var claudeCredential: String?
         var claudeReady: Bool
+        /// v1.2: the Codex sign-in this account uses, and why Claude or Codex won't write for it (the lab's words).
+        var codexCredential: String? = nil
+        var codexReady = false
+        var claudeOffReason: String? = nil
+        var codexOffReason: String? = nil
         var lastSyncAt: Date?
         /// Today's sorted mail per category (Priority included when the helper counts it).
         var today: [String: Int]
@@ -374,6 +397,9 @@ struct MailHelperState: Equatable {
     var sealFingerprint: String?
     var accounts: [Account] = []
     var claudeCredentials: [String] = []
+    var codexCredentials: [String] = []
+    /// The writer's models, live from the providers (Local first); the built-in list until the helper sends one.
+    var models: [MailDraftModel] = MailDraftModel.builtIn
     var localModel = false
     var rootLabel = "Sorted"
     var digestAt: String?
@@ -446,6 +472,9 @@ enum MailHelperParse {
             s.accounts = (status["accounts"]?.array ?? []).compactMap(account)
             s.claudeCredentials = (status["claude_credentials"]?.array ?? []).compactMap { $0.string }
                 .filter(MailHelperIDs.isAccount).sorted()
+            s.codexCredentials = (status["codex_credentials"]?.array ?? []).compactMap { $0.string }
+                .filter(MailHelperIDs.isAccount).sorted()
+            if let list = models(status["models"]), !list.isEmpty { s.models = list }
             s.localModel = status["local_model"]?.bool ?? false
             if let root = MailHelperPlain.clean(status["root_label"]?.string, 40) { s.rootLabel = root }
             s.digestAt = MailHelperPlain.clean(status["digest_at"]?.string, 8)
@@ -469,6 +498,24 @@ enum MailHelperParse {
         return s
     }
 
+    /// `status.models.providers[].models[]`: ids and levels checked by shape, titles cleaned, at most 12 per provider.
+    static func models(_ m: MailHelperJSON?) -> [MailDraftModel]? {
+        guard let providers = m?["providers"]?.array else { return nil }
+        var out: [MailDraftModel] = []
+        for p in providers {
+            guard let pid = p["id"]?.string, MailDraftModel.providers.contains(pid) else { continue }
+            for e in (p["models"]?.array ?? []).prefix(12) {
+                guard let id = e["id"]?.string, MailDraftModel.isModelId(id) else { continue }
+                let levels = (e["efforts"]?.array ?? []).compactMap { $0.string }.filter(MailDraftModel.isEffort)
+                let def = e["default_effort"]?.string.flatMap { levels.contains($0) ? $0 : nil }
+                out.append(MailDraftModel(provider: pid, id: id, title: MailHelperPlain.clean(e["title"]?.string, 60) ?? id,
+                                          efforts: pid == "local" ? [] : Array(levels.prefix(8)), defaultEffort: def))
+            }
+        }
+        if !out.contains(where: { $0.provider == "local" }) { out.insert(.local, at: 0) }
+        return out
+    }
+
     static func account(_ a: MailHelperJSON) -> MailHelperState.Account? {
         guard let id = a["id"]?.string, MailHelperIDs.isAccount(id) else { return nil }
         var today: [String: Int] = [:]
@@ -483,7 +530,11 @@ enum MailHelperParse {
             id: id, email: MailHelperPlain.clean(a["email"]?.string, 254) ?? "", kind: a["kind"]?.string ?? "personal",
             enabled: a["enabled"]?.bool ?? false, paused: a["paused"]?.bool ?? false, state: a["state"]?.string ?? "new",
             detail: MailHelperPlain.clean(a["detail"]?.string, 200), aiPolicy: a["ai_policy"]?.string.flatMap(MailAIPolicy.init),
-            claudeCredential: credential, claudeReady: a["claude_ready"]?.bool ?? false, lastSyncAt: a["last_sync_at"]?.date,
+            claudeCredential: credential, claudeReady: a["claude_ready"]?.bool ?? false,
+            codexCredential: a["codex_credential"]?.string.flatMap { MailHelperIDs.isAccount($0) ? $0 : nil },
+            codexReady: a["codex_ready"]?.bool ?? false,
+            claudeOffReason: MailHelperPlain.clean(a["claude_off_reason"]?.string, 300),
+            codexOffReason: MailHelperPlain.clean(a["codex_off_reason"]?.string, 300), lastSyncAt: a["last_sync_at"]?.date,
             today: today, reviewWaiting: max(0, a["review_waiting"]?.int ?? 0), backfill: ref,
             hasSignIn: a["has_sign_in"]?.bool ?? false)
     }
@@ -726,6 +777,24 @@ struct MailHelperCommand: Equatable {
                                                          "claude_credential": name.map { .string($0) } ?? .null])
     }
 
+    /// nil name = no Codex sign-in for this account (v1.2).
+    static func setCodexCredential(_ name: String?, account: UUID) -> MailHelperCommand? {
+        if let name, !MailHelperIDs.isAccount(name) { return nil }
+        return MailHelperCommand(kind: "account", args: ["account": .string(MailHelperIDs.account(account)),
+                                                         "codex_credential": name.map { .string($0) } ?? .null])
+    }
+
+    /// Cloud AI on, with this Claude credential, in one go (the draft pop-over's "Turn on").
+    static func enableClaude(_ name: String, account: UUID) -> MailHelperCommand? {
+        guard MailHelperIDs.isAccount(name) else { return nil }
+        return MailHelperCommand(kind: "account", args: ["account": .string(MailHelperIDs.account(account)),
+                                                         "ai_policy": .string(MailAIPolicy.localClaude.rawValue),
+                                                         "claude_credential": .string(name)])
+    }
+
+    /// Ask Claude and Codex for their current models and thinking levels (v1.2).
+    static func modelsRefresh() -> MailHelperCommand { MailHelperCommand(kind: "models_refresh") }
+
     static func setKind(_ kind: String, account: UUID) -> MailHelperCommand? {
         guard kind == "personal" || kind == "work" else { return nil }
         return MailHelperCommand(kind: "account", args: ["account": .string(MailHelperIDs.account(account)), "kind": .string(kind)])
@@ -834,11 +903,14 @@ struct MailHelperCommand: Equatable {
     /// The helper reads at most 1,000 characters of an instruction.
     static let instructionLimit = 1000
 
-    static func draft(account: UUID, thread: String, model: MailDraftModel, effort: MailDraftEffort,
+    static func draft(account: UUID, thread: String, model: MailDraftModel, effort: String,
                       instruction: String) -> MailHelperCommand? {
-        guard MailHelperIDs.isThread(thread) else { return nil }
+        guard MailHelperIDs.isThread(thread), MailDraftModel.isModelId(model.id), MailDraftModel.providers.contains(model.provider)
+        else { return nil }
+        let level = model.effort(effort)
         var args: [String: MailHelperJSON] = ["account": .string(MailHelperIDs.account(account)), "thread_id": .string(thread),
-                                              "model": .string(model.rawValue), "effort": .string(effort.rawValue)]
+                                              "model": .string(model.id), "effort": .string(level),
+                                              "provider": .string(model.provider)]
         let text = instruction.trimmingCharacters(in: .whitespacesAndNewlines)
         if !text.isEmpty { args["instruction"] = .string(String(text.prefix(instructionLimit))) }
         return MailHelperCommand(kind: "draft", args: args)

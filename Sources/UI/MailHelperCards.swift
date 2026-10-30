@@ -295,17 +295,28 @@ struct MailDraftPopover: View {
                 .disabled(model.isWorking)
             }
             row("Model") {
-                pickerButton(model.model.title, MailDraftModel.allCases.map { m in
-                    AccountsKit.PopUpMenuButton.Item(title: m.title) { model.model = m }
-                })
+                pickerButton(model.model.title, modelItems)
             }
-            row("Thinking") {
-                pickerButton(model.effort.title, MailDraftEffort.allCases.map { e in
-                    AccountsKit.PopUpMenuButton.Item(title: e.title) { model.effort = e }
-                })
+            if !model.model.efforts.isEmpty {
+                row("Thinking") {
+                    pickerButton(MailDraftEffort.title(model.effort), model.model.efforts.map { e in
+                        AccountsKit.PopUpMenuButton.Item(title: MailDraftEffort.title(e)) { model.effort = e }
+                    })
+                }
             }
             if let note = model.note, !model.isFailed {
-                Text(verbatim: note).font(AppTheme.font(11.5)).foregroundStyle(AppTheme.warn)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(verbatim: note).font(AppTheme.font(11.5)).foregroundStyle(AppTheme.warn)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if let name = model.enableCredential {
+                        Button(model.enabling ? "Turning on\u{2026}" : "Turn on Claude for this account (\(name))") { model.enableClaude() }
+                            .buttonStyle(AccountsKit.SecondaryButton(compact: true, tint: AppTheme.accent))
+                            .disabled(model.enabling)
+                    }
+                }
+            }
+            if let last = model.lastNote, !model.isWorking, !model.isFailed {
+                Text(verbatim: last).font(AppTheme.font(11.5)).foregroundStyle(AppTheme.text2)
                     .fixedSize(horizontal: false, vertical: true)
             }
             footer
@@ -314,6 +325,19 @@ struct MailDraftPopover: View {
         .frame(width: 330, alignment: .leading)
         .background(AppTheme.background)
         .environment(\.colorScheme, .dark)
+    }
+
+    /// Local, then each cloud provider's current models under its name.
+    private var modelItems: [AccountsKit.PopUpMenuButton.Item] {
+        var items: [AccountsKit.PopUpMenuButton.Item] = []
+        var last: String?
+        for m in model.models {
+            if let last, last != m.provider { items.append(.separator) }
+            last = m.provider
+            let title = m.provider == "codex" && !m.title.lowercased().contains("codex") ? "Codex \u{00B7} \(m.title)" : m.title
+            items.append(AccountsKit.PopUpMenuButton.Item(title: title) { model.model = m })
+        }
+        return items
     }
 
     private func row<Content: View>(_ title: String, @ViewBuilder _ content: () -> Content) -> some View {
@@ -369,6 +393,11 @@ struct MailDraftPopover: View {
                 .font(AppTheme.font(12, .semibold)).foregroundStyle(AppTheme.warn)
                 .fixedSize(horizontal: false, vertical: true)
                 HStack {
+                    if let name = model.enableCredential {
+                        Button(model.enabling ? "Turning on\u{2026}" : "Turn on Claude (\(name))") { model.enableClaude() }
+                            .buttonStyle(AccountsKit.SecondaryButton(compact: true, tint: AppTheme.accent))
+                            .disabled(model.enabling)
+                    }
                     Spacer()
                     Button("Try again") { model.draft() }.buttonStyle(AccountsKit.PrimaryButton(compact: true))
                 }
