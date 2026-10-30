@@ -293,6 +293,9 @@ struct MailDraftPopover: View {
                 .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Color.white.opacity(0.06)))
                 .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(AppTheme.stroke))
                 .disabled(model.isWorking)
+                if let voice = model.voice {
+                    MailVoiceNoteBar(voice: voice, disabled: model.isWorking)
+                }
             }
             row("Model") {
                 pickerButton(model.model.title, modelItems)
@@ -403,5 +406,158 @@ struct MailDraftPopover: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Draft with AI: the voice note
+
+/// Under "What should it say?": say it instead of typing. Record, pause, stop, listen back, discard or send; the
+/// helper writes it out on this Mac and the draft starts (D-052).
+struct MailVoiceNoteBar: View {
+    @ObservedObject var voice: MailVoiceNoteModel
+    var disabled: Bool
+    @Environment(\.headlessRender) private var headless
+
+    var body: some View {
+        Group {
+            switch voice.phase {
+            case .idle:
+                HStack(spacing: 10) {
+                    Button { voice.record() } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "mic.fill").font(.system(size: 11, weight: .bold))
+                            Text("Say it instead")
+                        }
+                    }
+                    .buttonStyle(AccountsKit.SecondaryButton(compact: true, tint: AppTheme.accent))
+                    .help("Record what the reply should say. It\u{2019}s written out on this Mac.")
+                    Text("Record, then Send").font(AppTheme.font(11)).foregroundStyle(AppTheme.text3)
+                    Spacer(minLength: 0)
+                }
+            case .asking:
+                status(spinner: true, "Waiting for microphone access\u{2026}")
+            case .recording, .paused:
+                live
+            case .stopped:
+                HStack(spacing: 8) {
+                    round(voice.playing ? "pause.fill" : "play.fill", voice.playing ? "Pause" : "Listen back") { voice.togglePlay() }
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Voice note").font(AppTheme.font(12, .semibold)).foregroundStyle(AppTheme.text)
+                        Text(MailVoiceNoteModel.clock(voice.elapsed)).font(AppTheme.font(11)).monospacedDigit().foregroundStyle(AppTheme.text3)
+                    }
+                    Spacer(minLength: 0)
+                    round("trash", "Discard") { voice.discard() }
+                    round("arrow.counterclockwise", "Record again") { voice.record() }
+                    sendButton
+                }
+            case .sending:
+                status(spinner: true, "Writing out your voice note\u{2026}")
+            case .denied:
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Yaya\u{2019}s Calendar can\u{2019}t use the microphone. Turn it on in System Settings \u{2192} Privacy & Security \u{2192} Microphone.")
+                        .font(AppTheme.font(11.5)).foregroundStyle(AppTheme.warn).fixedSize(horizontal: false, vertical: true)
+                    HStack {
+                        Button("Open Settings") { voice.openPrivacy() }.buttonStyle(AccountsKit.SecondaryButton(compact: true))
+                        Button("Not now") { voice.discard() }.buttonStyle(AccountsKit.SecondaryButton(compact: true))
+                    }
+                }
+            case .failed(let message):
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(verbatim: message).font(AppTheme.font(11.5)).foregroundStyle(AppTheme.warn)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: 8) {
+                        if voice.isFailedWithClip {
+                            round(voice.playing ? "pause.fill" : "play.fill", "Listen back") { voice.togglePlay() }
+                        }
+                        Spacer(minLength: 0)
+                        round("trash", "Discard") { voice.discard() }
+                        if voice.isFailedWithClip { sendButton } else {
+                            Button("Record again") { voice.record() }.buttonStyle(AccountsKit.SecondaryButton(compact: true))
+                        }
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 10).padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(voice.phase == .recording ? AppTheme.bad.opacity(0.08) : Color.white.opacity(0.04)))
+        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous)
+            .strokeBorder(voice.phase == .recording ? AppTheme.bad.opacity(0.35) : AppTheme.stroke))
+        .disabled(disabled)
+        .animation(headless ? nil : .easeOut(duration: 0.15), value: voice.phase)
+    }
+
+    /// Recording or paused: the dot, the time, the bars, then pause or resume, stop and send.
+    private var live: some View {
+        let recording = voice.phase == .recording
+        return HStack(spacing: 8) {
+            Circle().fill(recording ? AppTheme.bad : AppTheme.text3).frame(width: 8, height: 8)
+                .opacity(recording && !headless ? 0.6 + 0.4 * Double(voice.levels.last ?? 0) : 1)
+            Text(recording ? MailVoiceNoteModel.clock(voice.elapsed) : "Paused \u{00B7} " + MailVoiceNoteModel.clock(voice.elapsed))
+                .font(AppTheme.font(12, .semibold)).monospacedDigit().foregroundStyle(recording ? AppTheme.text : AppTheme.text2)
+                .fixedSize()
+            MailVoiceBars(levels: voice.levels, tint: recording ? AppTheme.accent : AppTheme.text3)
+                .frame(height: 22)
+            round(recording ? "pause.fill" : "record.circle", recording ? "Pause" : "Resume") {
+                recording ? voice.pause() : voice.resume()
+            }
+            round("stop.fill", "Stop") { voice.stop() }
+            sendButton
+        }
+    }
+
+    private var sendButton: some View {
+        Button { voice.send() } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "paperplane.fill").font(.system(size: 10.5, weight: .bold))
+                Text("Send")
+            }
+        }
+        .buttonStyle(AccountsKit.PrimaryButton(compact: true))
+        .help("Write it out and draft the reply")
+    }
+
+    private func round(_ symbol: String, _ help: String, _ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol).font(.system(size: 11, weight: .bold)).foregroundStyle(AppTheme.text)
+                .frame(width: 26, height: 26)
+                .background(Circle().fill(Color.white.opacity(0.08)))
+                .overlay(Circle().strokeBorder(AppTheme.stroke))
+        }
+        .buttonStyle(.plain)
+        .help(help)
+        .accessibilityLabel(help)
+    }
+
+    private func status(spinner: Bool, _ text: String) -> some View {
+        HStack(spacing: 8) {
+            if spinner && !headless { ProgressView().controlSize(.small) }
+            Text(text).font(AppTheme.font(12, .semibold)).foregroundStyle(AppTheme.text2)
+            Spacer(minLength: 0)
+            Button("Cancel") { voice.discard() }.buttonStyle(AccountsKit.SecondaryButton(compact: true))
+        }
+    }
+}
+
+/// The input level of the last few seconds, as rounded bars (newest on the right).
+struct MailVoiceBars: View {
+    var levels: [Float]
+    var tint: Color
+
+    var body: some View {
+        GeometryReader { geo in
+            // As many of the newest bars as fit (2.5 pt wide, 2 pt apart), right-aligned.
+            let fit = max(0, min(levels.count, Int((geo.size.width + 2) / 4.5)))
+            HStack(alignment: .center, spacing: 2) {
+                ForEach(Array(levels.suffix(fit).enumerated()), id: \.offset) { _, level in
+                    Capsule().fill(tint.opacity(0.35 + 0.65 * Double(level)))
+                        .frame(width: 2.5, height: max(3, geo.size.height * CGFloat(min(1, level * 1.4))))
+                }
+            }
+            .frame(width: geo.size.width, height: geo.size.height, alignment: .trailing)
+        }
+        .frame(minWidth: 24, maxWidth: .infinity)
+        .clipped()
+        .accessibilityHidden(true)
     }
 }

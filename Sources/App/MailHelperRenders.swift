@@ -128,7 +128,19 @@ enum MailHelperRenders {
 
             // 5. The composer: Draft with AI on a reply (plain), its pop-over (rich), drafting, and the helper's error.
             func composer(_ name: String, format: ComposerFormat, draftAnswer: MailHelperResult?, open: Bool, act: Bool,
-                          pick: MailDraftModel = .local, thread: String = "th-juniper") {
+                          pick: MailDraftModel = .local, thread: String = "th-juniper",
+                          voice: (@MainActor (MailVoiceNoteModel, MailVoiceScriptedRecorder) -> Void)? = nil) {
+                let rec = MailVoiceScriptedRecorder()
+                let clips = FileManager.default.temporaryDirectory.appendingPathComponent("yc-render-voice", isDirectory: true)
+                try? FileManager.default.createDirectory(at: clips, withIntermediateDirectories: true)
+                var voiceEnv = MailVoiceNoteModel.Environment()
+                voiceEnv.newClip = { clips.appendingPathComponent(UUID().uuidString.lowercased() + ".wav") }
+                voiceEnv.publish = { (_: URL) -> String? in MailHelperFiles.clipName(UUID()) }
+                let makeVoice: @MainActor (MailHelperSession) -> MailVoiceNoteModel = { sess in
+                    MailVoiceNoteModel(session: sess, recorder: rec, env: voiceEnv)
+                }
+                MailHelperDraftModel.makeVoice = voice == nil ? nil : makeVoice
+                defer { MailHelperDraftModel.makeVoice = nil }
                 let fixture = FixtureMail.threads(now: now).first { $0.thread.r == thread }!
                 let request = ComposerRequest.reply(fixture.thread, fixture.messages.max { $0.date < $1.date })
                 let composer = ComposerModel(request: request, accounts: directory.accounts, safeSend: true, local: MemoryMailLocalStore(),
@@ -140,6 +152,7 @@ enum MailHelperRenders {
                                                     bag: MemoryBag(), clock: { clock }, insert: { [weak composer] in composer?.insertDraft($0) })
                 drafting.model = pick
                 drafting.instruction = act ? "Yes to Wednesday; ask whether 3 pm works" : ""
+                if let voice, let v = drafting.voice { voice(v, rec) }
                 if act {
                     drafting.draft()
                     clock = now.addingTimeInterval(95)
@@ -158,6 +171,36 @@ enum MailHelperRenders {
             composer("mailhelper-composer-draft-error", format: .rich,
                      draftAnswer: MailHelperResult(id: UUID(), ok: false, error: "Claude is off for this account.", data: .null),
                      open: true, act: true, pick: .opus)
+            // The voice note (D-052): ready, recording with its bars, paused, a clip to listen to, writing it out.
+            composer("mailhelper-composer-voice-ready", format: .rich, draftAnswer: nil, open: true, act: false, voice: { _, _ in })
+            composer("mailhelper-composer-voice-recording", format: .rich, draftAnswer: nil, open: true, act: false, voice: { v, r in
+                v.record()
+                for i in 0..<MailVoiceNoteModel.barCount {
+                    let x = Double(i)
+                    r.nextLevel = Float(0.25 + 0.6 * abs(sin(x * 0.55)))
+                    r.recorded = 0.37 * x
+                    v.tickNow()
+                }
+            })
+            composer("mailhelper-composer-voice-paused", format: .rich, draftAnswer: nil, open: true, act: false, voice: { v, r in
+                v.record()
+                for i in 0..<MailVoiceNoteModel.barCount {
+                    let x = Double(i)
+                    r.nextLevel = Float(0.2 + 0.5 * abs(cos(x * 0.4)))
+                    r.recorded = 0.5 * x
+                    v.tickNow()
+                }
+                v.pause()
+            })
+            composer("mailhelper-composer-voice-stopped", format: .rich, draftAnswer: nil, open: true, act: false, voice: { v, r in
+                v.record(); r.recorded = 21; v.stop()
+            })
+            composer("mailhelper-composer-voice-sending", format: .rich, draftAnswer: nil, open: true, act: false, voice: { v, r in
+                v.record(); r.recorded = 21; v.stop(); v.send()
+            })
+            composer("mailhelper-composer-voice-denied", format: .rich, draftAnswer: nil, open: true, act: false, voice: { v, r in
+                r.permission = false; v.record()
+            })
             composer("mailhelper-composer-draft-inserted", format: .plain,
                      draftAnswer: MailHelperResult(id: UUID(), ok: true, error: nil, data: .object(["draft": .string(
                         "Hi Juniper,\n\nWednesday works for me. Would 3 pm suit you? If not, any time after lunch is fine.\n\nThanks, Avery")])),
