@@ -3,6 +3,8 @@ import Foundation
 /// What a widget kind draws.
 enum WidgetContent: Equatable {
     case agenda, upNext, month, inbox, combo, day
+    /// Daily Digest (D-053): Yaya's Mail Helper's latest digest, one box per mailbox.
+    case digest
     /// Custom Widget A…F (letter); configured in Widget Studio.
     case custom(String)
 }
@@ -44,6 +46,11 @@ enum WidgetKinds {
         description: "One day hour by hour, with overlapping meetings side by side. Flip days with the arrows.",
         families: Family.allCases, content: .day)
 
+    static let digest = WidgetKindSpec(
+        kind: "digest", galleryName: "Daily Digest",
+        description: "Today's mail digest from Yaya's Mail Helper, one box per mailbox. Tap to read it.",
+        families: Family.allCases, content: .digest)
+
     static let customLetters = ["A", "B", "C", "D", "E", "F"]
     static let custom: [WidgetKindSpec] = customLetters.map { letter in
         WidgetKindSpec(
@@ -52,8 +59,8 @@ enum WidgetKinds {
             families: Family.allCases, content: .custom(letter))
     }
 
-    /// All 12, in gallery order.
-    static let all: [WidgetKindSpec] = [agenda, day, upNext, month, inbox, combo] + custom
+    /// All 13, in gallery order.
+    static let all: [WidgetKindSpec] = [agenda, day, upNext, month, inbox, combo, digest] + custom
 
     static func spec(_ kind: String) -> WidgetKindSpec? { all.first { $0.kind == kind } }
 }

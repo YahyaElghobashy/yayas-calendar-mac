@@ -23,7 +23,7 @@ enum RouteTable {
     /// Exactly the CONTRACTS table. Tests compare against it; add routes there first.
     static let all: [RouteSpec] = [
         RouteSpec(name: "ping", params: ["probe"], quiet: true),
-        RouteSpec(name: "open/app", params: ["section"], quiet: false),
+        RouteSpec(name: "open/app", params: ["section", "tab", "part"], quiet: false),
         RouteSpec(name: "page", params: ["w", "fam", "to"], quiet: true),
         RouteSpec(name: "day", params: ["w", "d"], quiet: true),
         RouteSpec(name: "month", params: ["w", "to"], quiet: true),

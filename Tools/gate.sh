@@ -113,8 +113,8 @@ if at_least 2; then
   at_least 3 && need+=( mailArchived inboxZero )
   at_least 4 && need+=( justSynced longMonth busyDay dayPicked customDay )
   missing=( ${need:|fixtures_seen} )
-  if (( busy_n == 108 && acc_n == 108 && vib_n == 108 && glass_n >= 60 && ${#missing} == 0 )); then
-    pass "manifest: coverage" "108 busy (12 kinds × families × light/dark) + 108 accented + 108 vibrant + $glass_n glass-state + $state_n state renders over ${#fixtures_seen} fixtures"
+  if (( busy_n == 118 && acc_n == 118 && vib_n == 118 && glass_n >= 60 && ${#missing} == 0 )); then
+    pass "manifest: coverage" "118 busy (13 kinds × families × light/dark) + 118 accented + 118 vibrant + $glass_n glass-state + $state_n state renders over ${#fixtures_seen} fixtures"
   else
     fail "manifest: coverage" "busy=$busy_n accented=$acc_n vibrant=$vib_n glass=$glass_n states=$state_n missing=${(j:,:)missing}"
   fi
@@ -380,7 +380,7 @@ if [[ "$PHASE" == "p1" ]]; then
   print -r -- "|---|---|---|---|---|"
   [[ -n "$manifest_rows" ]] && print -r -- "$manifest_rows"
   print -r -- ""
-  print -r -- "**${#widget_pngs} widget PNGs** (12 kinds × their families × light/dark), \`widget-<kind>-<family>-<look>.png\`:"
+  print -r -- "**${#widget_pngs} widget PNGs** (13 kinds × their families × light/dark), \`widget-<kind>-<family>-<look>.png\`:"
   print -r -- ""
   print -r -- '```'
   print -rl -- "${widget_pngs[@]}" | column -c 120

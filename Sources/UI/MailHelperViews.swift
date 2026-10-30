@@ -988,11 +988,15 @@ struct MailHelperDigestView: View {
                     .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity, alignment: .topLeading)
                     .clipped()
             } else {
-                ScrollView(.vertical) {
-                    pages(digest).frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .onScrollGeometryChange(for: CGFloat.self, of: { $0.contentOffset.y + $0.contentInsets.top }) { _, offset in
-                    if offset > 12 { model.digestDidScroll() }
+                ScrollViewReader { proxy in
+                    ScrollView(.vertical) {
+                        pages(digest).frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .onScrollGeometryChange(for: CGFloat.self, of: { $0.contentOffset.y + $0.contentInsets.top }) { _, offset in
+                        model.digestOffset(offset)
+                    }
+                    .onAppear { jump(proxy) }
+                    .onChange(of: model.digestFocus) { _, _ in jump(proxy) }
                 }
             }
         } else {
@@ -1002,8 +1006,20 @@ struct MailHelperDigestView: View {
         }
     }
 
+    /// A Daily Digest widget tap (D-053): to its section, or the top. Offsets while the jump settles set the baseline.
+    private func jump(_ proxy: ScrollViewProxy) {
+        guard let focus = model.digestFocus else { return }
+        model.digestJumped(true)
+        let target = model.digest?.sections.contains { $0.key == focus } == true ? focus : Self.topId
+        proxy.scrollTo(target, anchor: .top)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { model.digestJumped(false) }
+    }
+
+    static let topId = "digest-top"
+
     private func pages(_ d: MailHelperDigest) -> some View {
         VStack(alignment: .leading, spacing: 18) {
+            Color.clear.frame(height: 0).id(Self.topId)
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(verbatim: Self.title(d, now: model.now)).font(AppTheme.font(17, .heavy)).foregroundStyle(AppTheme.text)
@@ -1013,7 +1029,7 @@ struct MailHelperDigestView: View {
                 }
                 Spacer()
             }
-            ForEach(d.sections) { s in MailHelperDigestSection(model: model, section: s) }
+            ForEach(d.sections) { s in MailHelperDigestSection(model: model, section: s).id(s.key) }
             HStack {
                 Spacer()
                 MailHelperMarkControl(model: model, section: nil, title: "Mark all read")

@@ -324,6 +324,11 @@ final class MailHelperModel: ObservableObject {
     /// Read = done: the page was scrolled by the person, and which section ends are on screen.
     private(set) var digestScrolled = false
     private var endsOnScreen: Set<String> = []
+    /// The section the Digest tab scrolls to once (a Daily Digest widget tap, D-053); the view clears it.
+    @Published var digestFocus: String?
+    /// Where the page sat after the last jump: only the person's own scroll away from it counts as reading.
+    private(set) var digestBaseline: CGFloat = 0
+    private(set) var digestJumping = false
 
     init(session: MailHelperSession? = nil, directory: @escaping () -> AccountDirectory = { AccountDirectory.current() },
          bag: PreferenceBag = DefaultsBag.shared, live: Live = Live(), clock: @escaping () -> Date = { Date() },
@@ -700,6 +705,27 @@ final class MailHelperModel: ObservableObject {
     }
 
     /// The page moved under the person's hand: every section whose end is on screen counts as read.
+    /// The Daily Digest widget's tap (D-053): the Digest tab, at `part` when the digest has it. A jump is not
+    /// reading: section ends it brings on screen count only once the person scrolls the page (as at open, D-050).
+    func showDigest(part: String?) {
+        page = .digest
+        digestScrolled = false
+        digestFocus = part.flatMap { key in MailHelperIDs.isAccount(key) ? key : nil } ?? ""
+        session.refresh()
+    }
+
+    /// The view scrolled to `digestFocus`: offsets reported until `digestJumped(false)` set the new baseline.
+    func digestJumped(_ jumping: Bool) {
+        digestJumping = jumping
+        if !jumping { digestFocus = nil }
+    }
+
+    /// The page's scroll offset: a move of more than 12 pt from the baseline is the person's own scroll.
+    func digestOffset(_ offset: CGFloat) {
+        if digestJumping { digestBaseline = offset; return }
+        if abs(offset - digestBaseline) > 12 { digestDidScroll() }
+    }
+
     func digestDidScroll() {
         guard !digestScrolled else { return }
         digestScrolled = true

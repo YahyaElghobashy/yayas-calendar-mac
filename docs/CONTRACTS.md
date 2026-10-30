@@ -41,17 +41,21 @@ and C signed with the same identity; hardened runtime makes no difference):
 | `month` | Month | S M L XL XLP |
 | `inbox.all` | Inbox | M L XL XLP |
 | `combo.all` | Agenda & Inbox | L XL XLP |
+| `digest` | Daily Digest | S M L XL XLP (D-053) |
 | `custom.a` … `custom.f` | Custom Widget A … F | S M L XL XLP |
 XLP = `.systemExtraLargePortrait`, behind `#available(macOS 27, *)`.
 
 ## Widget snapshot — `widget/<kind>.json` (frozen seam, D-014)
 Type: `WidgetSnapshot` in `Sources/Shared/Snapshot.swift` (version 1). The data layer writes it, the
-UI layer reads it. Content: agenda | upNext | month | inbox | combo | day | setup | mailComingSoon (`day`: D-022).
+UI layer reads it. Content: agenda | upNext | month | inbox | combo | day | digest | setup | mailComingSoon | mailHelperOff
+(`day`: D-022; `digest`, `mailHelperOff`: D-053).
 Carries style (look auto/paper/ink, typeface, text size, logos, 24 h), accounts (id, tag, name, colour,
 hasLogo → `widget/logos/<id>.png`), health (ok/noAccounts/stale/reauth + syncedAt), meetings (r, k,
 accountIds, title, start, end, allDay, place, hasJoin, reply, clashes, rec: optional, D-045; recBy: optional, D-046), mail (r, k, accountId, sender,
 subject, at, unread, starred), unreadCount, pages per family + pageResetAt, selectedDay, monthShown,
-busyDays, windowStart/End, rangeDays. Day reuses `selectedDay` (nil = today; ‹ › send `day?w&d`). **No time-relative text**; atomic write only when `contentHash`
+busyDays, windowStart/End, rangeDays, digest (optional, D-053: the Daily Digest's `{id, day, total,
+sections[{key, title, count, read}], boxes[{account, label?, counts{section: n}, top[{text, section, pick?}]}]}`, at most
+12 boxes, 8 sections and 3 lines a box, text ≤ 140 characters; left out on every other kind). Day reuses `selectedDay` (nil = today; ‹ › send `day?w&d`). **No time-relative text**; atomic write only when `contentHash`
 (FNV-1a over sorted JSON, `generatedAt` excluded) changes; caps 120 meetings / 96 mail / 192 KB.
 
 ## Link keys
@@ -73,7 +77,7 @@ with a DECISIONS entry. `MailThread.labels` (D-050): the thread's Gmail label id
 | Route | Params | Quiet |
 |---|---|---|
 | `ping` | `probe` | yes |
-| `open/app` | `section` (`inbox`, `mailhelper` while Yaya's Mail Helper is installed, `calendar`, `widgets`, `accounts`, `settings`) | no |
+| `open/app` | `section` (`inbox`, `mailhelper` while Yaya's Mail Helper is installed, `calendar`, `widgets`, `accounts`, `settings`); with `section=mailhelper`: `tab` (`digest`) and `part` (a digest section key, D-053) | no |
 | `page` | `w` (kind), `fam`, `to` | yes |
 | `day` | `w`, `d` (YYYY-MM-DD) | yes |
 | `month` | `w`, `to` (YYYY-MM) | yes |
@@ -91,7 +95,9 @@ with a DECISIONS entry. `MailThread.labels` (D-050): the thread's Gmail label id
 URLs in links. `sync` alone syncs every account; `sync?w=<kind>` is a widget's ↻ (D-021): a forced
 full window re-list of that widget's calendar accounts plus an incremental mail pass for Inbox kinds,
 then that kind republished and reloaded while the agent is active; repeats for the same kind within
-5 s are ignored and traced; an unknown kind is ignored (`bad-kind`).
+5 s are ignored and traced; an unknown kind is ignored (`bad-kind`). `sync?w=digest` runs no Google pass: it re-reads
+Yaya's Mail Helper's files and asks the helper for fresh numbers (`refresh`), then republishes and reloads the
+Daily Digest (D-053).
 
 ## Installer flags
 For installers and scripts that set the app up or remove it.
@@ -228,6 +234,14 @@ the two share no code, Keychain item or network. The helper's side: its docs/CON
 - **Preferences** (UserDefaults): `mailhelper.vip.<UUID>`, `mailhelper.vipDomains.<UUID>` (the lists the helper last
   took), `mailhelper.draft.model.<UUID>`, `mailhelper.draft.effort.<UUID>`.
 - **Meeting people:** once a day (checked hourly) and when the helper appears, per handed-over account with meetings.
+- **Daily Digest widget** (D-053): the app turns the helper's `digest.json` and `status.accounts` into the `digest` kind's
+  snapshot (one box per mailbox the helper has, in the calendar's account order, then any other account an item names;
+  each box's section counts and up to 3 lines: summaries' headlines with `worth_opening` first, then subjects and update
+  groups, unread sections first). It republishes on the helper's ping when that content changed. Helper not installed:
+  `mailHelperOff`; installed without a readable digest: `digest` with no `digest` value. Taps:
+  `open/app?section=mailhelper&tab=digest` (`&part=<section>` from a section chip, or a mailbox's first unread section)
+  scrolls the Digest tab to that section; that scroll never counts as reading it (read = done stays the person's own
+  scroll, D-050).
 
 ## Accounts interface (shell ↔ accounts)
 `AccountsModel.shared: ObservableObject` with `start()`; `AccountsScreen(model:)` view.

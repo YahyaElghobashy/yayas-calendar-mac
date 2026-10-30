@@ -31,6 +31,7 @@ logos, end times, locations, declined meetings, all-day events. Clock: 12 h · 2
 | Inbox | Newest mail from all your inboxes. Tap to read, mark read or archive. |
 | Agenda & Inbox | Meetings on one side, mail on the other. |
 | Month | Tap a day on the calendar to see its meetings. |
+| Daily Digest | Today's mail digest from Yaya's Mail Helper, one box per mailbox. Tap to read it. |
 | Custom Widget A–F | Pick its calendars and look in Yaya's Calendar → Widgets. |
 
 ## Month widget (added 2026-10-19)
@@ -89,6 +90,31 @@ slice opens at its first timed meeting (9 AM when it has none) and says "Nothing
 The "Last synced" / re-auth strip takes 7 pt from L / XL / XLP's grid (as Agenda's pages do). Timelines:
 `TimelinePlan.dayEntryDates` (only where the drawing changes; D-019). The headless renders match the
 design's reference drawings within run-to-run antialiasing noise (max 2/255).
+
+## Daily Digest widget (added 2026-10-30, D-053)
+Yaya's Mail Helper's morning digest at a glance, in this file's language, one box per mailbox (any number;
+what doesn't fit folds into "+N more mailboxes"). Views `Sources/Shared/Widgets/Digest.swift`.
+
+- **Badge.** "12 unread" on the accent (the items of every section not read yet), "✓ All read" on the soft
+  accent once every section is read. Small and Medium draw the number large (rounded, heavy), the word beside it.
+- **Mailboxes.** The account's logo, or its initial on the account's colour (Personal and mailboxes without a
+  logo still get a face); its name; its first line; its own count (accent pill, ✓ when read, "–" on a quiet
+  day). Small shows up to four marks with an accent dot on the ones with unread mail.
+- **Summary of the summary.** Large and up open with a band card (accent edge) of the top two or three lines
+  across mailboxes: ✦ for "worth opening", picks and unread sections first, one mailbox at a time; then the
+  sections as chips ("Social 5", read ones outlined with ✓) on Large and Portrait, or as a list with "✓ Read"
+  on Extra Large.
+- **Header.** Large and up: the mark, "Daily Digest", "Today · Monday 19 October" (the day in the accent),
+  the badge, ↻. Small: "DIGEST", the day. Medium: "DAILY DIGEST", the day, the date; "MAILBOXES" and ↻
+  over the rows.
+- **States.** Unread, all read (lines and chips dim), no digest yet, Yaya's Mail Helper not on this Mac: the
+  last two as whole cards in the widgets' own voice (`DigestCopy`).
+
+**Wiring.** Kind `digest` (after Agenda & Inbox; all five families), `widget/digest.json` with
+`Content.digest` and the `digest` value (or `Content.mailHelperOff`). Taps: header → the Digest tab
+(`open/app?section=mailhelper&tab=digest`); badge → its first unread section (`&part=<key>`); a chip, a
+section row or a summary line → that section; a mailbox → its first unread section; ↻ → `sync?w=digest`
+(re-reads the helper's files). Timelines: one entry, then midnight ("Today" becomes "Yesterday").
 
 ## Desktop not in focus (added 2026-10-28, D-047)
 With another app in front, macOS draws desktop widgets in a monochrome mode on its own glass and removes

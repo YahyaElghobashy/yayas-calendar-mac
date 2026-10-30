@@ -79,6 +79,7 @@ final class WidgetStudioModel: ObservableObject {
         case .inbox: return .inbox
         case .combo: return .combo
         case .day: return .day
+        case .digest: return .digest
         case .custom: return nil
         }
     }
@@ -221,6 +222,11 @@ final class WidgetStudioModel: ObservableObject {
             let kept = Set(FixtureAccounts.all.enumerated().filter { places.contains($0.offset) }.map { $0.element.id.uuidString })
             data.meetings = data.meetings.filter { m in m.accountIds.contains { kept.contains($0) } }
             data.mail = data.mail.filter { kept.contains($0.account.id) }
+        }
+        if snapshot.content == .digest {
+            // The Daily Digest (D-053) draws the cast's sample digest, never this Mac's.
+            data.digest = WidgetSample.digest(now: now, accounts: WidgetSample.accounts(logos: WidgetSample.badges), calendar: calendar)
+            data.state = .content
         }
         return (data, model.style(dark: dark))
     }

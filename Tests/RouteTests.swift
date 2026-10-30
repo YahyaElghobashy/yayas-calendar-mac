@@ -6,7 +6,7 @@ enum RouteTests {
         // name, params, quiet: copied from docs/CONTRACTS.md by hand, on purpose.
         let contracts: [(String, [String], Bool)] = [
             ("ping", ["probe"], true),
-            ("open/app", ["section"], false),
+            ("open/app", ["section", "tab", "part"], false),
             ("page", ["w", "fam", "to"], true),
             ("day", ["w", "d"], true),
             ("month", ["w", "to"], true),

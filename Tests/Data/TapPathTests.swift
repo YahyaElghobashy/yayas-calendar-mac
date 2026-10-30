@@ -61,7 +61,7 @@ enum TapPathTests {
         h.clock.advance(120)
         for a in accounts { SyncStatusRepo(db: h.db).recordSuccess(a.id, at: h.clock.now) }
         let changed = engine.publisher.publishAll(reason: .background)
-        expect(changed.count == 12, "a sync pass rewrites every snapshot (syncedAt)")
+        expect(changed.count == 12, "a sync pass rewrites every snapshot with a sync time (syncedAt; the Daily Digest has none)")
         expect(h.reloader.reloads.value.isEmpty, "…without a background reload (sync time only)")
 
         // The first tap after it: the router's action, then its flush.

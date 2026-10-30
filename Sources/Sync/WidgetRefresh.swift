@@ -56,7 +56,8 @@ extension DataEngine {
     func refreshTargets(kind: String) -> (calendar: Set<UUID>, mail: Set<UUID>) {
         guard let spec = WidgetKinds.spec(kind) else { return ([], []) }
         let settings = WidgetSettingsCodec.settings(from: try? WidgetRepo(db: db).settings(kind: kind), kind: kind)
-        guard let base = publisher.baseContent(spec, settings) else { return ([], []) }
+        // The Daily Digest (D-053) shows the helper's files, not Google: its ↻ runs no pass (the router re-reads them).
+        guard let base = publisher.baseContent(spec, settings), base != .digest else { return ([], []) }
         let accounts = (try? AccountRepo(db: db).all()) ?? []
         let google = publisher.included(settings: settings, base: base, accounts: accounts)
             .filter { $0.provider == Provider.google.rawValue }

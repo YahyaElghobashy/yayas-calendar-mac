@@ -258,6 +258,10 @@ enum SnapshotFixtures {
     }
 
     private static func unfiltered(_ name: String, kind: String, now: Date?, calendar cal: Calendar) -> WidgetSnapshot {
+        #if YC_DEV_TOOLS
+        // The Daily Digest's own states (D-053); any other fixture draws the busy digest on it.
+        if kind == WidgetKinds.digest.kind { return digestFixture(name, now: now ?? self.now, calendar: cal) }
+        #endif
         switch name {
         case "busyPage2":
             var s = busy(kind: kind, now: now ?? self.now, calendar: cal)
@@ -349,6 +353,54 @@ enum SnapshotFixtures {
         }
     }
 
+    #if YC_DEV_TOOLS
+    /// The Daily Digest (D-053), as the publisher writes it from the helper's fixture files: `busy` (and any other name)
+    /// = Monday's digest, codes and security read; `digestAllRead`; `digestNone` (installed, no digest yet);
+    /// `mailHelperOff` (the helper isn't on this Mac); `digestMany` (seven mailboxes, four the calendar doesn't know).
+    static func digestFixture(_ name: String, now: Date, calendar cal: Calendar) -> WidgetSnapshot {
+        var s = base(kind: WidgetKinds.digest.kind, meetings: [], now: now, calendar: cal)
+        s.health = WidgetSnapshot.Health()
+        s.busyDays = []
+        switch name {
+        case "mailHelperOff":
+            s.content = .mailHelperOff
+            s.accounts = []
+            return s
+        case "digestNone":
+            s.accounts = []
+            return s
+        default:
+            break
+        }
+        var digest = FixtureDigest.snapshot()
+        switch name {
+        case "digestAllRead":
+            for i in digest.sections.indices { digest.sections[i].read = true }
+        case "digestLargeText":
+            s.style.textSize = WidgetStyle.TextSize.large.key
+        case "digestMany":
+            let extra: [(String, String, String, Bool)] = [
+                ("00000000-0000-4000-8000-0000000000B1", "avery@lanternhall.example", "Members get early booking for the winter season", true),
+                ("00000000-0000-4000-8000-0000000000B2", "avery@moonbase-outfitters.example", "Your saved boots are back in stock", false),
+                ("00000000-0000-4000-8000-0000000000B3", "avery@cometchords.example", "Rehearsal room moves to Studio 2", false),
+                ("00000000-0000-4000-8000-0000000000B4", "avery@parcelwing.example", "Two parcels arrive on Wednesday", false),
+            ]
+            for (id, email, text, pick) in extra {
+                digest.boxes.append(.init(account: id, label: email, counts: ["newsletters": 1],
+                                          top: [.init(text: text, section: "newsletters", pick: pick ? true : nil)]))
+            }
+            if let i = digest.sections.firstIndex(where: { $0.key == "newsletters" }) { digest.sections[i].count += extra.count }
+            digest.total += extra.count
+        default:
+            break
+        }
+        let ids = Set(digest.boxes.map(\.account))
+        s.accounts = FixtureAccounts.snapshotAccounts.filter { ids.contains($0.id) }
+        s.digest = digest
+        return s
+    }
+    #endif
+
     /// The busy week for a kind, as the data layer publishes it with mail on: Inbox and Agenda &
     /// Inbox carry the sample inbox (14 threads, 7 unread, 2 starred); Custom A–F are a mix of set-up
     /// slots (A "Work" agenda for ORB + FAM, B month, C up next, D "Band" agenda for CMT) and two not set up.
@@ -356,6 +408,9 @@ enum SnapshotFixtures {
     static func busy(kind: String, now: Date? = nil, calendar: Calendar? = nil) -> WidgetSnapshot {
         let cal = calendar ?? self.calendar
         let n = now ?? self.now
+        #if YC_DEV_TOOLS
+        if kind == WidgetKinds.digest.kind { return digestFixture("busy", now: n, calendar: cal) }
+        #endif
         var s = base(kind: kind, meetings: FixtureWeek.busy(now: n, calendar: cal), now: n, calendar: cal)
         let wednesday = DayName.posixDay(cal.date(byAdding: .day, value: 2, to: cal.startOfDay(for: n))!, calendar: cal)
         switch kind {
@@ -401,6 +456,7 @@ enum SnapshotFixtures {
         case .inbox?: content = .inbox
         case .combo?: content = .combo
         case .day?: content = .day
+        case .digest?: content = .digest
         default: content = .agenda
         }
         let rows = meetings.sorted { ($0.start, $0.r) < ($1.start, $1.r) }.prefix(WidgetSnapshot.maxMeetings).map(\.snapshotRow)

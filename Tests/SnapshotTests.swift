@@ -308,7 +308,7 @@ enum SnapshotTests {
             default: return (name, "agenda.all")
             }
         } + [("busy", "month"), ("busy", "upnext"), ("busy", "custom.b"), ("busy", "inbox.all"), ("busy", "combo.all"),
-             ("busy", "day")]
+             ("busy", "day"), ("busy", "digest"), ("digestMany", "digest")]
     }
 
     /// `shell-tests --write-fixtures <dir>`: (re)writes the committed JSON fixtures.

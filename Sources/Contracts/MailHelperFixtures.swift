@@ -232,4 +232,15 @@ enum MailHelperFixtures {
     /// Fixture files for Tests/Fixtures (the same text, without the Swift indentation).
     static let files: [(name: String, text: String)] = [("mailhelper-state.json", state), ("mailhelper-digest.json", digest)]
 }
+
+/// The helper's fixture files as the Daily Digest's snapshot (D-053), the way `MailHelperLive` builds it.
+enum FixtureDigest {
+    static func snapshot() -> WidgetSnapshot.Digest {
+        let digest = MailHelperParse.digest(Data(MailHelperFixtures.digest.utf8)).value ?? nil
+        let state = MailHelperParse.state(Data(MailHelperFixtures.state.utf8)).value
+        guard let digest else { return WidgetSnapshot.Digest(id: 0, day: "", total: 0, sections: [], boxes: []) }
+        return MailHelperDigestWidget.snapshot(digest, mailboxes: MailHelperDigestWidget.mailboxes(state),
+                                               known: FixtureAccounts.all.map(\.id))
+    }
+}
 #endif

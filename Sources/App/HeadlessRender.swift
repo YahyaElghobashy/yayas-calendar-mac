@@ -104,7 +104,7 @@ enum HeadlessRender {
                 snapshot.style.look = look
                 let json = SnapshotFixtures.json(snapshot)
                 if spec.kind == WidgetKinds.agenda.kind || fixture == "busy" && spec.kind == WidgetKinds.month.kind
-                    || spec.kind == WidgetKinds.inbox.kind || spec.kind == WidgetKinds.day.kind {
+                    || spec.kind == WidgetKinds.inbox.kind || spec.kind == WidgetKinds.day.kind || spec.kind == WidgetKinds.digest.kind {
                     try? json.write(to: dir.appendingPathComponent("fixtures/\(fixture)-\(spec.kind).json"))
                 }
                 guard let decoded = SnapshotFixtures.decode(json) else {
@@ -122,6 +122,7 @@ enum HeadlessRender {
             info["page"] = page
             if let rows = KindView.meetingRows(spec: spec, family: family, data: data, style: style, page: page) { info["meetingRows"] = rows }
             if let rows = KindView.mailRows(spec: spec, family: family, data: data, style: style, page: page) { info["mailRows"] = rows }
+            if let boxes = KindView.digestBoxes(spec: spec, family: family, data: data, style: style) { info["digestBoxes"] = boxes }
             let pages = KindView.pageCount(spec: spec, family: family, data: data, style: style)
             if pages > 0 { info["pages"] = pages }
             let view = KindView(spec: spec, family: family, data: data, style: style, page: page)
@@ -147,7 +148,7 @@ enum HeadlessRender {
             }
         }
         let busyCount = manifest.count
-        print("  busy week: \(busyCount) PNGs (12 kinds × families × light/dark)")
+        print("  busy week: \(busyCount) PNGs (13 kinds × families × light/dark)")
 
         // 2. States.
         let agenda = WidgetKinds.agenda, month = WidgetKinds.month, upNext = WidgetKinds.upNext, day = WidgetKinds.day
@@ -175,6 +176,13 @@ enum HeadlessRender {
             ("busyDay", [(day, all)]),
             ("dayPicked", [(day, all)]),
             ("customDay", [(custom("f"), all)]),
+            // Daily Digest (D-053): unread (the busy renders), all read, seven mailboxes, no digest yet, no helper;
+            // the busy digest at the Large text size.
+            ("digestAllRead", [(WidgetKinds.digest, all)]),
+            ("digestMany", [(WidgetKinds.digest, all)]),
+            ("digestNone", [(WidgetKinds.digest, all)]),
+            ("mailHelperOff", [(WidgetKinds.digest, all)]),
+            ("digestLargeText", [(WidgetKinds.digest, all)]),
         ]
         var stateCount = 0
         for (fixture, targets) in states {
@@ -213,6 +221,8 @@ enum HeadlessRender {
             ("mailArchived", [(WidgetKinds.inbox, [.medium, .large]), (WidgetKinds.combo, [.extraLargePortrait])]),
             ("inboxZero", [(WidgetKinds.inbox, [.large])]),
             ("busyDay", [(day, [.large, .extraLargePortrait])]),
+            ("digestAllRead", [(WidgetKinds.digest, [.small, .large])]),
+            ("mailHelperOff", [(WidgetKinds.digest, [.medium])]),
         ]
         for (fixture, targets) in glassStates {
             for (spec, families) in targets {

@@ -63,6 +63,12 @@ enum HeadlessBench {
             for family in Family.allCases { cases.append(Case(fixture: fixture, spec: WidgetKinds.day, family: family, data: data)) }
         }
 
+        // The Daily Digest (D-053): the busy digest and seven mailboxes, every family.
+        for fixture in ["busy", "digestMany"] {
+            guard let data = snapshotData(fixture, kind: WidgetKinds.digest.kind, now: now) else { return 1 }
+            for family in Family.allCases { cases.append(Case(fixture: fixture, spec: WidgetKinds.digest, family: family, data: data)) }
+        }
+
         // `YC_BENCH_ONLY=fixture:kind:family` (e.g. busy:month:S) keeps one case (profiling with `sample`).
         if let only = ProcessInfo.processInfo.environment["YC_BENCH_ONLY"], !only.isEmpty {
             cases = cases.filter { "\($0.fixture):\($0.spec.kind):\($0.family.short)" == only }

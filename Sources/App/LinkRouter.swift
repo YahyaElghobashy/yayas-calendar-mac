@@ -167,6 +167,13 @@ final class LinkRouter {
             Trace.app("recv open/app", ["section": section?.rawValue ?? "-", "at": ms])
             openMain(section)
             return .window
+        case .openDigest(let part):
+            // The Daily Digest widget (D-053): the Digest tab, scrolled to the tapped section.
+            Trace.app("recv open/app", ["section": AppSection.mailHelper.rawValue, "tab": "digest", "part": part == nil ? "-" : "1",
+                                        "at": ms])
+            ShellModel.shared.mailHelper.showDigest(part: part)
+            openMain(.mailHelper)
+            return .window
         case .reauth:
             // The account card's own "Sign in again" lives in Accounts.
             Trace.app("recv reauth", ["at": ms])
@@ -199,6 +206,8 @@ final class LinkRouter {
                 return .quiet
             }
             Trace.app("recv sync", ["w": kind, "at": ms])
+            // The Daily Digest (D-053) shows the helper's files: read them again before its republish.
+            if kind == WidgetKinds.digest.kind { MailHelperLive.refreshForWidget() }
             if !batchRefreshes.contains(kind) { batchRefreshes.append(kind) }
             return .quiet
         case .join(let r):

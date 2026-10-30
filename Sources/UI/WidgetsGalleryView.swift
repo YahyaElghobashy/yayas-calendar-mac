@@ -18,9 +18,12 @@ struct WidgetsGalleryContent: View {
 
     static let previewScale: CGFloat = 0.72
 
-    /// Kinds shown as cards: the six named kinds, then Custom A–F once.
-    private var entries: [WidgetKindSpec] { [WidgetKinds.agenda, WidgetKinds.day, WidgetKinds.upNext, WidgetKinds.month,
-                                            WidgetKinds.inbox, WidgetKinds.combo, WidgetKinds.custom[0]] }
+    /// Kinds shown as cards: the named kinds (the Daily Digest only while Yaya's Mail Helper is on this Mac, D-053),
+    /// then Custom A–F once.
+    private var entries: [WidgetKindSpec] {
+        [WidgetKinds.agenda, WidgetKinds.day, WidgetKinds.upNext, WidgetKinds.month, WidgetKinds.inbox, WidgetKinds.combo]
+            + (MailHelperSession.shared.installed ? [WidgetKinds.digest] : []) + [WidgetKinds.custom[0]]
+    }
 
     var body: some View {
         // Renders pin the sample week and the fixed calendar; the live app shows the sample week starting today.

@@ -21,6 +21,7 @@ struct YayasCalendarWidgets: WidgetBundle {
         MonthKindWidget()
         InboxKindWidget()
         ComboKindWidget()
+        DigestKindWidget()
         CustomKindWidgets().body
     }
 }
@@ -43,6 +44,7 @@ struct UpNextKindWidget: Widget { var body: some WidgetConfiguration { KindConfi
 struct MonthKindWidget: Widget { var body: some WidgetConfiguration { KindConfiguration.make(WidgetKinds.month) } }
 struct InboxKindWidget: Widget { var body: some WidgetConfiguration { KindConfiguration.make(WidgetKinds.inbox) } }
 struct ComboKindWidget: Widget { var body: some WidgetConfiguration { KindConfiguration.make(WidgetKinds.combo) } }
+struct DigestKindWidget: Widget { var body: some WidgetConfiguration { KindConfiguration.make(WidgetKinds.digest) } }
 struct CustomAWidget: Widget { var body: some WidgetConfiguration { KindConfiguration.make(WidgetKinds.custom[0]) } }
 struct CustomBWidget: Widget { var body: some WidgetConfiguration { KindConfiguration.make(WidgetKinds.custom[1]) } }
 struct CustomCWidget: Widget { var body: some WidgetConfiguration { KindConfiguration.make(WidgetKinds.custom[2]) } }
