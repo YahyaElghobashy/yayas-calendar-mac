@@ -25,8 +25,8 @@ enum DigestWidgetTests {
         {"version": 1, "updated_at": 1793392915, "source": "model-atlas", "title": "Model Atlas", "report": "2026-10-17",
          "scan": "2026-10-17_1008", "lines": [{"text": "New: Pickle-7B\u0007 runs on a 16 GB Mac.", "kind": "New"},
          {"text": "", "kind": "try"}, {"text": 5}], "alerts": ["Backups growing", 7],
-         "counts": {"models": 24}, "open": {"atlas": "/Users/a/Notes/Model Atlas/ATLAS.md",
-         "report": "/Users/a/Notes/Model Atlas/landscape/2026-10-17.md"}}
+         "counts": {"models": 24}, "open": {"atlas": "/Users/user/Notes/Model Atlas/ATLAS.md",
+         "report": "/Users/user/Notes/Model Atlas/landscape/2026-10-17.md"}}
         """#
         guard let d = ModelAtlasParse.digest(Data(file.utf8)).value else { return T.check(false, "the feed parses") }
         T.equal(d.report, "2026-10-17", "report day")
@@ -47,13 +47,13 @@ enum DigestWidgetTests {
         T.equal(ModelAtlasFiles.changedNotification, Profile.modelAtlasId + ".changed", "ping name")
 
         T.section("Model Atlas box (D-054): what a tap may open")
-        let home = "/Users/a"
-        T.equal(ModelAtlasOpen.target(d, home: home), "/Users/a/Notes/Model Atlas/landscape/2026-10-17.md", "the week's report first")
+        let home = "/Users/user"
+        T.equal(ModelAtlasOpen.target(d, home: home), "/Users/user/Notes/Model Atlas/landscape/2026-10-17.md", "the week's report first")
         var noReport = d; noReport.reportPath = nil
-        T.equal(ModelAtlasOpen.target(noReport, home: home), "/Users/a/Notes/Model Atlas/ATLAS.md", "else the atlas")
-        for path in ["/Users/b/Model Atlas/ATLAS.md", "/Users/a/Model Atlas/../.ssh/ATLAS.md", "/Users/a/Model Atlas/run.sh",
-                     "/Users/a/Elsewhere/ATLAS.md", "/Users/a/Model Atlas/landscape/notes.md", "relative/Model Atlas/ATLAS.md",
-                     "/Users/a/Model Atlas/landscape/2026-02-30.md", "/Users/a/Model Atlas//ATLAS.md"] {
+        T.equal(ModelAtlasOpen.target(noReport, home: home), "/Users/user/Notes/Model Atlas/ATLAS.md", "else the atlas")
+        for path in ["/Users/you/Model Atlas/ATLAS.md", "/Users/user/Model Atlas/../.ssh/ATLAS.md", "/Users/user/Model Atlas/run.sh",
+                     "/Users/user/Elsewhere/ATLAS.md", "/Users/user/Model Atlas/landscape/notes.md", "relative/Model Atlas/ATLAS.md",
+                     "/Users/user/Model Atlas/landscape/2026-02-30.md", "/Users/user/Model Atlas//ATLAS.md"] {
             T.equal(ModelAtlasOpen.allowed(path, home: home), nil, "refused: \(path)")
         }
 
